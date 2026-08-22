@@ -29,6 +29,8 @@ import {
   Mail,
   MapPin,
   MessageCircle,
+  Facebook,
+  Instagram,
 } from 'lucide-react';
 
 interface Product {
@@ -1537,6 +1539,29 @@ export default function CustomerStore() {
               <p className="text-xs text-[#64748B] leading-relaxed">
                 Directly from authentic farmlands to your doorstep. Committed to freshness, pure quality produce, and GST-compliant fair trade.
               </p>
+
+              {/* Social Media Links */}
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-xs font-bold text-[#163B5C]">Follow Us:</span>
+                <a
+                  href="https://www.facebook.com/Beeshubfarmland/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-xs"
+                  title="Follow BeesHub Farmland on Facebook"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://www.instagram.com/beeshubfarmland"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-xl bg-pink-50 text-pink-600 border border-pink-200 flex items-center justify-center hover:bg-pink-600 hover:text-white transition-all shadow-xs"
+                  title="Follow BeesHub Farmland on Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+              </div>
             </div>
 
             {/* Registered Address */}
