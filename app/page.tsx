@@ -153,7 +153,7 @@ export default function CustomerStore() {
       } else {
         localStorage.removeItem('beeshub_cart');
       }
-    } catch (err) {}
+    } catch (err) { }
   }, [cart]);
 
   // 3. Persist Checkout Form & Modal state
@@ -161,7 +161,7 @@ export default function CustomerStore() {
     try {
       localStorage.setItem('beeshub_checkout_form', JSON.stringify(checkoutForm));
       localStorage.setItem('beeshub_checkout_open', isCheckoutOpen ? 'true' : 'false');
-    } catch (err) {}
+    } catch (err) { }
   }, [checkoutForm, isCheckoutOpen]);
 
   // Fetch Dynamic Categories
@@ -365,7 +365,7 @@ export default function CustomerStore() {
           localStorage.removeItem('beeshub_cart');
           localStorage.removeItem('beeshub_checkout_form');
           localStorage.removeItem('beeshub_checkout_open');
-        } catch (e) {}
+        } catch (e) { }
 
         fetchProducts(); // Refresh stock
       } else {
@@ -376,6 +376,30 @@ export default function CustomerStore() {
     } finally {
       setSubmittingOrder(false);
     }
+  };
+
+  const getWhatsAppSupportLink = (order: any) => {
+    if (!order) return 'https://wa.me/919578784431';
+    const itemsList = order.items
+      ? order.items.map((it: any) => `• ${it.name} x ${it.quantity} (₹${(it.price * it.quantity).toLocaleString('en-IN')})`).join('\n')
+      : '';
+
+    const text = `Hello BeesHub Farmland Team 👋,
+
+I need support regarding my order:
+
+🆔 *Order ID:* ${order.orderId || ''}
+👤 *Name:* ${order.customerName || ''}
+${order.customerPhone ? `📞 *Phone:* ${order.customerPhone}\n` : ''}${order.shippingAddress ? `📍 *Address:* ${order.shippingAddress} - ${order.pincode || ''}\n` : ''}
+🛒 *Items Ordered:*
+${itemsList}
+
+💰 *Total Amount:* ₹${order.totalAmount ? order.totalAmount.toLocaleString('en-IN') : 0}
+💳 *Payment Mode:* ${order.paymentMethod === 'UPI' ? 'Online UPI' : 'Cash on Delivery'} (${order.paymentStatus || 'Pending'})
+${order.transactionId ? `🔢 *UTR / Ref:* ${order.transactionId}\n` : ''}${order.status ? `📦 *Status:* ${order.status}\n` : ''}
+Please assist me with this order. Thank you!`;
+
+    return `https://wa.me/919578784431?text=${encodeURIComponent(text)}`;
   };
 
   const dynamicCategoryList = ['All', ...categories.map((c) => c.name)];
@@ -543,11 +567,10 @@ export default function CustomerStore() {
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                  selectedCategory === cat
-                    ? 'bg-[#ED3500] text-white shadow-md shadow-[#ED3500]/20'
-                    : 'bg-white border border-[#E8EDF2] text-[#64748B] hover:text-[#163B5C] hover:border-[#163B5C]/20'
-                }`}
+                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === cat
+                  ? 'bg-[#ED3500] text-white shadow-md shadow-[#ED3500]/20'
+                  : 'bg-white border border-[#E8EDF2] text-[#64748B] hover:text-[#163B5C] hover:border-[#163B5C]/20'
+                  }`}
               >
                 {cat}
               </button>
@@ -706,11 +729,10 @@ export default function CustomerStore() {
                       <button
                         disabled={isOutOfStock}
                         onClick={() => addToCart(product)}
-                        className={`w-full py-2 sm:py-2.5 px-3 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${
-                          isOutOfStock
-                            ? 'bg-[#E8EDF2] text-[#64748B] cursor-not-allowed'
-                            : 'bg-[#ED3500] hover:bg-[#D02E00] text-white shadow-md hover:shadow-lg shadow-[#ED3500]/20 active:scale-95'
-                        }`}
+                        className={`w-full py-2 sm:py-2.5 px-3 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${isOutOfStock
+                          ? 'bg-[#E8EDF2] text-[#64748B] cursor-not-allowed'
+                          : 'bg-[#ED3500] hover:bg-[#D02E00] text-white shadow-md hover:shadow-lg shadow-[#ED3500]/20 active:scale-95'
+                          }`}
                       >
                         <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         {isOutOfStock ? 'Sold Out' : 'Add to Bag'}
@@ -836,15 +858,14 @@ export default function CustomerStore() {
                               {ord.orderId}
                             </span>
                             <span
-                              className={`px-3 py-0.5 rounded-full text-xs font-extrabold ${
-                                ord.status === 'Completed'
-                                  ? 'bg-emerald-100 text-emerald-700'
-                                  : ord.status === 'Processing'
+                              className={`px-3 py-0.5 rounded-full text-xs font-extrabold ${ord.status === 'Completed'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : ord.status === 'Processing'
                                   ? 'bg-blue-100 text-blue-700'
                                   : ord.status === 'Cancelled'
-                                  ? 'bg-rose-100 text-rose-700'
-                                  : 'bg-amber-100 text-amber-700 animate-pulse'
-                              }`}
+                                    ? 'bg-rose-100 text-rose-700'
+                                    : 'bg-amber-100 text-amber-700 animate-pulse'
+                                }`}
                             >
                               {ord.status}
                             </span>
@@ -882,6 +903,15 @@ export default function CustomerStore() {
                         ))}
                       </div>
 
+                      {/* Estimated Delivery Banner */}
+                      <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          Estimated Delivery:
+                        </span>
+                        <strong className="text-amber-900 font-bold">Within 3 to 4 business days</strong>
+                      </div>
+
                       {/* Shipping details */}
                       <div className="p-3 rounded-xl bg-white border border-[#E8EDF2] text-xs text-[#64748B] space-y-1">
                         <p>
@@ -889,6 +919,16 @@ export default function CustomerStore() {
                         </p>
                         <p className="line-clamp-1">{ord.shippingAddress} - {ord.pincode}</p>
                       </div>
+
+                      {/* WhatsApp Support with Loaded Order Details */}
+                      <a
+                        href={getWhatsAppSupportLink(ord)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#10B981]/10 hover:bg-[#10B981] text-[#10B981] hover:text-white font-bold text-xs border border-[#10B981]/30 transition-all flex items-center justify-center gap-2"
+                      >
+                        <MessageCircle className="w-4 h-4" /> Need Order Support? Chat on WhatsApp
+                      </a>
                     </div>
                   ))}
                 </div>
@@ -1234,20 +1274,18 @@ export default function CustomerStore() {
                     <button
                       type="button"
                       onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'UPI' })}
-                      className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${
-                        checkoutForm.paymentMethod === 'UPI'
-                          ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
-                          : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
-                      }`}
+                      className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'UPI'
+                        ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
+                        : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
+                        }`}
                     >
                       <div className="flex items-center justify-between w-full">
                         <QrCode className="w-6 h-6 text-[#ED3500]" />
                         <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            checkoutForm.paymentMethod === 'UPI'
-                              ? 'border-[#ED3500] bg-[#ED3500]'
-                              : 'border-[#64748B]'
-                          }`}
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'UPI'
+                            ? 'border-[#ED3500] bg-[#ED3500]'
+                            : 'border-[#64748B]'
+                            }`}
                         >
                           {checkoutForm.paymentMethod === 'UPI' && (
                             <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
@@ -1266,20 +1304,18 @@ export default function CustomerStore() {
                     <button
                       type="button"
                       onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'COD' })}
-                      className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${
-                        checkoutForm.paymentMethod === 'COD'
-                          ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
-                          : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
-                      }`}
+                      className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'COD'
+                        ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
+                        : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
+                        }`}
                     >
                       <div className="flex items-center justify-between w-full">
                         <CreditCard className="w-6 h-6 text-[#10B981]" />
                         <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
-                            checkoutForm.paymentMethod === 'COD'
-                              ? 'border-[#ED3500] bg-[#ED3500]'
-                              : 'border-[#64748B]'
-                          }`}
+                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'COD'
+                            ? 'border-[#ED3500] bg-[#ED3500]'
+                            : 'border-[#64748B]'
+                            }`}
                         >
                           {checkoutForm.paymentMethod === 'COD' && (
                             <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
@@ -1358,7 +1394,7 @@ export default function CustomerStore() {
                               onClick={() => {
                                 try {
                                   localStorage.setItem('beeshub_checkout_open', 'true');
-                                } catch (e) {}
+                                } catch (e) { }
                               }}
                               className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs text-center border border-blue-200 flex items-center justify-center gap-1.5 transition-all"
                             >
@@ -1369,7 +1405,7 @@ export default function CustomerStore() {
                               onClick={() => {
                                 try {
                                   localStorage.setItem('beeshub_checkout_open', 'true');
-                                } catch (e) {}
+                                } catch (e) { }
                               }}
                               className="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs text-center border border-purple-200 flex items-center justify-center gap-1.5 transition-all"
                             >
@@ -1422,11 +1458,10 @@ export default function CustomerStore() {
                       </span>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full font-bold text-xs ${
-                        checkoutForm.paymentMethod === 'UPI'
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-[#10B981]/10 text-[#10B981]'
-                      }`}
+                      className={`px-3 py-1 rounded-full font-bold text-xs ${checkoutForm.paymentMethod === 'UPI'
+                        ? 'bg-purple-100 text-purple-700'
+                        : 'bg-[#10B981]/10 text-[#10B981]'
+                        }`}
                     >
                       {checkoutForm.paymentMethod === 'UPI' ? 'UPI Payment' : 'Cash on Delivery'}
                     </span>
@@ -1502,12 +1537,30 @@ export default function CustomerStore() {
               </div>
             </div>
 
-            <button
-              onClick={() => setOrderSuccess(null)}
-              className="w-full py-3 rounded-2xl bg-[#163B5C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#163B5C]/90 transition-colors"
-            >
-              Back to Store
-            </button>
+            {/* Delivery Estimate */}
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-center gap-2">
+              <Truck className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Estimated Delivery: <strong>Within 3 to 4 business days</strong></span>
+            </div>
+
+            <div className="space-y-2">
+              {/* WhatsApp Support Button with Loaded Order Details */}
+              <a
+                href={getWhatsAppSupportLink(orderSuccess)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 rounded-2xl bg-[#10B981] hover:bg-[#0E9F6E] text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-md shadow-[#10B981]/20 flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4" /> Need Support? Chat on WhatsApp
+              </a>
+
+              <button
+                onClick={() => setOrderSuccess(null)}
+                className="w-full py-3 rounded-2xl bg-[#163B5C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#163B5C]/90 transition-colors"
+              >
+                Back to Store
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -1571,8 +1624,9 @@ export default function CustomerStore() {
               </h4>
               <p className="text-xs text-[#64748B] leading-relaxed">
                 <strong className="text-[#163B5C] block font-semibold">BEES HUB FARMLAND PRIVATE LIMITED</strong>
-                2/26-1, Muhilanvilai, Monikettipottal,<br />
-                Kanyakumari District, Tamil Nadu - 629501
+                2/26-1, Muhilanvilai, Monikettipottal, nagercoil,<br />
+                Kanyakumari District, <br />
+                Tamil Nadu - 629501
               </p>
             </div>
 
