@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     await connectToDatabase();
     const body = await request.json();
 
-    const { name, description, image, mrp, price, quantity, gst, category } = body;
+    const { name, description, image, mrp, price, quantity, gst, category, variants } = body;
 
     // Validation
     if (!name || !description || !image || mrp === undefined || price === undefined || quantity === undefined || gst === undefined) {
@@ -68,6 +68,14 @@ export async function POST(request: Request) {
 
     const discount = numMrp > numPrice ? Math.round(((numMrp - numPrice) / numMrp) * 100) : 0;
 
+    const formattedVariants = Array.isArray(variants) ? variants.map((v: any) => ({
+      name: v.name,
+      mrp: Number(v.mrp),
+      price: Number(v.price),
+      quantity: Number(v.quantity !== undefined ? v.quantity : 10),
+      discount: Number(v.mrp) > Number(v.price) ? Math.round(((Number(v.mrp) - Number(v.price)) / Number(v.mrp)) * 100) : 0,
+    })) : [];
+
     const newProduct = await Product.create({
       name,
       description,
@@ -78,6 +86,7 @@ export async function POST(request: Request) {
       quantity: numQuantity,
       gst: numGst,
       category: category || 'General',
+      variants: formattedVariants,
     });
 
     return NextResponse.json(

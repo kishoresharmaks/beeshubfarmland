@@ -38,6 +38,15 @@ interface BannerItem {
   createdAt: string;
 }
 
+interface ProductVariant {
+  _id?: string;
+  name: string;
+  mrp: number | string;
+  price: number | string;
+  quantity: number | string;
+  discount?: number;
+}
+
 interface Product {
   _id: string;
   name: string;
@@ -49,6 +58,7 @@ interface Product {
   quantity: number;
   gst: number;
   category: string;
+  variants?: ProductVariant[];
   createdAt: string;
 }
 
@@ -113,6 +123,7 @@ export default function AdminDashboard() {
     quantity: '10',
     gst: '0',
     category: '',
+    variants: [] as ProductVariant[],
   });
   const [imagePreview, setImagePreview] = useState('');
 
@@ -442,6 +453,32 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
     }
   };
 
+  // Handle Variant Row Actions
+  const handleAddVariantRow = () => {
+    setProductForm((prev) => ({
+      ...prev,
+      variants: [
+        ...prev.variants,
+        { name: '', mrp: prev.mrp || '', price: prev.price || '', quantity: '10' },
+      ],
+    }));
+  };
+
+  const handleRemoveVariantRow = (index: number) => {
+    setProductForm((prev) => ({
+      ...prev,
+      variants: prev.variants.filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const handleUpdateVariantRow = (index: number, field: keyof ProductVariant, value: string) => {
+    setProductForm((prev) => {
+      const updated = [...prev.variants];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, variants: updated };
+    });
+  };
+
   // Open Edit Product Modal
   const openEditProductModal = (product: Product) => {
     setEditingProduct(product);
@@ -454,6 +491,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
       quantity: String(product.quantity),
       gst: String(product.gst !== undefined ? product.gst : 0),
       category: product.category || (categories[0]?.name ?? ''),
+      variants: product.variants ? product.variants.map((v) => ({ ...v })) : [],
     });
     setImagePreview(product.image);
     setProductFormError('');
@@ -471,6 +509,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
       quantity: '10',
       gst: '0',
       category: categories.length > 0 ? categories[0].name : '',
+      variants: [],
     });
     setImagePreview('');
     setProductFormError('');
@@ -512,6 +551,12 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           quantity: Number(productForm.quantity),
           gst: Number(productForm.gst),
           category: productForm.category,
+          variants: productForm.variants.map((v) => ({
+            name: v.name.trim(),
+            mrp: Number(v.mrp),
+            price: Number(v.price),
+            quantity: Number(v.quantity || 10),
+          })),
         }),
       });
 
@@ -900,6 +945,11 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                               <div>
                                 <h4 className="font-bold text-[#163B5C] line-clamp-1">{p.name}</h4>
                                 <p className="text-xs text-[#64748B] line-clamp-1">{p.description}</p>
+                                {p.variants && p.variants.length > 0 && (
+                                  <span className="inline-block mt-1 px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+                                    {p.variants.length} Variants ({p.variants.map((v) => v.name).join(', ')})
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -1698,6 +1748,122 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                       </select>
                     )}
                   </div>
+                </div>
+
+                {/* Product Variants Management Section */}
+                <div className="p-4 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-extrabold text-[#163B5C] uppercase tracking-wider flex items-center gap-1.5">
+                        <Tag className="w-4 h-4 text-[#ED3500]" /> Product Variants & Pricing (Optional)
+                      </h4>
+                      <p className="text-[11px] text-[#64748B]">
+                        Add weight/size variants (e.g. 250g, 500g, 1kg) with variant-based pricing & stock.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleAddVariantRow}
+                      className="px-3 py-1.5 rounded-xl bg-[#ED3500]/10 hover:bg-[#ED3500]/20 text-[#ED3500] font-bold text-xs flex items-center gap-1 transition-all"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Add Variant
+                    </button>
+                  </div>
+
+                  {/* Preset Quick Buttons */}
+                  <div className="flex items-center gap-2 flex-wrap pt-1">
+                    <span className="text-[10px] font-bold text-[#64748B] uppercase">Quick Add:</span>
+                    {['250g', '500g', '1kg', 'Pack of 2', '100ml', '500ml'].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          setProductForm((prev) => ({
+                            ...prev,
+                            variants: [
+                              ...prev.variants,
+                              { name: preset, mrp: prev.mrp || '299', price: prev.price || '199', quantity: '10' },
+                            ],
+                          }));
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-white border border-[#E8EDF2] hover:border-[#ED3500] text-[11px] font-semibold text-[#163B5C] hover:text-[#ED3500] transition-colors"
+                      >
+                        + {preset}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Variant Rows List */}
+                  {productForm.variants.length > 0 && (
+                    <div className="space-y-2.5 pt-2">
+                      {productForm.variants.map((v, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-1 sm:grid-cols-12 gap-2 items-center p-3 rounded-xl bg-white border border-[#E8EDF2]"
+                        >
+                          <div className="sm:col-span-4">
+                            <label className="text-[10px] font-bold text-[#64748B] sm:hidden block">Variant Name</label>
+                            <input
+                              type="text"
+                              required
+                              placeholder="Variant (e.g. 500g)"
+                              value={v.name}
+                              onChange={(e) => handleUpdateVariantRow(idx, 'name', e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-lg border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500]"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <label className="text-[10px] font-bold text-[#64748B] sm:hidden block">MRP ₹</label>
+                            <input
+                              type="number"
+                              required
+                              placeholder="MRP ₹"
+                              value={v.mrp}
+                              onChange={(e) => handleUpdateVariantRow(idx, 'mrp', e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-lg border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500]"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-3">
+                            <label className="text-[10px] font-bold text-[#64748B] sm:hidden block">Selling Price ₹</label>
+                            <input
+                              type="number"
+                              required
+                              placeholder="Price ₹"
+                              value={v.price}
+                              onChange={(e) => handleUpdateVariantRow(idx, 'price', e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-lg border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500]"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-2">
+                            <label className="text-[10px] font-bold text-[#64748B] sm:hidden block">Stock Qty</label>
+                            <input
+                              type="number"
+                              required
+                              placeholder="Stock"
+                              value={v.quantity}
+                              onChange={(e) => handleUpdateVariantRow(idx, 'quantity', e.target.value)}
+                              className="w-full px-3 py-1.5 rounded-lg border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500]"
+                            />
+                          </div>
+
+                          <div className="sm:col-span-1 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveVariantRow(idx)}
+                              className="p-1 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="Remove Variant"
+                            >
+                              <Trash2 className="w-4 h-4 mx-auto" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <button

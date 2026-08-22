@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IOrderItem {
   productId: string;
   name: string;
+  variantName?: string;
   price: number;
   quantity: number;
   gst: number;
@@ -31,6 +32,7 @@ export interface IOrder extends Document {
 const OrderItemSchema = new Schema({
   productId: { type: String, required: true },
   name: { type: String, required: true },
+  variantName: { type: String, default: '' },
   price: { type: Number, required: true },
   quantity: { type: Number, required: true, min: 1 },
   gst: { type: Number, required: true },

@@ -1,5 +1,14 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+export interface IProductVariant {
+  _id?: string;
+  name: string;      // e.g. "250g", "500g", "1kg"
+  mrp: number;       // e.g. 250
+  price: number;     // e.g. 199
+  quantity: number;  // stock for variant
+  discount?: number;
+}
+
 export interface IProduct extends Document {
   name: string;
   description: string;
@@ -10,9 +19,26 @@ export interface IProduct extends Document {
   quantity: number;
   gst: number;
   category?: string;
+  variants?: IProductVariant[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const VariantSchema: Schema = new Schema({
+  name: { type: String, required: true },
+  mrp: { type: Number, required: true, min: 0 },
+  price: { type: Number, required: true, min: 0 },
+  quantity: { type: Number, required: true, min: 0, default: 10 },
+  discount: { type: Number, default: 0 },
+});
+
+// Pre-save hook on variant to calculate discount percentage
+VariantSchema.pre('save', function (this: any, next) {
+  if (this.mrp && this.price && this.mrp > this.price) {
+    this.discount = Math.round(((Number(this.mrp) - Number(this.price)) / Number(this.mrp)) * 100);
+  }
+  next();
+});
 
 const ProductSchema: Schema = new Schema(
   {
@@ -25,6 +51,7 @@ const ProductSchema: Schema = new Schema(
     quantity: { type: Number, required: true, min: 0, default: 1 },
     gst: { type: Number, required: true, min: 0, default: 18 },
     category: { type: String, default: 'General' },
+    variants: [VariantSchema],
   },
   { timestamps: true }
 );
