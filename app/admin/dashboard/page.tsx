@@ -26,7 +26,16 @@ import {
   ChevronLeft,
   ChevronRight,
   Check,
+  Image as ImageIcon,
 } from 'lucide-react';
+
+interface BannerItem {
+  _id: string;
+  title: string;
+  image: string;
+  link?: string;
+  createdAt: string;
+}
 
 interface Product {
   _id: string;
@@ -80,7 +89,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders' | 'banners'>('products');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Products State
@@ -122,11 +131,21 @@ export default function AdminDashboard() {
   const [orderPage, setOrderPage] = useState(1);
   const ordersPerPage = 5;
 
+  // Banners State
+  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [loadingBanners, setLoadingBanners] = useState(true);
+  const [newBannerTitle, setNewBannerTitle] = useState('');
+  const [newBannerImage, setNewBannerImage] = useState('');
+  const [newBannerLink, setNewBannerLink] = useState('');
+  const [bannerImagePreview, setBannerImagePreview] = useState('');
+  const [isSubmittingBanner, setIsSubmittingBanner] = useState(false);
+  const [bannerError, setBannerError] = useState('');
+
   // Fetch All Dashboard Data
   const fetchAllData = async () => {
     try {
       setIsRefreshing(true);
-      await Promise.all([fetchProducts(), fetchCategories(), fetchOrders()]);
+      await Promise.all([fetchProducts(), fetchCategories(), fetchOrders(), fetchBanners()]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -185,6 +204,92 @@ export default function AdminDashboard() {
     }
   };
 
+  // Fetch Banners
+  const fetchBanners = async () => {
+    try {
+      setLoadingBanners(true);
+      const res = await fetch('/api/banners');
+      const data = await res.json();
+      if (data.success) {
+        setBanners(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingBanners(false);
+    }
+  };
+
+  // Handle Banner Image File Selection
+  const handleBannerImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size too large. Please select an image under 5MB.');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        setNewBannerImage(base64String);
+        setBannerImagePreview(base64String);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Add New Hero Banner
+  const handleAddBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBannerError('');
+    if (!newBannerTitle.trim() || !newBannerImage) {
+      setBannerError('Please enter a banner title and upload an image.');
+      return;
+    }
+
+    try {
+      setIsSubmittingBanner(true);
+      const res = await fetch('/api/banners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newBannerTitle.trim(),
+          image: newBannerImage,
+          link: newBannerLink.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setNewBannerTitle('');
+        setNewBannerImage('');
+        setNewBannerLink('');
+        setBannerImagePreview('');
+        fetchBanners();
+      } else {
+        setBannerError(data.message || 'Failed to add banner');
+      }
+    } catch (err: any) {
+      setBannerError('Network error while adding banner');
+    } finally {
+      setIsSubmittingBanner(false);
+    }
+  };
+
+  // Delete Hero Banner
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this banner?')) return;
+    try {
+      const res = await fetch(`/api/banners/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        fetchBanners();
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -195,6 +300,7 @@ export default function AdminDashboard() {
           fetchProducts();
           fetchCategories();
           fetchOrders();
+          fetchBanners();
         } else {
           router.replace('/admin/login');
         }
@@ -591,6 +697,16 @@ export default function AdminDashboard() {
               }`}
             >
               <ShoppingBag className="w-4 h-4" /> Orders ({orders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('banners')}
+              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+                activeTab === 'banners'
+                  ? 'border-[#ED3500] text-[#ED3500]'
+                  : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
+              }`}
+            >
+              <ImageIcon className="w-4 h-4" /> Hero Banners ({banners.length})
             </button>
           </div>
 
@@ -1107,6 +1223,161 @@ export default function AdminDashboard() {
                     </div>
                   </div>
                 )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Hero Banners Management View */}
+        {activeTab === 'banners' && (
+          <div className="space-y-6">
+            {/* Create Banner Form */}
+            <div className="bg-white rounded-3xl border border-[#E8EDF2] p-6 shadow-sm space-y-4">
+              <div className="flex items-center gap-2 text-[#ED3500]">
+                <ImageIcon className="w-5 h-5" />
+                <h3 className="text-lg font-black text-[#163B5C]">Upload New Hero Banner Image</h3>
+              </div>
+              <p className="text-xs text-[#64748B]">
+                Upload high-res banner images to display dynamically in the homepage hero section with high-performance responsive lazy loading.
+              </p>
+
+              {bannerError && (
+                <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+                  {bannerError}
+                </div>
+              )}
+
+              <form onSubmit={handleAddBanner} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                      Banner Title / Tagline *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 100% Pure Organic Honey Harvest"
+                      value={newBannerTitle}
+                      onChange={(e) => setNewBannerTitle(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                      Optional Target Link URL
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. /#products or https://..."
+                      value={newBannerLink}
+                      onChange={(e) => setNewBannerLink(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#163B5C] uppercase tracking-wider block">
+                    Upload Banner Image *
+                  </label>
+                  <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <label className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-[#FFF8F5] hover:bg-[#ED3500]/10 text-[#ED3500] border border-[#ED3500]/20 text-xs font-bold uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 transition-all">
+                      <Upload className="w-4 h-4" /> Select Banner Image File
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleBannerImageChange}
+                        className="hidden"
+                      />
+                    </label>
+
+                    <div className="flex-1 w-full">
+                      <input
+                        type="text"
+                        placeholder="Or paste Image URL (https://...)"
+                        value={newBannerImage}
+                        onChange={(e) => {
+                          setNewBannerImage(e.target.value);
+                          setBannerImagePreview(e.target.value);
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500]"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {bannerImagePreview && (
+                  <div className="p-3 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] max-w-md">
+                    <span className="text-[11px] font-bold text-[#64748B] block mb-2 uppercase">Image Preview:</span>
+                    <img
+                      src={bannerImagePreview}
+                      alt="Banner Preview"
+                      className="w-full h-40 object-cover rounded-xl border border-[#E8EDF2]"
+                    />
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingBanner}
+                  className="px-6 py-3 rounded-xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-[#ED3500]/20 flex items-center gap-2"
+                >
+                  {isSubmittingBanner ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  Add Hero Banner Image
+                </button>
+              </form>
+            </div>
+
+            {/* Banners List */}
+            {loadingBanners ? (
+              <div className="py-12 text-center">
+                <RefreshCw className="w-8 h-8 text-[#ED3500] animate-spin mx-auto" />
+              </div>
+            ) : banners.length === 0 ? (
+              <div className="py-12 text-center bg-white rounded-3xl border border-[#E8EDF2] p-6 space-y-2">
+                <ImageIcon className="w-10 h-10 text-[#64748B] mx-auto opacity-40" />
+                <h4 className="font-bold text-[#163B5C]">No hero banners added yet</h4>
+                <p className="text-xs text-[#64748B]">
+                  Uploaded banners will render dynamically in the customer storefront hero section.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {banners.map((b) => (
+                  <div
+                    key={b._id}
+                    className="bg-white rounded-2xl border border-[#E8EDF2] overflow-hidden shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                  >
+                    <div className="relative aspect-video bg-[#FFF8F5]">
+                      <img
+                        src={b.image}
+                        alt={b.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div className="p-4 space-y-3">
+                      <h4 className="font-bold text-sm text-[#163B5C] line-clamp-1">{b.title}</h4>
+                      {b.link && (
+                        <p className="text-[11px] text-blue-600 truncate underline">
+                          Link: {b.link}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between pt-2 border-t border-[#E8EDF2]">
+                        <span className="text-[10px] text-[#64748B]">
+                          Added {new Date(b.createdAt).toLocaleDateString('en-IN')}
+                        </span>
+                        <button
+                          onClick={() => handleDeleteBanner(b._id)}
+                          className="px-3 py-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white font-bold text-xs flex items-center gap-1 transition-all"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

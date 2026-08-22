@@ -52,6 +52,13 @@ interface CategoryItem {
   name: string;
 }
 
+interface BannerItem {
+  _id: string;
+  title: string;
+  image: string;
+  link?: string;
+}
+
 interface CartItem {
   product: Product;
   quantity: number;
@@ -119,6 +126,38 @@ export default function CustomerStore() {
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Hero Banners State
+  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [loadingBanners, setLoadingBanners] = useState(true);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  const fetchBanners = async () => {
+    try {
+      setLoadingBanners(true);
+      const res = await fetch('/api/banners');
+      const data = await res.json();
+      if (data.success) {
+        setBanners(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingBanners(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBanners();
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
 
   // 1. Restore Session State from localStorage on Mount
   useEffect(() => {
@@ -491,38 +530,149 @@ Please assist me with this order. Thank you!`;
         </div>
       </header>
 
-      {/* Modern E-Commerce Hero Showcase Banner */}
-      <section className="bg-gradient-to-br from-[#FFF5F2] via-[#FFFCFB] to-[#FFF8F5] border-b border-[#E8EDF2] py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto flex flex-col items-start justify-between gap-8">
-          {/* Main Hero Copy */}
-          <div className="space-y-4 text-center sm:text-left max-w-3xl">
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#163B5C] tracking-tight leading-tight">
-              Pure & Fresh Organic Produce, <span className="text-[#ED3500] underline decoration-wavy decoration-[#ED3500]/30 underline-offset-8">Delivered Direct To You</span>
-            </h1>
+      {/* Modern E-Commerce Hero Showcase Banner with Dynamic Admin Banners */}
+      <section className="bg-gradient-to-br from-[#FFF5F2] via-[#FFFCFB] to-[#FFF8F5] border-b border-[#E8EDF2] py-10 sm:py-14 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
+            {/* Main Hero Copy */}
+            <div className="space-y-4 text-center sm:text-left max-w-2xl flex-1">
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#163B5C] tracking-tight leading-tight">
+                Pure & Fresh Organic Produce, <span className="text-[#ED3500] underline decoration-wavy decoration-[#ED3500]/30 underline-offset-8">Delivered Direct To You</span>
+              </h1>
 
-            <p className="text-[#64748B] text-sm sm:text-base leading-relaxed">
-              Experience handpicked pure honey, organic spices, and farm produce directly from <strong>BeesHub Farmland Pvt Ltd</strong>.
-            </p>
+              <p className="text-[#64748B] text-sm sm:text-base leading-relaxed">
+                Experience handpicked pure honey, organic spices, and farm produce directly from <strong>BeesHub Farmland Pvt Ltd</strong>.
+              </p>
 
-            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
-              <button
-                onClick={() => {
-                  window.scrollTo({ top: 450, behavior: 'smooth' });
-                }}
-                className="px-6 py-3.5 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#ED3500]/25 transition-all flex items-center gap-2"
-              >
-                <ShoppingBag className="w-4 h-4" /> Shop Fresh Products
-              </button>
-              <button
-                onClick={() => setIsTrackModalOpen(true)}
-                className="px-6 py-3.5 rounded-2xl bg-white hover:bg-[#FFFCFB] border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2"
-              >
-                <Truck className="w-4 h-4 text-[#ED3500]" /> Track My Order
-              </button>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    window.scrollTo({ top: 550, behavior: 'smooth' });
+                  }}
+                  className="px-6 py-3.5 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#ED3500]/25 transition-all flex items-center gap-2"
+                >
+                  <ShoppingBag className="w-4 h-4" /> Shop Fresh Products
+                </button>
+                <button
+                  onClick={() => setIsTrackModalOpen(true)}
+                  className="px-6 py-3.5 rounded-2xl bg-white hover:bg-[#FFFCFB] border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2"
+                >
+                  <Truck className="w-4 h-4 text-[#ED3500]" /> Track My Order
+                </button>
+              </div>
+            </div>
+
+            {/* Right Side: Dynamic Admin Uploaded Banner Showcase / Carousel */}
+            <div className="w-full lg:w-1/2 max-w-lg shrink-0">
+              {loadingBanners ? (
+                <div className="aspect-[4/3] rounded-3xl bg-[#FFF8F5] border border-[#E8EDF2] flex flex-col items-center justify-center space-y-2 animate-pulse">
+                  <RefreshCw className="w-8 h-8 text-[#ED3500] animate-spin" />
+                  <span className="text-xs text-[#64748B] font-semibold">Loading Fresh Farm Showcase...</span>
+                </div>
+              ) : banners.length > 0 ? (
+                <div className="relative group rounded-3xl overflow-hidden shadow-xl border border-[#E8EDF2] aspect-[4/3] bg-white">
+                  {banners[currentBannerIndex]?.link ? (
+                    <a href={banners[currentBannerIndex].link} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={banners[currentBannerIndex].image}
+                        alt={banners[currentBannerIndex].title}
+                        className="w-full h-full object-cover transition-opacity duration-500"
+                        loading="lazy"
+                      />
+                    </a>
+                  ) : (
+                    <img
+                      src={banners[currentBannerIndex].image}
+                      alt={banners[currentBannerIndex].title}
+                      className="w-full h-full object-cover transition-opacity duration-500"
+                      loading="lazy"
+                    />
+                  )}
+
+                  {/* Banner Overlay Caption */}
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5 text-white flex items-end justify-between">
+                    <div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#ED3500] text-[10px] font-black uppercase tracking-wider mb-1 inline-block">
+                        Featured Harvest
+                      </span>
+                      <h4 className="font-extrabold text-sm sm:text-base line-clamp-1">
+                        {banners[currentBannerIndex].title}
+                      </h4>
+                    </div>
+
+                    {banners.length > 1 && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {banners.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentBannerIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              idx === currentBannerIndex ? 'w-5 bg-[#ED3500]' : 'bg-white/60 hover:bg-white'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Carousel Prev / Next Controls */}
+                  {banners.length > 1 && (
+                    <>
+                      <button
+                        onClick={() =>
+                          setCurrentBannerIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1))
+                        }
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-[#163B5C] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setCurrentBannerIndex((prev) => (prev + 1) % banners.length)
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-[#163B5C] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* Fallback Showcase Card when no custom banners uploaded */
+                <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#E8EDF2] aspect-[4/3] bg-gradient-to-br from-[#FFF8F5] to-[#FFF0EC] p-6 flex flex-col justify-between">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/logo.jpg"
+                      alt="BEES HUB FARMLAND Logo"
+                      className="w-12 h-12 object-contain rounded-2xl shadow-sm border border-[#E8EDF2]"
+                    />
+                    <div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#10B981]/10 text-[#10B981] font-bold text-[10px] uppercase tracking-wider">
+                        Authentic Produce
+                      </span>
+                      <h4 className="font-extrabold text-sm text-[#163B5C]">BEES HUB FARMLAND</h4>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 py-4">
+                    <h3 className="text-xl font-black text-[#163B5C] leading-snug">
+                      100% Pure & Certified Farm Harvest
+                    </h3>
+                    <p className="text-xs text-[#64748B]">
+                      Handpicked honey, natural spices & essential produce directly from Kanyakumari farmlands.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-[#E8EDF2]/60 text-xs text-[#163B5C] font-bold">
+                    <span>🌾 Zero Chemicals</span>
+                    <span>🚀 Express Dispatch</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          {/* E-Commerce Value Proposition Cards (Horizontal 3-Column Row) */}
+          {/* Feature Cards Horizontal Bar */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full pt-2">
             <div className="p-4 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#ED3500]/10 text-[#ED3500] flex items-center justify-center font-bold shrink-0">
