@@ -17,6 +17,8 @@ const BannerSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+BannerSchema.index({ createdAt: -1 });
+
 const Banner: Model<IBanner> =
   mongoose.models.Banner || mongoose.model<IBanner>('Banner', BannerSchema);
 

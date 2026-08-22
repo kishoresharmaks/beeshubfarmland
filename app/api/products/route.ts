@@ -20,7 +20,15 @@ export async function GET(request: Request) {
       filter.category = category;
     }
 
-    const products = await Product.find(filter).sort({ createdAt: -1 });
+    // Ensure database indexes exist
+    try {
+      await Product.createIndexes();
+    } catch (idxErr) {
+      // Ignore index creation warnings if already created
+    }
+
+    // Use indexed sort and allowDiskUse(true) to prevent MongoDB 32MB RAM sort limit errors
+    const products = await Product.find(filter).sort({ createdAt: -1 }).allowDiskUse(true);
     return NextResponse.json({ success: true, count: products.length, data: products });
   } catch (error: any) {
     return NextResponse.json(

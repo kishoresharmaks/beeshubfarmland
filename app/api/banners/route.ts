@@ -5,7 +5,11 @@ import Banner from '@/models/Banner';
 export async function GET() {
   try {
     await connectToDatabase();
-    const banners = await Banner.find({}).sort({ createdAt: -1 });
+    try {
+      await Banner.createIndexes();
+    } catch (e) {}
+
+    const banners = await Banner.find({}).sort({ createdAt: -1 }).allowDiskUse(true);
     return NextResponse.json({ success: true, data: banners }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json(

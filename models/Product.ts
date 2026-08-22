@@ -29,6 +29,11 @@ const ProductSchema: Schema = new Schema(
   { timestamps: true }
 );
 
+// Indexes to optimize MongoDB Atlas queries & avoid 32MB memory sort limit
+ProductSchema.index({ createdAt: -1 });
+ProductSchema.index({ category: 1, createdAt: -1 });
+ProductSchema.index({ name: 'text', description: 'text' });
+
 // Pre-save hook to calculate discount percentage if not manually specified
 ProductSchema.pre('save', function (this: IProduct, next) {
   if (this.mrp && this.price && this.mrp > this.price) {
