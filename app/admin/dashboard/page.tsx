@@ -422,9 +422,14 @@ export default function AdminDashboard() {
       <header className="bg-white border-b border-[#E8EDF2] sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#163B5C] text-white flex items-center justify-center font-bold text-lg">
-              BF
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="BeesHub Farmland Admin Logo"
+              className="w-10 h-10 object-contain rounded-xl shadow-xs border border-[#E8EDF2]"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
             <div>
               <h1 className="font-extrabold text-xl text-[#163B5C]">BeesHub Farmland Admin</h1>
               <span className="text-xs text-[#64748B]">Manage Inventory, Categories & Customer Orders</span>

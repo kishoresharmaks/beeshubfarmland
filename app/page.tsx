@@ -385,9 +385,14 @@ export default function CustomerStore() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           {/* Brand Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 rounded-xl bg-[#ED3500] text-white flex items-center justify-center font-bold text-lg shadow-md group-hover:scale-105 transition-transform">
-              BF
-            </div>
+            <img
+              src="/logo.jpg"
+              alt="BEES HUB FARMLAND PRIVATE LIMITED Logo"
+              className="w-10 h-10 object-contain rounded-xl shadow-xs border border-[#E8EDF2] group-hover:scale-105 transition-transform"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
             <div>
               <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-[#163B5C]">
                 BeesHub <span className="text-[#ED3500]">Farmland</span>
@@ -1512,9 +1517,14 @@ export default function CustomerStore() {
             {/* Company Info */}
             <div className="space-y-4">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-[#ED3500] text-white flex items-center justify-center font-bold text-lg shadow-md">
-                  BF
-                </div>
+                <img
+                  src="/logo.jpg"
+                  alt="BEES HUB FARMLAND PRIVATE LIMITED Logo"
+                  className="w-10 h-10 object-contain rounded-xl shadow-xs border border-[#E8EDF2]"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
                 <div>
                   <h3 className="font-extrabold text-base text-[#163B5C]">
                     BEES HUB FARMLAND PRIVATE LIMITED

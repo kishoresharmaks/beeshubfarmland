@@ -44,9 +44,14 @@ export default function AdminLoginPage() {
         <div className="absolute top-0 left-0 right-0 h-2 bg-[#ED3500]"></div>
 
         <div className="text-center space-y-2">
-          <div className="w-14 h-14 rounded-2xl bg-[#FFF8F5] text-[#ED3500] border border-[#ED3500]/20 flex items-center justify-center mx-auto shadow-sm">
-            <Lock className="w-7 h-7" />
-          </div>
+          <img
+            src="/logo.jpg"
+            alt="BeesHub Farmland Admin Logo"
+            className="w-16 h-16 object-contain rounded-2xl mx-auto shadow-md border border-[#E8EDF2]"
+            onError={(e) => {
+              (e.target as HTMLElement).style.display = 'none';
+            }}
+          />
           <h2 className="text-2xl font-black text-[#163B5C]">BeesHub Admin Portal</h2>
           <p className="text-xs text-[#64748B]">
             Sign in with registered admin credentials to manage products & orders
