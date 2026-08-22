@@ -7,8 +7,8 @@ import { Lock, User, ArrowRight, ShieldCheck, RefreshCw, AlertCircle } from 'luc
 
 export default function AdminLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('admin123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
       if (data.success) {
         router.push('/admin/dashboard');
       } else {
-        setError(data.message || 'Invalid username or password');
+        setError(data.message || 'Invalid email or password');
       }
     } catch (err: any) {
       setError('Connection error while logging in.');
@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
           </div>
           <h2 className="text-2xl font-black text-[#163B5C]">BeesHub Admin Portal</h2>
           <p className="text-xs text-[#64748B]">
-            Sign in to manage products, inventory, GST & customer orders
+            Sign in with registered admin credentials to manage products & orders
           </p>
         </div>
 
@@ -63,17 +63,17 @@ export default function AdminLoginPage() {
         <form onSubmit={handleLogin} className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-              Username
+              Admin Email Address
             </label>
             <div className="relative">
               <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
               <input
-                type="text"
+                type="email"
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] text-[#163B5C]"
-                placeholder="admin"
+                placeholder="admin@example.com"
               />
             </div>
           </div>
@@ -93,10 +93,6 @@ export default function AdminLoginPage() {
                 placeholder="••••••••"
               />
             </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-[#FFFCFB] border border-[#E8EDF2] text-[11px] text-[#64748B]">
-            Default credentials: <strong className="text-[#163B5C]">admin</strong> / <strong className="text-[#163B5C]">admin123</strong>
           </div>
 
           <button
