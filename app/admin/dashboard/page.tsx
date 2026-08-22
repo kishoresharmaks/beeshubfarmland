@@ -27,6 +27,7 @@ import {
   ChevronRight,
   Check,
   Image as ImageIcon,
+  Zap,
 } from 'lucide-react';
 
 interface BannerItem {
@@ -320,6 +321,89 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
     }
   };
 
+  // 1-Click Database Heavy Images Optimizer
+  const [isOptimizingDb, setIsOptimizingDb] = useState(false);
+  const [optimizeStatus, setOptimizeStatus] = useState('');
+
+  const compressBase64Url = (base64Url: string, maxWidth = 800, quality = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      if (!base64Url || base64Url.length < 150000) {
+        resolve(base64Url);
+        return;
+      }
+      const img = new window.Image();
+      img.src = base64Url;
+      img.onload = () => {
+        const elem = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+        elem.width = width;
+        elem.height = height;
+        const ctx = elem.getContext('2d');
+        if (!ctx) {
+          resolve(base64Url);
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(elem.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = () => resolve(base64Url);
+    });
+  };
+
+  const handleOptimizeExistingDatabaseImages = async () => {
+    try {
+      setIsOptimizingDb(true);
+      setOptimizeStatus('Scanning existing products & banners in database...');
+
+      let optimizedCount = 0;
+
+      // 1. Compress heavy existing products
+      for (const p of products) {
+        if (p.image && p.image.length > 150000) {
+          setOptimizeStatus(`Compressing heavy image for product: ${p.name}...`);
+          const compressed = await compressBase64Url(p.image, 800, 0.8);
+          if (compressed.length < p.image.length) {
+            await fetch(`/api/products/${p._id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...p, image: compressed }),
+            });
+            optimizedCount++;
+          }
+        }
+      }
+
+      // 2. Compress heavy existing banners
+      for (const b of banners) {
+        if (b.image && b.image.length > 150000) {
+          setOptimizeStatus(`Compressing heavy hero banner: ${b.title}...`);
+          const compressed = await compressBase64Url(b.image, 1200, 0.85);
+          if (compressed.length < b.image.length) {
+            await fetch(`/api/banners/${b._id}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ ...b, image: compressed }),
+            });
+            optimizedCount++;
+          }
+        }
+      }
+
+      await fetchAllData();
+      alert(`Success! Optimized ${optimizedCount} heavy image(s) in database down to ~40KB each.`);
+    } catch (err: any) {
+      alert('Error during image optimization: ' + (err.message || err));
+    } finally {
+      setIsOptimizingDb(false);
+      setOptimizeStatus('');
+    }
+  };
+
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -602,6 +686,17 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           </div>
 
           <div className="flex items-center gap-3">
+            {/* 1-Click Database Heavy Images Optimizer */}
+            <button
+              onClick={handleOptimizeExistingDatabaseImages}
+              disabled={isOptimizingDb}
+              className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-xs flex items-center gap-2 transition-all shadow-xs"
+              title="Compress heavy existing images in database down to ~40KB"
+            >
+              <Zap className={`w-4 h-4 text-emerald-600 ${isOptimizingDb ? 'animate-bounce' : ''}`} />
+              <span>{isOptimizingDb ? 'Optimizing...' : 'Optimize DB Images'}</span>
+            </button>
+
             {/* Dashboard Refresh Button */}
             <button
               onClick={fetchAllData}
@@ -629,6 +724,17 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           </div>
         </div>
       </header>
+
+      {/* Database Optimization Progress Banner */}
+      {isOptimizingDb && (
+        <div className="bg-emerald-600 text-white px-4 py-3 text-xs font-bold flex items-center justify-between animate-pulse">
+          <div className="flex items-center gap-2">
+            <RefreshCw className="w-4 h-4 animate-spin" />
+            <span>{optimizeStatus || 'Compressing heavy database images...'}</span>
+          </div>
+          <span>Please wait...</span>
+        </div>
+      )}
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
