@@ -27,9 +27,17 @@ export async function GET(request: Request) {
       // Ignore index creation warnings if already created
     }
 
-    // Use indexed sort and allowDiskUse(true) to prevent MongoDB 32MB RAM sort limit errors
-    const products = await Product.find(filter).sort({ createdAt: -1 }).allowDiskUse(true);
-    return NextResponse.json({ success: true, count: products.length, data: products });
+    // Use indexed sort, allowDiskUse(true), and .lean() for maximum performance
+    const products = await Product.find(filter).sort({ createdAt: -1 }).allowDiskUse(true).lean();
+    
+    return NextResponse.json(
+      { success: true, count: products.length, data: products },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch products' },

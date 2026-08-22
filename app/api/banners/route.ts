@@ -9,8 +9,15 @@ export async function GET() {
       await Banner.createIndexes();
     } catch (e) {}
 
-    const banners = await Banner.find({}).sort({ createdAt: -1 }).allowDiskUse(true);
-    return NextResponse.json({ success: true, data: banners }, { status: 200 });
+    const banners = await Banner.find({}).sort({ createdAt: -1 }).allowDiskUse(true).lean();
+    return NextResponse.json(
+      { success: true, data: banners },
+      {
+        headers: {
+          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=30',
+        },
+      }
+    );
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch banners' },
