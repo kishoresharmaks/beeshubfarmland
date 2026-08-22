@@ -78,6 +78,8 @@ interface Order {
 
 export default function AdminDashboard() {
   const router = useRouter();
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders'>('products');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -184,10 +186,27 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchProducts();
-    fetchCategories();
-    fetchOrders();
-  }, []);
+    const checkSession = async () => {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.authenticated) {
+          setIsAuthenticated(true);
+          fetchProducts();
+          fetchCategories();
+          fetchOrders();
+        } else {
+          router.replace('/admin/login');
+        }
+      } catch (err) {
+        router.replace('/admin/login');
+      } finally {
+        setIsAuthChecking(false);
+      }
+    };
+
+    checkSession();
+  }, [router]);
 
   // Handle Image Upload & Conversion to Base64 Data URL
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -415,6 +434,20 @@ export default function AdminDashboard() {
     (productPage - 1) * productsPerPage,
     productPage * productsPerPage
   );
+  if (isAuthChecking || !isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-[#FFFCFB] flex flex-col items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-[#FFF8F5] border border-[#ED3500]/20 flex items-center justify-center mx-auto text-[#ED3500]">
+            <RefreshCw className="w-6 h-6 animate-spin" />
+          </div>
+          <p className="text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+            Verifying Admin Credentials...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#FFFCFB] text-[#163B5C] flex flex-col justify-between">
