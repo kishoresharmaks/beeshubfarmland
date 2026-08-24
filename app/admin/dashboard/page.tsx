@@ -478,6 +478,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           fetchCategories();
           fetchOrders();
           fetchBanners();
+          fetchSettings();
         } else {
           router.replace('/admin/login');
         }
@@ -490,6 +491,12 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
 
     checkSession();
   }, [router]);
+
+  useEffect(() => {
+    if (activeTab === 'settings') {
+      fetchSettings();
+    }
+  }, [activeTab]);
 
   // Handle Product Image Upload & Canvas Compression
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
