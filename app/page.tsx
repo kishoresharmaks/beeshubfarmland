@@ -31,6 +31,7 @@ import {
   MessageCircle,
   Facebook,
   Instagram,
+  Youtube,
 } from 'lucide-react';
 
 interface ProductVariant {
@@ -138,6 +139,9 @@ export default function CustomerStore() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Payment Gateway Settings State
+  const [paymentSettings, setPaymentSettings] = useState({ enableUPI: true, enableCOD: true });
+
   // Hero Banners State
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [loadingBanners, setLoadingBanners] = useState(true);
@@ -158,8 +162,35 @@ export default function CustomerStore() {
     }
   };
 
+  const fetchPaymentSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (data.success && data.data) {
+        const settings = {
+          enableUPI: data.data.enableUPI ?? true,
+          enableCOD: data.data.enableCOD ?? true,
+        };
+        setPaymentSettings(settings);
+
+        setCheckoutForm((prev) => {
+          if (!settings.enableUPI && prev.paymentMethod === 'UPI' && settings.enableCOD) {
+            return { ...prev, paymentMethod: 'COD' };
+          }
+          if (!settings.enableCOD && prev.paymentMethod === 'COD' && settings.enableUPI) {
+            return { ...prev, paymentMethod: 'UPI' };
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch payment settings:', err);
+    }
+  };
+
   useEffect(() => {
     fetchBanners();
+    fetchPaymentSettings();
   }, []);
 
   useEffect(() => {
@@ -416,6 +447,21 @@ export default function CustomerStore() {
       !checkoutForm.pincode
     ) {
       setFormError('Please fill in all required customer details.');
+      return;
+    }
+
+    if (!paymentSettings.enableUPI && !paymentSettings.enableCOD) {
+      setFormError('Checkout is currently disabled as all payment options are disabled by store administration.');
+      return;
+    }
+
+    if (checkoutForm.paymentMethod === 'UPI' && !paymentSettings.enableUPI) {
+      setFormError('Online UPI Payment option is currently disabled by store administration. Please choose Cash on Delivery.');
+      return;
+    }
+
+    if (checkoutForm.paymentMethod === 'COD' && !paymentSettings.enableCOD) {
+      setFormError('Cash on Delivery payment option is currently disabled by store administration. Please choose Online UPI.');
       return;
     }
 
@@ -1562,67 +1608,80 @@ Please assist me with this order. Thank you!`;
                     2. Select Payment Method
                   </h4>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    {/* Unified UPI Option */}
-                    <button
-                      type="button"
-                      onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'UPI' })}
-                      className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'UPI'
-                        ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
-                        : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <QrCode className="w-6 h-6 text-[#ED3500]" />
-                        <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'UPI'
-                            ? 'border-[#ED3500] bg-[#ED3500]'
-                            : 'border-[#64748B]'
+                  {!paymentSettings.enableUPI && !paymentSettings.enableCOD ? (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold space-y-1">
+                      <p>⚠️ Payment Gateway Notice</p>
+                      <p className="font-normal text-[11px]">
+                        Payment processing options are temporarily paused for maintenance. Please check back shortly or contact our WhatsApp support team.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Unified UPI Option */}
+                      {paymentSettings.enableUPI && (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'UPI' })}
+                          className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'UPI'
+                            ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
+                            : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
                             }`}
                         >
-                          {checkoutForm.paymentMethod === 'UPI' && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                          )}
-                        </span>
-                      </div>
-                      <div className="text-left">
-                        <span className="font-bold text-sm text-[#163B5C] block">
-                          Online UPI / QR
-                        </span>
-                        <span className="text-[11px] text-[#64748B]">GPay, PhonePe, Paytm</span>
-                      </div>
-                    </button>
+                          <div className="flex items-center justify-between w-full">
+                            <QrCode className="w-6 h-6 text-[#ED3500]" />
+                            <span
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'UPI'
+                                ? 'border-[#ED3500] bg-[#ED3500]'
+                                : 'border-[#64748B]'
+                                }`}
+                            >
+                              {checkoutForm.paymentMethod === 'UPI' && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="font-bold text-sm text-[#163B5C] block">
+                              Online UPI / QR
+                            </span>
+                            <span className="text-[11px] text-[#64748B]">GPay, PhonePe, Paytm</span>
+                          </div>
+                        </button>
+                      )}
 
-                    {/* Cash on Delivery Option */}
-                    <button
-                      type="button"
-                      onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'COD' })}
-                      className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'COD'
-                        ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
-                        : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
-                        }`}
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <CreditCard className="w-6 h-6 text-[#10B981]" />
-                        <span
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'COD'
-                            ? 'border-[#ED3500] bg-[#ED3500]'
-                            : 'border-[#64748B]'
+                      {/* Cash on Delivery Option */}
+                      {paymentSettings.enableCOD && (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'COD' })}
+                          className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'COD'
+                            ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
+                            : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
                             }`}
                         >
-                          {checkoutForm.paymentMethod === 'COD' && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
-                          )}
-                        </span>
-                      </div>
-                      <div className="text-left">
-                        <span className="font-bold text-sm text-[#163B5C] block">
-                          Cash on Delivery
-                        </span>
-                        <span className="text-[11px] text-[#64748B]">Pay when delivered</span>
-                      </div>
-                    </button>
-                  </div>
+                          <div className="flex items-center justify-between w-full">
+                            <CreditCard className="w-6 h-6 text-[#10B981]" />
+                            <span
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'COD'
+                                ? 'border-[#ED3500] bg-[#ED3500]'
+                                : 'border-[#64748B]'
+                                }`}
+                            >
+                              {checkoutForm.paymentMethod === 'COD' && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="font-bold text-sm text-[#163B5C] block">
+                              Cash on Delivery
+                            </span>
+                            <span className="text-[11px] text-[#64748B]">Pay when delivered</span>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  )}
 
                   {/* Dynamic UPI Gateway Panel */}
                   {checkoutForm.paymentMethod === 'UPI' && (
@@ -1895,6 +1954,7 @@ Please assist me with this order. Thank you!`;
                   rel="noopener noreferrer"
                   className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-xs"
                   title="Follow BeesHub Farmland on Facebook"
+                  aria-label="Follow BeesHub Farmland on Facebook"
                 >
                   <Facebook className="w-4 h-4" />
                 </a>
@@ -1904,8 +1964,19 @@ Please assist me with this order. Thank you!`;
                   rel="noopener noreferrer"
                   className="w-8 h-8 rounded-xl bg-pink-50 text-pink-600 border border-pink-200 flex items-center justify-center hover:bg-pink-600 hover:text-white transition-all shadow-xs"
                   title="Follow BeesHub Farmland on Instagram"
+                  aria-label="Follow BeesHub Farmland on Instagram"
                 >
                   <Instagram className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://www.youtube.com/@BeesHubFarmlandPvtLtd"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xs"
+                  title="Follow BeesHub Farmland on YouTube"
+                  aria-label="Follow BeesHub Farmland on YouTube"
+                >
+                  <Youtube className="w-4 h-4" />
                 </a>
               </div>
             </div>

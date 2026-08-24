@@ -95,7 +95,8 @@ export default function RootLayout({
               },
               "sameAs": [
                 "https://www.facebook.com/Beeshubfarmland/",
-                "https://www.instagram.com/beeshubfarmland"
+                "https://www.instagram.com/beeshubfarmland",
+                "https://www.youtube.com/@BeesHubFarmlandPvtLtd"
               ]
             })
           }}

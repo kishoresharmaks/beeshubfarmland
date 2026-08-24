@@ -100,7 +100,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders' | 'banners'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders' | 'banners' | 'settings'>('products');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Products State
@@ -153,11 +153,18 @@ export default function AdminDashboard() {
   const [isSubmittingBanner, setIsSubmittingBanner] = useState(false);
   const [bannerError, setBannerError] = useState('');
 
+  // Settings State
+  const [paymentSettings, setPaymentSettings] = useState({ enableUPI: true, enableCOD: true });
+  const [loadingSettings, setLoadingSettings] = useState(true);
+  const [isSubmittingSettings, setIsSubmittingSettings] = useState(false);
+  const [settingsSuccess, setSettingsSuccess] = useState('');
+  const [settingsError, setSettingsError] = useState('');
+
   // Fetch All Dashboard Data
   const fetchAllData = async () => {
     try {
       setIsRefreshing(true);
-      await Promise.all([fetchProducts(), fetchCategories(), fetchOrders(), fetchBanners()]);
+      await Promise.all([fetchProducts(), fetchCategories(), fetchOrders(), fetchBanners(), fetchSettings()]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -229,6 +236,51 @@ export default function AdminDashboard() {
       console.error(err);
     } finally {
       setLoadingBanners(false);
+    }
+  };
+
+  // Fetch Settings
+  const fetchSettings = async () => {
+    try {
+      setLoadingSettings(true);
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (data.success && data.data) {
+        setPaymentSettings({
+          enableUPI: data.data.enableUPI ?? true,
+          enableCOD: data.data.enableCOD ?? true,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings', err);
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  // Save Payment Settings
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsSuccess('');
+    setSettingsError('');
+    try {
+      setIsSubmittingSettings(true);
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentSettings),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSettingsSuccess('Payment method settings saved successfully!');
+        setTimeout(() => setSettingsSuccess(''), 3500);
+      } else {
+        setSettingsError(data.message || 'Failed to update payment settings');
+      }
+    } catch (err: any) {
+      setSettingsError(err.message || 'Server error updating payment settings');
+    } finally {
+      setIsSubmittingSettings(false);
     }
   };
 
@@ -884,6 +936,16 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               }`}
             >
               <ImageIcon className="w-4 h-4" /> Hero Banners ({banners.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('settings')}
+              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+                activeTab === 'settings'
+                  ? 'border-[#ED3500] text-[#ED3500]'
+                  : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
+              }`}
+            >
+              <CreditCard className="w-4 h-4" /> Payment Settings
             </button>
           </div>
 
@@ -1562,6 +1624,135 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Payment Settings Management View */}
+        {activeTab === 'settings' && (
+          <div className="space-y-6">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E8EDF2] shadow-sm max-w-3xl">
+              <div className="flex items-center justify-between pb-6 border-b border-[#E8EDF2] mb-6">
+                <div>
+                  <h2 className="text-xl font-extrabold text-[#163B5C] flex items-center gap-2">
+                    <CreditCard className="w-6 h-6 text-[#ED3500]" /> Payment Method Settings
+                  </h2>
+                  <p className="text-xs text-[#64748B] mt-1">
+                    Enable or disable payment methods accepted during customer checkout.
+                  </p>
+                </div>
+                <button
+                  onClick={fetchSettings}
+                  disabled={loadingSettings}
+                  className="p-2 rounded-xl bg-[#FFFCFB] border border-[#E8EDF2] text-[#64748B] hover:text-[#ED3500] transition-colors"
+                  title="Reload Settings"
+                >
+                  <RefreshCw className={`w-4 h-4 ${loadingSettings ? 'animate-spin' : ''}`} />
+                </button>
+              </div>
+
+              {settingsSuccess && (
+                <div className="mb-6 p-4 rounded-2xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>{settingsSuccess}</span>
+                </div>
+              )}
+
+              {settingsError && (
+                <div className="mb-6 p-4 rounded-2xl bg-rose-50 text-rose-800 border border-rose-200 text-xs font-bold">
+                  {settingsError}
+                </div>
+              )}
+
+              <form onSubmit={handleSaveSettings} className="space-y-6">
+                {/* UPI Toggle Card */}
+                <div className="p-5 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#ED3500]/10 text-[#ED3500] flex items-center justify-center font-black">
+                      <QrCode className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-extrabold text-[#163B5C]">Online UPI Payment</h3>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            paymentSettings.enableUPI
+                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {paymentSettings.enableUPI ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-0.5">
+                        Allows customers to pay instantly using Google Pay, PhonePe, Paytm, BHIM, or any UPI app.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.enableUPI}
+                      onChange={(e) =>
+                        setPaymentSettings({ ...paymentSettings, enableUPI: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-12 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ED3500]"></div>
+                  </label>
+                </div>
+
+                {/* COD Toggle Card */}
+                <div className="p-5 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-black">
+                      <IndianRupee className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-extrabold text-[#163B5C]">Cash on Delivery (COD)</h3>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            paymentSettings.enableCOD
+                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {paymentSettings.enableCOD ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-0.5">
+                        Allows customers to pay in cash upon receiving their order package at their address.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.enableCOD}
+                      onChange={(e) =>
+                        setPaymentSettings({ ...paymentSettings, enableCOD: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-12 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ED3500]"></div>
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmittingSettings}
+                  className="w-full py-3.5 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-[#ED3500]/25 transition-all flex items-center justify-center gap-2"
+                >
+                  {isSubmittingSettings ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (
+                    'Save Payment Settings'
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
         )}
       </main>
