@@ -32,6 +32,7 @@ import {
   Facebook,
   Instagram,
   Youtube,
+  Share2,
 } from 'lucide-react';
 
 interface ProductVariant {
@@ -540,6 +541,34 @@ Please assist me with this order. Thank you!`;
     return `https://wa.me/919578784431?text=${encodeURIComponent(text)}`;
   };
 
+  const getWhatsAppProductShareLink = (product: Product, variant?: ProductVariant) => {
+    const selectedVar = variant || (product.variants && product.variants.length > 0 ? product.variants[0] : undefined);
+    const price = selectedVar ? selectedVar.price : product.price;
+    const mrp = selectedVar ? selectedVar.mrp : product.mrp;
+    const variantName = selectedVar ? ` (${selectedVar.name})` : '';
+    const discount = selectedVar
+      ? selectedVar.mrp > selectedVar.price
+        ? Math.round(((selectedVar.mrp - selectedVar.price) / selectedVar.mrp) * 100)
+        : 0
+      : product.discount;
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://beeshubfarmland.com';
+    const productUrl = `${baseUrl}/#product-${product._id}`;
+
+    const text = `🌿 *${product.name}${variantName}*
+
+💰 *Price:* ₹${price.toLocaleString('en-IN')}${mrp > price ? ` (MRP: ~₹${mrp.toLocaleString('en-IN')}~ - ${discount}% OFF)` : ''}
+🏷️ *Category:* ${product.category || 'Pure Organic Produce'}
+✨ *Highlight:* 100% Pure & Fresh Organic Harvest directly from BeesHub Farmland.
+
+🛒 *Order Directly Online Here:*
+${productUrl}
+
+— *BEES HUB FARMLAND PRIVATE LIMITED*`;
+
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  };
+
   const dynamicCategoryList = ['All', ...categories.map((c) => c.name)];
 
   return (
@@ -905,6 +934,7 @@ Please assist me with this order. Thank you!`;
                 return (
                   <div
                     key={product._id}
+                    id={`product-${product._id}`}
                     className="group bg-white rounded-2xl border border-[#E8EDF2] overflow-hidden hover:shadow-xl hover:border-[#ED3500]/40 transition-all duration-300 flex flex-col justify-between"
                   >
                     <div>
@@ -921,16 +951,28 @@ Please assist me with this order. Thank you!`;
                             );
                           }}
                         />
-                        {/* Top Badges */}
-                        <div className="absolute top-2 left-2 flex flex-col gap-1">
-                          {displayDiscount > 0 && (
-                            <span className="px-2 py-0.5 rounded-md bg-[#ED3500] text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wide shadow-sm">
-                              {displayDiscount}% OFF
+                        {/* Top Badges & WhatsApp Quick Share */}
+                        <div className="absolute top-2 left-2 right-2 flex items-start justify-between pointer-events-none">
+                          <div className="flex flex-col gap-1 pointer-events-auto">
+                            {displayDiscount > 0 && (
+                              <span className="px-2 py-0.5 rounded-md bg-[#ED3500] text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wide shadow-sm">
+                                {displayDiscount}% OFF
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-xs text-[#163B5C] text-[9px] sm:text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                              <CheckCircle2 className="w-3 h-3 text-[#10B981]" /> Verified
                             </span>
-                          )}
-                          <span className="px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-xs text-[#163B5C] text-[9px] sm:text-[10px] font-bold flex items-center gap-1 shadow-xs">
-                            <CheckCircle2 className="w-3 h-3 text-[#10B981]" /> Verified
-                          </span>
+                          </div>
+                          <a
+                            href={getWhatsAppProductShareLink(product, activeVariant)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pointer-events-auto p-1.5 rounded-full bg-white/90 hover:bg-[#10B981] text-[#10B981] hover:text-white shadow-md backdrop-blur-xs transition-all flex items-center justify-center"
+                            title={`Share ${product.name} on WhatsApp`}
+                            aria-label={`Share ${product.name} on WhatsApp`}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
                         </div>
 
                         {/* Quick View Button Overlay */}
@@ -1018,12 +1060,12 @@ Please assist me with this order. Thank you!`;
                       </div>
                     </div>
 
-                    {/* Add to Cart CTA Button */}
-                    <div className="p-3 sm:p-5 pt-0">
+                    {/* Add to Cart & WhatsApp Share CTA Button */}
+                    <div className="p-3 sm:p-5 pt-0 flex items-center gap-2">
                       <button
                         disabled={isOutOfStock}
                         onClick={() => addToCart(product, 1, activeVariant)}
-                        className={`w-full py-2 sm:py-2.5 px-3 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${isOutOfStock
+                        className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${isOutOfStock
                           ? 'bg-[#E8EDF2] text-[#64748B] cursor-not-allowed'
                           : 'bg-[#ED3500] hover:bg-[#D02E00] text-white shadow-md hover:shadow-lg shadow-[#ED3500]/20 active:scale-95'
                           }`}
@@ -1031,6 +1073,16 @@ Please assist me with this order. Thank you!`;
                         <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         {isOutOfStock ? 'Sold Out' : `Add ${activeVariant ? `(${activeVariant.name})` : 'to Bag'}`}
                       </button>
+                      <a
+                        href={getWhatsAppProductShareLink(product, activeVariant)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 sm:p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-200 transition-all flex items-center justify-center shrink-0 shadow-2xs"
+                        title={`Share ${product.name} on WhatsApp`}
+                        aria-label={`Share ${product.name} on WhatsApp`}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
                     </div>
                   </div>
                 );
@@ -1336,17 +1388,30 @@ Please assist me with this order. Thank you!`;
                 </div>
 
                 <div className="space-y-3 pt-4">
-                  <button
-                    disabled={selectedProduct.quantity <= 0}
-                    onClick={() => {
-                      addToCart(selectedProduct);
-                      setSelectedProduct(null);
-                    }}
-                    className="w-full py-3.5 px-6 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#ED3500]/25 transition-all"
-                  >
-                    <ShoppingBag className="w-5 h-5" />
-                    {selectedProduct.quantity > 0 ? 'Add to Shopping Bag' : 'Out of Stock'}
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                      disabled={selectedProduct.quantity <= 0}
+                      onClick={() => {
+                        addToCart(selectedProduct, 1, selectedVariants[selectedProduct._id]);
+                        setSelectedProduct(null);
+                      }}
+                      className="flex-1 py-3.5 px-6 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#ED3500]/25 transition-all"
+                    >
+                      <ShoppingBag className="w-5 h-5" />
+                      {selectedProduct.quantity > 0 ? 'Add to Shopping Bag' : 'Out of Stock'}
+                    </button>
+                    <a
+                      href={getWhatsAppProductShareLink(selectedProduct, selectedVariants[selectedProduct._id])}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-3.5 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white font-bold text-xs border border-emerald-200 transition-all flex items-center justify-center gap-2 shrink-0 shadow-sm"
+                      title="Share product details on WhatsApp"
+                      aria-label="Share product details on WhatsApp"
+                    >
+                      <MessageCircle className="w-5 h-5 text-emerald-600 group-hover:text-white" />
+                      <span className="hidden sm:inline font-bold">Share on WhatsApp</span>
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
