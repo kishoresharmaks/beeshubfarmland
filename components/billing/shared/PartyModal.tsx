@@ -4,23 +4,29 @@ import React, { useState } from 'react';
 import { X, UserPlus, Phone, Mail, MapPin, FileText, CheckCircle2 } from 'lucide-react';
 
 interface PartyModalProps {
+  initialData?: any;
   defaultType?: 'CUSTOMER' | 'VENDOR' | 'BOTH';
   onClose: () => void;
   onSuccess: (newParty: any) => void;
 }
 
 export default function PartyModal({
+  initialData,
   defaultType = 'CUSTOMER',
   onClose,
   onSuccess,
 }: PartyModalProps) {
-  const [partyType, setPartyType] = useState<'CUSTOMER' | 'VENDOR' | 'BOTH'>(defaultType);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [address, setAddress] = useState('');
-  const [gstin, setGstin] = useState('');
-  const [openingBalance, setOpeningBalance] = useState('0');
+  const isEditing = Boolean(initialData);
+
+  const [partyType, setPartyType] = useState<'CUSTOMER' | 'VENDOR' | 'BOTH'>(
+    initialData?.partyType || defaultType
+  );
+  const [name, setName] = useState(initialData?.name || '');
+  const [phone, setPhone] = useState(initialData?.phone || '');
+  const [email, setEmail] = useState(initialData?.email === 'pos@beeshubfarmland.com' ? '' : (initialData?.email || ''));
+  const [address, setAddress] = useState(initialData?.address || '');
+  const [gstin, setGstin] = useState(initialData?.gstin || '');
+  const [openingBalance, setOpeningBalance] = useState(String(initialData?.openingBalance || 0));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -34,18 +40,25 @@ export default function PartyModal({
     try {
       setIsSubmitting(true);
       setError('');
-      const res = await fetch('/api/billing/parties', {
-        method: 'POST',
+      const url = '/api/billing/parties';
+      const method = isEditing ? 'PUT' : 'POST';
+      const payload: any = {
+        partyType,
+        name,
+        phone,
+        email,
+        address,
+        gstin,
+        openingBalance: Number(openingBalance || 0),
+      };
+      if (isEditing) {
+        payload.partyId = initialData._id;
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          partyType,
-          name,
-          phone,
-          email,
-          address,
-          gstin,
-          openingBalance: Number(openingBalance || 0),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -53,10 +66,10 @@ export default function PartyModal({
         onSuccess(data.data);
         onClose();
       } else {
-        setError(data.message || 'Failed to save party record.');
+        setError(data.message || `Failed to ${isEditing ? 'update' : 'save'} party record.`);
       }
     } catch (err: any) {
-      setError(err.message || 'Server error creating party.');
+      setError(err.message || `Server error ${isEditing ? 'updating' : 'creating'} party.`);
     } finally {
       setIsSubmitting(false);
     }
@@ -79,7 +92,7 @@ export default function PartyModal({
           </div>
           <div>
             <h3 className="font-extrabold text-lg text-[#163B5C]">
-              Add New {partyType === 'VENDOR' ? 'Supplier / Vendor' : 'Customer'} Party
+              {isEditing ? 'Edit' : 'Add New'} {partyType === 'VENDOR' ? 'Supplier / Vendor' : 'Customer'} Party
             </h3>
             <p className="text-xs text-[#64748B]">Create a ledger account for billing and payments.</p>
           </div>

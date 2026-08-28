@@ -60,7 +60,7 @@ export default function POSCounter({
   // Customer State
   const [customerName, setCustomerName] = useState('Walk-in Guest');
   const [customerPhone, setCustomerPhone] = useState('0000000000');
-  const [customerEmail, setCustomerEmail] = useState('pos@beeshubfarmland.com');
+  const [customerEmail, setCustomerEmail] = useState('');
 
   // Payment State
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'UPI'>('CASH');
@@ -157,7 +157,7 @@ export default function POSCounter({
     setDiscountValue(0);
     setCustomerName('Walk-in Guest');
     setCustomerPhone('0000000000');
-    setCustomerEmail('pos@beeshubfarmland.com');
+    setCustomerEmail('');
     setPaymentMethod('CASH');
     setCashReceived(0);
     setTransactionId('');

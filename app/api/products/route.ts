@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(request: Request) {
   try {
     await connectToDatabase();
@@ -34,7 +37,7 @@ export async function GET(request: Request) {
       { success: true, count: products.length, data: products },
       {
         headers: {
-          'Cache-Control': 'public, s-maxage=5, stale-while-revalidate=30',
+          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
         },
       }
     );

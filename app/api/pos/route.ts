@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import Order from '@/models/Order';
+import Party from '@/models/Party';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function POST(request: NextRequest) {
@@ -13,7 +14,7 @@ export async function POST(request: NextRequest) {
       items,
       customerName = 'Walk-in Guest',
       customerPhone = '0000000000',
-      customerEmail = 'pos@beeshubfarmland.com',
+      customerEmail = '',
       paymentMethod = 'CASH',
       discountType = 'FLAT',
       discountValue = 0,
@@ -211,7 +212,7 @@ export async function POST(request: NextRequest) {
       orderType: 'POS',
       customerName: customerName.trim() || 'Walk-in Guest',
       customerPhone: customerPhone.trim() || '0000000000',
-      customerEmail: customerEmail.trim() || 'pos@beeshubfarmland.com',
+      customerEmail: customerEmail.trim() === 'pos@beeshubfarmland.com' ? '' : customerEmail.trim(),
       shippingAddress: 'BeesHub Farmland Counter Sale',
       pincode: '629501',
       items: verifiedItems,
@@ -230,6 +231,26 @@ export async function POST(request: NextRequest) {
       cashierId,
       status: 'Completed',
     });
+
+    // Auto-sync Customer into Party Directory for billing & accounting
+    if (customerPhone && customerPhone !== '0000000000') {
+      try {
+        await Party.findOneAndUpdate(
+          { phone: customerPhone.trim() },
+          {
+            $setOnInsert: { partyType: 'CUSTOMER', openingBalance: 0, currentBalance: 0 },
+            $set: {
+              name: customerName.trim(),
+              phone: customerPhone.trim(),
+              email: customerEmail.trim(),
+            },
+          },
+          { upsert: true, new: true }
+        );
+      } catch (partyErr) {
+        console.error('Failed to sync party', partyErr);
+      }
+    }
 
     return NextResponse.json(
       {

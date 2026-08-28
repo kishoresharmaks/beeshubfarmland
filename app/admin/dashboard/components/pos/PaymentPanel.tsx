@@ -76,7 +76,7 @@ export default function PaymentPanel({
                 onUpdateCustomer({
                   customerName: 'Walk-in Guest',
                   customerPhone: '0000000000',
-                  customerEmail: 'pos@beeshubfarmland.com',
+                  customerEmail: '',
                 });
               }}
               className={`px-3 py-1 rounded-lg text-[11px] font-extrabold border transition-all ${

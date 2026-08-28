@@ -55,22 +55,44 @@ Visit: https://beeshubfarmland.com`;
       {/* CSS Print Styles targeting POS Thermal Slip */}
       <style jsx global>{`
         @media print {
-          body * {
-            visibility: hidden;
+          @page {
+            margin: 0;
+            size: 80mm auto;
           }
-          #pos-thermal-receipt, #pos-thermal-receipt * {
-            visibility: visible;
+          html, body {
+            width: 80mm !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            color: black !important;
+            overflow: visible !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #pos-thermal-receipt,
+          #pos-thermal-receipt * {
+            visibility: visible !important;
           }
           #pos-thermal-receipt {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 80mm;
-            padding: 4mm;
-            font-size: 11px;
-            font-family: monospace;
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 80mm !important;
+            max-width: 80mm !important;
+            padding: 4mm !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            font-size: 11px !important;
+            font-family: monospace !important;
             color: black !important;
             background: white !important;
+            line-height: 1.3 !important;
+            z-index: 999999 !important;
+          }
+          .print\\:hidden, button, header, nav {
+            display: none !important;
           }
         }
       `}</style>

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
+import Party from '@/models/Party';
 
 export async function GET() {
   try {
@@ -100,6 +101,27 @@ export async function POST(request: Request) {
       transactionId: transactionId || '',
       status: 'Pending',
     });
+
+    // Auto-sync Customer into Party Directory for billing & accounting
+    if (customerPhone && customerPhone !== '0000000000') {
+      try {
+        await Party.findOneAndUpdate(
+          { phone: customerPhone.trim() },
+          {
+            $setOnInsert: { partyType: 'CUSTOMER', openingBalance: 0, currentBalance: 0 },
+            $set: {
+              name: customerName.trim(),
+              phone: customerPhone.trim(),
+              email: customerEmail.trim(),
+              address: `${shippingAddress}, ${pincode}`,
+            },
+          },
+          { upsert: true, new: true }
+        );
+      } catch (partyErr) {
+        console.error('Failed to sync party', partyErr);
+      }
+    }
 
     return NextResponse.json(
       { success: true, message: 'Order created successfully', data: newOrder },

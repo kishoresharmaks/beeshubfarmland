@@ -268,3 +268,38 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
+  try {
+    await connectToDatabase();
+    const { searchParams } = new URL(req.url);
+    const docId = searchParams.get('id');
+
+    if (!docId) {
+      return NextResponse.json({ success: false, message: 'Document ID is required.' }, { status: 400 });
+    }
+
+    const doc = await SaleDocument.findById(docId);
+    if (!doc) {
+      return NextResponse.json({ success: false, message: 'Document not found.' }, { status: 404 });
+    }
+
+    // Restrict deletion to ONLY Quotations that are not in a converted or completed state
+    if (doc.docType !== 'QUOTATION' || doc.status === 'Converted' || doc.status === 'Completed') {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Deletion restricted: Only pending quotations can be deleted. Completed invoices and converted documents cannot be deleted.',
+        },
+        { status: 400 }
+      );
+    }
+
+    await SaleDocument.findByIdAndDelete(docId);
+
+    return NextResponse.json({ success: true, message: 'Quotation deleted successfully.' });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 500 });
+  }
+}

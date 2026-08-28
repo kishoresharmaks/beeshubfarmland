@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Plus, Printer, RefreshCw, Filter, FileText, ArrowRight, IndianRupee } from 'lucide-react';
+import { Plus, Printer, RefreshCw, Filter, FileText, ArrowRight, IndianRupee, Trash2 } from 'lucide-react';
 import SaleInvoiceForm from './SaleInvoiceForm';
 import PaymentInModal from './PaymentInModal';
 import PrintableDocumentModal from '../shared/PrintableDocumentModal';
@@ -62,6 +62,24 @@ export default function SalesTabContainer({ products }: SalesTabContainerProps) 
       }
     } catch (err: any) {
       alert(err.message || 'Error converting document.');
+    }
+  };
+
+  const handleDeleteDocument = async (docId: string, docNumber: string, docType: string) => {
+    if (!confirm(`Are you sure you want to delete ${docType?.replace('_', ' ')} #${docNumber}?`)) return;
+
+    try {
+      const res = await fetch(`/api/billing/sales?id=${docId}`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (data.success) {
+        fetchSalesData();
+      } else {
+        alert(data.message || 'Failed to delete document.');
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error deleting document.');
     }
   };
 
@@ -268,6 +286,17 @@ export default function SalesTabContainer({ products }: SalesTabContainerProps) 
                       >
                         <Printer className="w-3.5 h-3.5 inline mr-1" /> Print
                       </button>
+
+                      {/* Delete Action - ONLY for active/unconverted Quotations */}
+                      {d.docType === 'QUOTATION' && d.status !== 'Converted' && d.status !== 'Completed' && (
+                        <button
+                          onClick={() => handleDeleteDocument(d._id, d.docNumber, d.docType)}
+                          className="px-2.5 py-1 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 font-bold text-xs transition-colors"
+                          title="Delete this pending quotation"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 inline mr-1" /> Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

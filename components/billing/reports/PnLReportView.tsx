@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, DollarSign, PieChart, ShieldCheck, Printer } from 'lucide-react';
+import PrintablePnLModal from './PrintablePnLModal';
 
 export default function PnLReportView() {
   const [report, setReport] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
 
   const fetchPnL = async () => {
     try {
@@ -74,10 +76,10 @@ export default function PnLReportView() {
         </div>
 
         <button
-          onClick={() => window.print()}
-          className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-[#163B5C] font-bold text-xs flex items-center gap-1.5"
+          onClick={() => setIsPrintModalOpen(true)}
+          className="px-4 py-2 rounded-xl bg-[#163B5C] hover:bg-[#0F2A42] text-white font-bold text-xs flex items-center gap-1.5 shadow-sm"
         >
-          <Printer className="w-4 h-4" /> Print P&L Statement
+          <Printer className="w-4 h-4" /> Print / Export Formal P&L PDF
         </button>
       </div>
 
@@ -202,6 +204,16 @@ export default function PnLReportView() {
           </div>
         </div>
       </div>
+
+      {/* Printable Formal P&L Statement Modal */}
+      {isPrintModalOpen && (
+        <PrintablePnLModal
+          report={report}
+          startDate={startDate}
+          endDate={endDate}
+          onClose={() => setIsPrintModalOpen(false)}
+        />
+      )}
     </div>
   );
 }

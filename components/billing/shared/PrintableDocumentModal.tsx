@@ -40,17 +40,65 @@ export default function PrintableDocumentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 space-y-5 border border-[#E8EDF2] shadow-2xl relative my-8">
-        {/* Modal Header Bar */}
-        <div className="flex items-center justify-between border-b border-[#E8EDF2] pb-4 print:hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm overflow-hidden print:p-0 print:bg-white print:overflow-visible">
+      {/* CSS Print Styles targeting document container */}
+      <style jsx global>{`
+        @media print {
+          @page {
+            margin: 0;
+            size: ${printMode === 'THERMAL' ? '80mm auto' : 'A4 portrait'};
+          }
+          html, body {
+            width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
+            height: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: white !important;
+            color: black !important;
+            overflow: visible !important;
+          }
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-document-area,
+          #printable-document-area * {
+            visibility: visible !important;
+          }
+          #printable-document-area {
+            position: fixed !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
+            max-width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
+            padding: ${printMode === 'THERMAL' ? '4mm' : '10mm 15mm'} !important;
+            margin: 0 !important;
+            box-sizing: border-box !important;
+            border: none !important;
+            border-radius: 0 !important;
+            box-shadow: none !important;
+            background: white !important;
+            color: black !important;
+            font-family: ${printMode === 'THERMAL' ? 'monospace' : 'inherit'} !important;
+            font-size: ${printMode === 'THERMAL' ? '11px' : '13px'} !important;
+            line-height: 1.4 !important;
+            z-index: 999999 !important;
+          }
+          .print\\:hidden {
+            display: none !important;
+          }
+        }
+      `}</style>
+
+      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col border border-[#E8EDF2] shadow-2xl relative print:border-none print:shadow-none print:p-0 print:my-0 print:max-w-full print:max-h-none overflow-hidden">
+        {/* Sticky Modal Top Control Header Bar */}
+        <div className="p-4 sm:p-5 border-b border-[#E8EDF2] flex items-center justify-between shrink-0 bg-white print:hidden z-10 shadow-2xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[#ED3500]/10 text-[#ED3500] flex items-center justify-center font-bold">
               <Printer className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-extrabold text-base text-[#163B5C]">
-                {doc.docType.replace('_', ' ')} — {doc.docNumber}
+                {doc.docType?.replace('_', ' ')} — {doc.docNumber}
               </h3>
               <p className="text-xs text-[#64748B]">Preview, Print A4/Thermal Receipt or Share WhatsApp</p>
             </div>
@@ -83,8 +131,15 @@ export default function PrintableDocumentModal({
           </div>
         </div>
 
-        {/* Printable Document Area */}
-        <div className={`p-6 bg-white border rounded-2xl ${printMode === 'THERMAL' ? 'max-w-md mx-auto text-xs font-mono' : 'text-sm'}`}>
+        {/* Scrollable Document Canvas Wrapper */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/70 print:p-0 print:bg-white print:overflow-visible">
+          {/* Printable Document Area */}
+          <div
+            id="printable-document-area"
+            className={`bg-white p-8 sm:p-10 rounded-2xl border border-gray-200 shadow-md ${
+              printMode === 'THERMAL' ? 'max-w-md mx-auto text-xs font-mono' : 'max-w-3xl mx-auto text-sm'
+            } print:border-none print:shadow-none print:p-0 print:max-w-full`}
+          >
           <div className="text-center border-b border-gray-200 pb-4 space-y-1">
             <h2 className="font-black text-lg text-[#163B5C]">BEES HUB FARMLAND PVT LTD</h2>
             <p className="text-xs text-gray-500">Pure Organic Honey, Spices & Natural Farm Produce</p>
@@ -163,6 +218,7 @@ export default function PrintableDocumentModal({
 
           <div className="mt-6 pt-4 border-t border-dashed border-gray-300 text-center text-[10px] text-gray-400">
             This is a computer-generated tax invoice from BeesHub Farmland Billing System.
+          </div>
           </div>
         </div>
       </div>

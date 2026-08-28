@@ -229,7 +229,7 @@ export default function AdminDashboard() {
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
-      const res = await fetch('/api/products');
+      const res = await fetch(`/api/products?t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       if (data.success) {
         setProducts(data.data);
@@ -607,6 +607,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
     });
     setImagePreview(product.image);
     setProductFormError('');
+    setIsAddModalOpen(true);
   };
 
   // Open Add Product Modal
@@ -676,6 +677,13 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
       if (data.success) {
         setIsAddModalOpen(false);
         setEditingProduct(null);
+        if (data.data) {
+          if (isEdit) {
+            setProducts((prev) => prev.map((p) => (p._id === data.data._id ? data.data : p)));
+          } else {
+            setProducts((prev) => [data.data, ...prev]);
+          }
+        }
         fetchProducts();
       } else {
         setProductFormError(data.message || 'Failed to save product.');
@@ -691,13 +699,17 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
   const handleDeleteProduct = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
     try {
+      setProducts((prev) => prev.filter((p) => p._id !== id));
       const res = await fetch(`/api/products/${id}`, { method: 'DELETE' });
       const data = await res.json();
       if (data.success) {
         fetchProducts();
+      } else {
+        fetchProducts();
       }
     } catch (err) {
       console.error(err);
+      fetchProducts();
     }
   };
 
