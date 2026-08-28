@@ -36,7 +36,7 @@ export default function PaymentPanel({
   onSubmitPOS,
   isSubmitting,
   isCartEmpty,
-  merchantUpiId = 'beeshubfarmland@upi',
+  merchantUpiId = process.env.NEXT_PUBLIC_MERCHANT_UPI_ID || 'beeshubfarmland@upi',
 }: PaymentPanelProps) {
   const [isGuest, setIsGuest] = useState(true);
   const [showUpiQr, setShowUpiQr] = useState(false);
