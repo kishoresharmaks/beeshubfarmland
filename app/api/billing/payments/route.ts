@@ -5,8 +5,10 @@ import SaleDocument from '@/models/SaleDocument';
 import PurchaseDocument from '@/models/PurchaseDocument';
 import Order from '@/models/Order';
 import Party from '@/models/Party';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const { searchParams } = new URL(req.url);
@@ -110,6 +112,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const body = await req.json();

@@ -1,9 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import Order from '@/models/Order';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  if (!isAuthenticatedAdmin(request)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const body = await request.json();

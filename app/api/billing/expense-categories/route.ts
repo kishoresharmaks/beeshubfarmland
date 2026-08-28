@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import ExpenseCategory from '@/models/ExpenseCategory';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     let categories = await ExpenseCategory.find().sort({ name: 1 }).lean();
@@ -28,6 +30,7 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const body = await req.json();

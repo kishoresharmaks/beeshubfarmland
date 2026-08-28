@@ -5,8 +5,10 @@ import Product from '@/models/Product';
 import Party from '@/models/Party';
 import Order from '@/models/Order';
 import { generateDocPrefix, formatDocNumber } from '@/lib/billingUtils';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const { searchParams } = new URL(req.url);
@@ -98,6 +100,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const body = await req.json();
@@ -194,6 +197,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PUT(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const body = await req.json();

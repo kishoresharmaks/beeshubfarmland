@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Expense from '@/models/Expense';
 import { generateDocPrefix, formatDocNumber } from '@/lib/billingUtils';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const { searchParams } = new URL(req.url);
@@ -20,6 +22,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
   try {
     await connectToDatabase();
     const body = await req.json();
