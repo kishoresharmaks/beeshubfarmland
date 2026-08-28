@@ -29,6 +29,7 @@ import {
   Image as ImageIcon,
   Zap,
   Store,
+  Menu,
 } from 'lucide-react';
 import POSCounter from './components/pos/POSCounter';
 
@@ -113,6 +114,7 @@ export default function AdminDashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos'>('products');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Products State
   const [products, setProducts] = useState<Product[]>([]);
@@ -786,8 +788,8 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
 
   return (
     <div className="min-h-screen bg-[#FFFCFB] text-[#163B5C] flex flex-col justify-between">
-      {/* Header with Refresh Option */}
-      <header className="bg-white border-b border-[#E8EDF2] sticky top-0 z-30">
+      {/* Header with Refresh & Mobile Menu */}
+      <header className="bg-white border-b border-[#E8EDF2] sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <img
@@ -799,13 +801,13 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               }}
             />
             <div>
-              <h1 className="font-extrabold text-xl text-[#163B5C]">BeesHub Farmland Admin</h1>
-              <span className="text-xs text-[#64748B]">Manage Inventory, Categories & Customer Orders</span>
+              <h1 className="font-extrabold text-base sm:text-xl text-[#163B5C]">BeesHub Farmland Admin</h1>
+              <span className="text-[11px] sm:text-xs text-[#64748B] hidden sm:block">Manage Inventory, Categories & Customer Orders</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            {/* 1-Click Database Heavy Images Optimizer */}
+          {/* Desktop Quick Actions */}
+          <div className="hidden md:flex items-center gap-3">
             <button
               onClick={handleOptimizeExistingDatabaseImages}
               disabled={isOptimizingDb}
@@ -816,7 +818,6 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               <span>{isOptimizingDb ? 'Optimizing...' : 'Optimize DB Images'}</span>
             </button>
 
-            {/* Dashboard Refresh Button */}
             <button
               onClick={fetchAllData}
               disabled={isRefreshing}
@@ -829,9 +830,9 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
 
             <Link
               href="/"
-              className="text-xs font-semibold text-[#64748B] hover:text-[#ED3500] transition-colors hidden sm:inline"
+              className="text-xs font-semibold text-[#64748B] hover:text-[#ED3500] transition-colors"
             >
-              View Customer Store ↗
+              View Store ↗
             </Link>
             <button
               onClick={handleLogout}
@@ -841,7 +842,64 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               <span>Logout</span>
             </button>
           </div>
+
+          {/* Mobile Hamburger Toggle Button */}
+          <div className="flex md:hidden items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="p-2 rounded-xl border border-[#E8EDF2] text-[#163B5C] hover:bg-gray-50 transition-colors"
+              aria-label="Toggle Mobile Menu"
+            >
+              {isMobileMenuOpen ? <X className="w-6 h-6 text-[#ED3500]" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Slide-Down Dropdown Menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-[#E8EDF2] p-4 space-y-2.5 animate-fadeIn shadow-lg">
+            <button
+              onClick={() => {
+                handleOptimizeExistingDatabaseImages();
+                setIsMobileMenuOpen(false);
+              }}
+              disabled={isOptimizingDb}
+              className="w-full p-3 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 font-extrabold text-xs flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2"><Zap className="w-4 h-4 text-emerald-600" /> Optimize DB Images</span>
+              <span className="text-[10px] uppercase font-black bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded">Compress</span>
+            </button>
+
+            <button
+              onClick={() => {
+                fetchAllData();
+                setIsMobileMenuOpen(false);
+              }}
+              disabled={isRefreshing}
+              className="w-full p-3 rounded-xl bg-gray-50 text-[#163B5C] border border-[#E8EDF2] font-extrabold text-xs flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2"><RefreshCw className={`w-4 h-4 text-[#ED3500] ${isRefreshing ? 'animate-spin' : ''}`} /> Refresh Dashboard Data</span>
+              <span className="text-[10px] text-gray-500">Sync</span>
+            </button>
+
+            <Link
+              href="/"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full p-3 rounded-xl bg-gray-50 text-[#163B5C] border border-[#E8EDF2] font-extrabold text-xs flex items-center justify-between"
+            >
+              <span>View Customer Storefront</span>
+              <span>↗</span>
+            </Link>
+
+            <button
+              onClick={handleLogout}
+              className="w-full p-3 rounded-xl bg-rose-50 text-rose-700 border border-rose-200 font-extrabold text-xs flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2"><LogOut className="w-4 h-4" /> Logout Admin Session</span>
+            </button>
+          </div>
+        )}
       </header>
 
       {/* Database Optimization Progress Banner */}
@@ -916,14 +974,14 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center justify-between border-b border-[#E8EDF2]">
-          <div className="flex items-center gap-6">
+        {/* Tab Navigation (Responsive Horizontal Scroll) */}
+        <div className="flex items-center justify-between border-b border-[#E8EDF2] gap-2 pb-1 overflow-x-auto scrollbar-none scroll-smooth">
+          <div className="flex items-center gap-1.5 sm:gap-4 shrink-0">
             <button
               onClick={() => setActiveTab('products')}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
                 activeTab === 'products'
-                  ? 'border-[#ED3500] text-[#ED3500]'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
                   : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
               }`}
             >
@@ -931,9 +989,9 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
             </button>
             <button
               onClick={() => setActiveTab('categories')}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
                 activeTab === 'categories'
-                  ? 'border-[#ED3500] text-[#ED3500]'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
                   : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
               }`}
             >
@@ -941,9 +999,9 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
             </button>
             <button
               onClick={() => setActiveTab('orders')}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
                 activeTab === 'orders'
-                  ? 'border-[#ED3500] text-[#ED3500]'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
                   : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
               }`}
             >
@@ -951,40 +1009,40 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
             </button>
             <button
               onClick={() => setActiveTab('banners')}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
                 activeTab === 'banners'
-                  ? 'border-[#ED3500] text-[#ED3500]'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
                   : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
               }`}
             >
-              <ImageIcon className="w-4 h-4" /> Hero Banners ({banners.length})
+              <ImageIcon className="w-4 h-4" /> Banners ({banners.length})
             </button>
             <button
               onClick={() => setActiveTab('settings')}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
                 activeTab === 'settings'
-                  ? 'border-[#ED3500] text-[#ED3500]'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
                   : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
               }`}
             >
-              <CreditCard className="w-4 h-4" /> Payment Settings
+              <CreditCard className="w-4 h-4" /> Settings
             </button>
             <button
               onClick={() => setActiveTab('pos')}
-              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
                 activeTab === 'pos'
-                  ? 'border-[#ED3500] text-[#ED3500]'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
                   : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
               }`}
             >
-              <Store className="w-4 h-4" /> POS Counter Billing
+              <Store className="w-4 h-4" /> POS Counter
             </button>
           </div>
 
           {activeTab === 'products' && (
             <button
               onClick={openAddProductModal}
-              className="mb-3 px-4 py-2.5 rounded-xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md shadow-[#ED3500]/20 transition-all"
+              className="px-3.5 py-2 rounded-xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs whitespace-nowrap shrink-0"
             >
               <Plus className="w-4 h-4" /> Add Product
             </button>
@@ -1243,13 +1301,13 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           </div>
         )}
 
-        {/* Customer Orders Management View with Pagination */}
+        {/* Customer Orders Management View with Responsive Filtering */}
         {activeTab === 'orders' && (
           <div className="space-y-6">
             {/* Filter by status */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs font-bold text-[#64748B]">
-                <Filter className="w-4 h-4" /> Status Filter:
+              <div className="flex items-center gap-2 text-xs font-bold text-[#64748B] overflow-x-auto pb-1 scrollbar-none w-full">
+                <span className="flex items-center gap-1 shrink-0"><Filter className="w-4 h-4" /> Status:</span>
                 {['All', 'Pending', 'Processing', 'Completed', 'Cancelled'].map((st) => (
                   <button
                     key={st}
@@ -1257,7 +1315,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                       setOrderStatusFilter(st);
                       setOrderPage(1);
                     }}
-                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                    className={`px-3 py-1.5 rounded-lg whitespace-nowrap shrink-0 transition-all ${
                       orderStatusFilter === st
                         ? 'bg-[#163B5C] text-white font-bold'
                         : 'bg-white border border-[#E8EDF2] text-[#64748B] hover:text-[#163B5C]'
