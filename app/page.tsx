@@ -110,6 +110,7 @@ export default function CustomerStore() {
 
   // Modals & Drawers State
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -287,6 +288,33 @@ export default function CustomerStore() {
     setCurrentPage(1);
     fetchProducts();
   }, [searchQuery, selectedCategory]);
+
+  // Handle URL product link auto-open and highlight
+  useEffect(() => {
+    if (typeof window === 'undefined' || products.length === 0) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let targetId = urlParams.get('product');
+
+    if (!targetId && window.location.hash.startsWith('#product-')) {
+      targetId = window.location.hash.replace('#product-', '');
+    }
+
+    if (targetId) {
+      const foundProduct = products.find((p) => p._id === targetId);
+      if (foundProduct) {
+        setSelectedProduct(foundProduct);
+        setHighlightedProductId(foundProduct._id);
+
+        setTimeout(() => {
+          const elem = document.getElementById(`product-${targetId}`);
+          if (elem) {
+            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 350);
+      }
+    }
+  }, [products]);
 
   // Handle Customer Order Tracking Search
   const handleSearchTracking = async (e: React.FormEvent) => {
@@ -553,7 +581,7 @@ Please assist me with this order. Thank you!`;
       : product.discount;
 
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://beeshubfarmland.com';
-    const productUrl = `${baseUrl}/#product-${product._id}`;
+    const productUrl = `${baseUrl}/product/${product._id}`;
 
     const text = `🌿 *${product.name}${variantName}*
 
@@ -561,7 +589,7 @@ Please assist me with this order. Thank you!`;
 🏷️ *Category:* ${product.category || 'Pure Organic Produce'}
 ✨ *Highlight:* 100% Pure & Fresh Organic Harvest directly from BeesHub Farmland.
 
-🛒 *Order Directly Online Here:*
+🛒 *View Product & Order Online:*
 ${productUrl}
 
 — *BEES HUB FARMLAND PRIVATE LIMITED*`;
@@ -931,11 +959,17 @@ ${productUrl}
                 const isOutOfStock = activeStock <= 0;
                 const gstRate = product.gst !== undefined ? product.gst : 0;
 
+                const isHighlighted = highlightedProductId === product._id;
+
                 return (
                   <div
                     key={product._id}
                     id={`product-${product._id}`}
-                    className="group bg-white rounded-2xl border border-[#E8EDF2] overflow-hidden hover:shadow-xl hover:border-[#ED3500]/40 transition-all duration-300 flex flex-col justify-between"
+                    className={`group bg-white rounded-2xl border overflow-hidden transition-all duration-500 flex flex-col justify-between ${
+                      isHighlighted
+                        ? 'border-[#ED3500] ring-4 ring-[#ED3500]/40 shadow-2xl scale-[1.02] bg-[#FFF8F5]'
+                        : 'border-[#E8EDF2] hover:shadow-xl hover:border-[#ED3500]/40'
+                    }`}
                   >
                     <div>
                       {/* Image Container */}
@@ -954,6 +988,11 @@ ${productUrl}
                         {/* Top Badges & WhatsApp Quick Share */}
                         <div className="absolute top-2 left-2 right-2 flex items-start justify-between pointer-events-none">
                           <div className="flex flex-col gap-1 pointer-events-auto">
+                            {isHighlighted && (
+                              <span className="px-2 py-0.5 rounded-md bg-[#10B981] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wide shadow-sm animate-pulse">
+                                ✨ Shared Item
+                              </span>
+                            )}
                             {displayDiscount > 0 && (
                               <span className="px-2 py-0.5 rounded-md bg-[#ED3500] text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wide shadow-sm">
                                 {displayDiscount}% OFF
