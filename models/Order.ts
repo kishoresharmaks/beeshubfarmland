@@ -12,6 +12,8 @@ export interface IOrderItem {
 
 export interface IOrder extends Document {
   orderId: string;
+  invoiceNumber?: string;
+  orderType: 'ONLINE' | 'POS';
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -21,9 +23,16 @@ export interface IOrder extends Document {
   subtotal: number;
   totalGst: number;
   totalAmount: number;
-  paymentMethod: 'COD' | 'UPI';
+  discountType?: 'FLAT' | 'PERCENTAGE';
+  discountValue?: number;
+  discountAmount?: number;
+  paymentMethod: 'COD' | 'UPI' | 'CASH';
   paymentStatus: 'Pending' | 'Paid' | 'Failed';
   transactionId?: string;
+  cashReceived?: number;
+  changeReturned?: number;
+  cashierName?: string;
+  cashierId?: string;
   status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
   createdAt: Date;
   updatedAt: Date;
@@ -42,6 +51,13 @@ const OrderItemSchema = new Schema({
 const OrderSchema: Schema = new Schema(
   {
     orderId: { type: String, required: true, unique: true },
+    invoiceNumber: { type: String, sparse: true, index: true },
+    orderType: {
+      type: String,
+      enum: ['ONLINE', 'POS'],
+      default: 'ONLINE',
+      index: true,
+    },
     customerName: { type: String, required: true, trim: true },
     customerPhone: { type: String, required: true, trim: true },
     customerEmail: { type: String, required: true, trim: true },
@@ -51,9 +67,12 @@ const OrderSchema: Schema = new Schema(
     subtotal: { type: Number, required: true },
     totalGst: { type: Number, required: true },
     totalAmount: { type: Number, required: true },
+    discountType: { type: String, enum: ['FLAT', 'PERCENTAGE'] },
+    discountValue: { type: Number, default: 0 },
+    discountAmount: { type: Number, default: 0 },
     paymentMethod: {
       type: String,
-      enum: ['COD', 'UPI'],
+      enum: ['COD', 'UPI', 'CASH'],
       default: 'COD',
     },
     paymentStatus: {
@@ -62,6 +81,10 @@ const OrderSchema: Schema = new Schema(
       default: 'Pending',
     },
     transactionId: { type: String, default: '' },
+    cashReceived: { type: Number },
+    changeReturned: { type: Number },
+    cashierName: { type: String, default: '' },
+    cashierId: { type: String, default: '' },
     status: {
       type: String,
       enum: ['Pending', 'Processing', 'Completed', 'Cancelled'],
@@ -70,6 +93,9 @@ const OrderSchema: Schema = new Schema(
   },
   { timestamps: true }
 );
+
+OrderSchema.index({ createdAt: -1 });
+OrderSchema.index({ orderType: 1, createdAt: -1 });
 
 const Order: Model<IOrder> =
   mongoose.models.Order || mongoose.model<IOrder>('Order', OrderSchema);

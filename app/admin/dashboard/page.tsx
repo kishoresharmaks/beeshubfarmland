@@ -28,7 +28,9 @@ import {
   Check,
   Image as ImageIcon,
   Zap,
+  Store,
 } from 'lucide-react';
+import POSCounter from './components/pos/POSCounter';
 
 interface BannerItem {
   _id: string;
@@ -80,6 +82,8 @@ interface OrderItem {
 interface Order {
   _id: string;
   orderId: string;
+  invoiceNumber?: string;
+  orderType?: 'ONLINE' | 'POS';
   customerName: string;
   customerPhone: string;
   customerEmail: string;
@@ -89,9 +93,16 @@ interface Order {
   subtotal: number;
   totalGst: number;
   totalAmount: number;
-  paymentMethod: 'COD' | 'UPI';
+  discountType?: 'FLAT' | 'PERCENTAGE';
+  discountValue?: number;
+  discountAmount?: number;
+  paymentMethod: 'COD' | 'UPI' | 'CASH';
   paymentStatus: 'Pending' | 'Paid' | 'Failed';
   transactionId?: string;
+  cashReceived?: number;
+  changeReturned?: number;
+  cashierName?: string;
+  cashierId?: string;
   status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
   createdAt: string;
 }
@@ -100,7 +111,7 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders' | 'banners' | 'settings'>('products');
+  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos'>('products');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Products State
@@ -735,6 +746,10 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
   };
 
   // Metrics
+  const onlineOrders = orders.filter((o) => o.orderType !== 'POS');
+  const posOrders = orders.filter((o) => o.orderType === 'POS');
+  const onlineRevenue = onlineOrders.reduce((sum, o) => sum + o.totalAmount, 0);
+  const posRevenue = posOrders.reduce((sum, o) => sum + o.totalAmount, 0);
   const totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
   const pendingOrdersCount = orders.filter((o) => o.status === 'Pending').length;
 
@@ -841,7 +856,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
       )}
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-1 w-full space-y-8">
+      <main className={`${activeTab === 'pos' ? 'max-w-[1700px] px-2 sm:px-4 lg:px-6 py-4' : 'max-w-7xl px-4 sm:px-6 lg:px-8 py-8'} mx-auto flex-1 w-full space-y-6`}>
         {/* Metric Summary Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-5 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm flex items-center gap-4">
@@ -953,6 +968,16 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               }`}
             >
               <CreditCard className="w-4 h-4" /> Payment Settings
+            </button>
+            <button
+              onClick={() => setActiveTab('pos')}
+              className={`pb-4 text-sm font-bold flex items-center gap-2 border-b-2 transition-all ${
+                activeTab === 'pos'
+                  ? 'border-[#ED3500] text-[#ED3500]'
+                  : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
+              }`}
+            >
+              <Store className="w-4 h-4" /> POS Counter Billing
             </button>
           </div>
 
@@ -1761,6 +1786,15 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               </form>
             </div>
           </div>
+        )}
+
+        {/* POS Counter Management View */}
+        {activeTab === 'pos' && (
+          <POSCounter
+            products={products}
+            categories={categories}
+            onRefreshProducts={fetchAllData}
+          />
         )}
       </main>
 
