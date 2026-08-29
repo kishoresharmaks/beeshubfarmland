@@ -6,7 +6,7 @@ import { Printer, MessageCircle, CheckCircle2, RefreshCw, X } from 'lucide-react
 interface POSReceiptProps {
   order: any;
   onClose: () => void;
-  onNewSale: () => void;
+  onNewSale?: () => void;
 }
 
 export default function POSReceipt({ order, onClose, onNewSale }: POSReceiptProps) {
@@ -125,7 +125,7 @@ Visit: https://beeshubfarmland.com`;
             <p className="text-[10px] text-gray-600 leading-tight">
               2/26-1, Muhilanvilai, Monikettipottal, Nagercoil, Kanyakumari - 629501
             </p>
-            <p className="text-[10px] text-gray-600">GSTIN: 33AAFCB1234F1Z0 | Phone: +91 95787 84431</p>
+            <p className="text-[10px] text-gray-600">GSTIN: 33AAOCB0453D1Z3 | Phone: +91 95787 84431</p>
             <span className="inline-block mt-1 px-2 py-0.5 rounded bg-gray-100 font-bold text-[10px] uppercase">
               POS TAX INVOICE
             </span>
@@ -222,7 +222,7 @@ Visit: https://beeshubfarmland.com`;
           {/* Footer note */}
           <div className="text-center text-[10px] text-gray-500 pt-2 border-t border-dashed border-gray-300">
             <p>Thank you for shopping with BeesHub Farmland!</p>
-            <p>100% Pure Organic & Certified Produce</p>
+            <p>100% Pure Organic & Certified Produce | GSTIN: 33AAOCB0453D1Z3</p>
           </div>
         </div>
 

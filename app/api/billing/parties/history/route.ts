@@ -59,7 +59,7 @@ export async function GET(req: NextRequest) {
         id: doc._id,
         type: doc.docType,
         docNumber: doc.docNumber,
-        date: doc.date || doc.createdAt,
+        date: (doc as any).date || doc.createdAt,
         totalAmount: doc.grandTotal,
         paidAmount: doc.paidAmount,
         balanceAmount: doc.balanceAmount,

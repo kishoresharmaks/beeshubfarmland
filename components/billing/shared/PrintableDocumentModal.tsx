@@ -4,14 +4,17 @@ import React, { useState } from 'react';
 import { X, Printer, Share2, Check } from 'lucide-react';
 
 interface PrintableDocumentModalProps {
-  document: any;
+  document?: any;
+  doc?: any;
   onClose: () => void;
 }
 
 export default function PrintableDocumentModal({
-  document: doc,
+  document: documentProp,
+  doc: docProp,
   onClose,
 }: PrintableDocumentModalProps) {
+  const doc = documentProp || docProp;
   const [printMode, setPrintMode] = useState<'A4' | 'THERMAL'>('A4');
   const [isCopied, setIsCopied] = useState(false);
 
@@ -143,7 +146,7 @@ export default function PrintableDocumentModal({
           <div className="text-center border-b border-gray-200 pb-4 space-y-1">
             <h2 className="font-black text-lg text-[#163B5C]">BEES HUB FARMLAND PVT LTD</h2>
             <p className="text-xs text-gray-500">Pure Organic Honey, Spices & Natural Farm Produce</p>
-            <p className="text-xs font-semibold text-gray-700">Phone: +91 95787 84431 | GSTIN: 33AAAAA0000A1Z5</p>
+            <p className="text-xs font-semibold text-gray-700">Phone: +91 95787 84431 | GSTIN: 33AAOCB0453D1Z3</p>
           </div>
 
           {/* Doc Details */}
@@ -217,7 +220,7 @@ export default function PrintableDocumentModal({
           </div>
 
           <div className="mt-6 pt-4 border-t border-dashed border-gray-300 text-center text-[10px] text-gray-400">
-            This is a computer-generated tax invoice from BeesHub Farmland Billing System.
+            This is a computer-generated tax invoice from BeesHub Farmland Billing System (GSTIN: 33AAOCB0453D1Z3).
           </div>
           </div>
         </div>

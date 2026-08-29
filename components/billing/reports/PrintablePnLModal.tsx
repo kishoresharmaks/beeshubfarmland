@@ -125,7 +125,7 @@ export default function PrintablePnLModal({
               Pure Organic Honey, Spices & Natural Farm Produce
             </p>
             <p className="text-xs font-bold text-slate-700">
-              Phone: +91 95787 84431 | GSTIN: 33AAAAA0000A1Z5
+              Phone: +91 95787 84431 | GSTIN: 33AAOCB0453D1Z3
             </p>
           </div>
 
@@ -291,7 +291,7 @@ export default function PrintablePnLModal({
           {/* Footer Signoff */}
           <div className="mt-8 pt-4 border-t border-slate-300 flex justify-between items-end text-xs text-slate-500">
             <div>
-              <p className="font-semibold text-slate-700">BeesHub Farmland Pvt Ltd</p>
+              <p className="font-semibold text-slate-700">BeesHub Farmland Pvt Ltd | GSTIN: 33AAOCB0453D1Z3</p>
               <p className="text-[10px]">This is an official computer-generated financial report statement.</p>
             </div>
             <div className="text-right space-y-6">

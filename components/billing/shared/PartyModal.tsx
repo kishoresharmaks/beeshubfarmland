@@ -150,7 +150,7 @@ export default function PartyModal({
               <label className="text-xs font-bold text-[#163B5C] uppercase">GSTIN (Optional)</label>
               <input
                 type="text"
-                placeholder="33AAAAA0000A1Z5"
+                placeholder="33AAOCB0453D1Z3"
                 value={gstin}
                 onChange={(e) => setGstin(e.target.value.toUpperCase())}
                 className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500] uppercase"

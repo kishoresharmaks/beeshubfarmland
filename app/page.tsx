@@ -2094,7 +2094,8 @@ ${productUrl}
                 <strong className="text-[#163B5C] block font-semibold">BEES HUB FARMLAND PRIVATE LIMITED</strong>
                 2/26-1, Muhilanvilai, Monikettipottal, nagercoil,<br />
                 Kanyakumari District, <br />
-                Tamil Nadu - 629501
+                Tamil Nadu - 629501<br />
+                <strong className="text-[#163B5C] font-semibold">GSTIN: 33AAOCB0453D1Z3</strong>
               </p>
             </div>
 
@@ -2124,7 +2125,7 @@ ${productUrl}
               <strong className="text-[#163B5C]">BEES HUB FARMLAND PRIVATE LIMITED</strong> © {new Date().getFullYear()}. All Rights Reserved.
             </div>
             <div className="flex items-center gap-4 flex-wrap">
-              <span>GST Compliant</span>
+              <span className="font-semibold text-[#163B5C]">GSTIN: 33AAOCB0453D1Z3</span>
               <span>•</span>
               <a
                 href={`https://wa.me/917695946750?text=${encodeURIComponent('Hello! I came from the BeesHub Farmland website (beeshubfarmland.com) and would like to inquire about website development & IT services.')}`}
