@@ -16,7 +16,7 @@ export interface IOrder extends Document {
   orderType: 'ONLINE' | 'POS';
   customerName: string;
   customerPhone: string;
-  customerEmail: string;
+  customerEmail?: string;
   shippingAddress: string;
   pincode: string;
   items: IOrderItem[];
@@ -60,7 +60,7 @@ const OrderSchema: Schema = new Schema(
     },
     customerName: { type: String, required: true, trim: true },
     customerPhone: { type: String, required: true, trim: true },
-    customerEmail: { type: String, required: true, trim: true },
+    customerEmail: { type: String, default: '', trim: true },
     shippingAddress: { type: String, required: true },
     pincode: { type: String, required: true },
     items: [OrderItemSchema],

@@ -89,7 +89,7 @@ interface Order {
   orderType?: 'ONLINE' | 'POS';
   customerName: string;
   customerPhone: string;
-  customerEmail: string;
+  customerEmail?: string;
   shippingAddress: string;
   pincode: string;
   items: OrderItem[];
@@ -1533,9 +1533,11 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                           <p className="flex items-center gap-1.5">
                             <Phone className="w-3.5 h-3.5 text-[#ED3500]" /> {order.customerPhone}
                           </p>
-                          <p className="flex items-center gap-1.5">
-                            <Mail className="w-3.5 h-3.5 text-[#ED3500]" /> {order.customerEmail}
-                          </p>
+                          {order.customerEmail ? (
+                            <p className="flex items-center gap-1.5">
+                              <Mail className="w-3.5 h-3.5 text-[#ED3500]" /> {order.customerEmail}
+                            </p>
+                          ) : null}
                           <p className="flex items-start gap-1.5 pt-1 border-t border-[#E8EDF2]">
                             <MapPin className="w-3.5 h-3.5 text-[#ED3500] shrink-0 mt-0.5" />
                             <span>
