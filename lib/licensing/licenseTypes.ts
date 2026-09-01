@@ -3,12 +3,6 @@ export type ClientLicenseStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'EXPIRED
 export interface IClientFeatureMap {
   posEnabled: boolean;
   invoicingEnabled: boolean;
-  onlineStoreEnabled: boolean;
-  inventoryManagement: boolean;
-  pnlReporting: boolean;
-  multiBranch: boolean;
-  maxProducts: number;
-  maxOrdersPerMonth: number;
 }
 
 export interface IClientLicenseState {
