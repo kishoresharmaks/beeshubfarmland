@@ -9,6 +9,10 @@ export interface ILicenseSetting extends Document {
   domain: string;
   planName?: string;
   billingCycle?: string;
+  features?: {
+    posEnabled: boolean;
+    invoicingEnabled: boolean;
+  };
   status: ClientLicenseStatusType;
   validUntil: Date;
   issuedAt: Date;
@@ -27,6 +31,10 @@ const LicenseSettingSchema: Schema = new Schema(
     domain: { type: String, default: '*' },
     planName: { type: String, default: 'Pro Subscription' },
     billingCycle: { type: String, default: 'MONTHLY' },
+    features: {
+      posEnabled: { type: Boolean, default: true },
+      invoicingEnabled: { type: Boolean, default: true },
+    },
     status: {
       type: String,
       enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'EXPIRED', 'INVALID', 'UNLICENSED'],

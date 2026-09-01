@@ -17,6 +17,7 @@ export interface IClientLicenseState {
   domain: string;
   planName: string;
   billingCycle: string;
+  features?: IClientFeatureMap;
   validUntil?: string;
   issuedAt?: string;
   daysRemaining: number;

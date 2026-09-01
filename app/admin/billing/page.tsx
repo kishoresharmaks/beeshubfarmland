@@ -13,6 +13,7 @@ import {
   Users,
   Eye,
   Edit,
+  Lock,
 } from 'lucide-react';
 import SalesTabContainer from '@/components/billing/sales/SalesTabContainer';
 import PurchaseTabContainer from '@/components/billing/purchase/PurchaseTabContainer';
@@ -26,6 +27,7 @@ export default function AdminBillingPage() {
   const [partyFilter, setPartyFilter] = useState<'ALL' | 'CUSTOMER' | 'VENDOR'>('ALL');
   const [products, setProducts] = useState<any[]>([]);
   const [parties, setParties] = useState<any[]>([]);
+  const [licenseState, setLicenseState] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isPartyModalOpen, setIsPartyModalOpen] = useState(false);
   const [selectedPartyForLedger, setSelectedPartyForLedger] = useState<any>(null);
@@ -54,6 +56,12 @@ export default function AdminBillingPage() {
 
   useEffect(() => {
     fetchInitialData();
+    fetch('/api/license/status')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success) setLicenseState(data.license);
+      })
+      .catch((err) => console.error(err));
   }, []);
 
   return (
@@ -167,6 +175,24 @@ export default function AdminBillingPage() {
         {loading ? (
           <div className="py-20 text-center">
             <RefreshCw className="w-8 h-8 text-[#ED3500] animate-spin mx-auto" />
+          </div>
+        ) : licenseState?.features?.invoicingEnabled === false ? (
+          <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-12 text-center max-w-xl mx-auto space-y-4 my-12 shadow-2xl">
+            <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto">
+              <Lock className="w-8 h-8" />
+            </div>
+            <h3 className="text-2xl font-black">Billing & Invoicing Feature Locked</h3>
+            <p className="text-sm text-slate-400 leading-relaxed">
+              GST Invoicing & Accounting is not enabled in your current subscription plan ({licenseState?.planName || 'Current Plan'}).
+            </p>
+            <div className="pt-2">
+              <Link
+                href="/admin/dashboard"
+                className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition inline-block"
+              >
+                Return to Dashboard & Upgrade Plan ↗
+              </Link>
+            </div>
           </div>
         ) : (
           <>

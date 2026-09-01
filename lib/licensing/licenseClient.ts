@@ -1,4 +1,4 @@
-import { IClientLicenseState, ClientLicenseStatus } from './licenseTypes';
+import { IClientLicenseState, ClientLicenseStatus, IClientFeatureMap } from './licenseTypes';
 
 /**
  * Standalone Licensing Server Base URL
@@ -23,6 +23,7 @@ export function computeClientLicenseState(data: {
   domain?: string;
   planName?: string;
   billingCycle?: string;
+  features?: IClientFeatureMap;
   status?: ClientLicenseStatus;
   validUntil?: string | Date;
   issuedAt?: string | Date;
@@ -33,6 +34,11 @@ export function computeClientLicenseState(data: {
 }): IClientLicenseState {
   const licenseKey = (data.licenseKey || getConfiguredLicenseKey()).trim().toUpperCase();
   const serverOnline = data.serverOnline !== undefined ? data.serverOnline : true;
+
+  const defaultFeatures: IClientFeatureMap = data.features || {
+    posEnabled: true,
+    invoicingEnabled: true,
+  };
 
   // If server is offline or no key is provided/saved, the instance is locked
   if (!licenseKey || !serverOnline) {
@@ -48,6 +54,7 @@ export function computeClientLicenseState(data: {
       domain: data.domain || '',
       planName: '',
       billingCycle: '',
+      features: { posEnabled: false, invoicingEnabled: false },
       daysRemaining: 0,
       message: !serverOnline
         ? 'NEXUS Licensing Authority Server is currently OFFLINE. Cannot verify store license.'
@@ -98,6 +105,7 @@ export function computeClientLicenseState(data: {
     domain: data.domain || '',
     planName: data.planName || 'Pro Subscription',
     billingCycle: data.billingCycle || 'MONTHLY',
+    features: defaultFeatures,
     validUntil: validUntilStr,
     issuedAt: data.issuedAt ? new Date(data.issuedAt).toISOString() : undefined,
     daysRemaining,

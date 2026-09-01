@@ -2004,11 +2004,31 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
 
         {/* POS Counter Management View */}
         {activeTab === 'pos' && (
-          <POSCounter
-            products={products}
-            categories={categories}
-            onRefreshProducts={fetchAllData}
-          />
+          licenseState?.features?.posEnabled !== false ? (
+            <POSCounter
+              products={products}
+              categories={categories}
+              onRefreshProducts={fetchAllData}
+            />
+          ) : (
+            <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-12 text-center max-w-xl mx-auto space-y-4 my-12 shadow-2xl">
+              <div className="w-16 h-16 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full flex items-center justify-center mx-auto">
+                <Lock className="w-8 h-8" />
+              </div>
+              <h3 className="text-2xl font-black">POS Counter Feature Locked</h3>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                The POS Billing Counter module is not enabled in your current subscription plan ({licenseState?.planName || 'Current Plan'}).
+              </p>
+              <div className="pt-2">
+                <button
+                  onClick={() => setActiveTab('subscription')}
+                  className="px-6 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-amber-500/20 transition"
+                >
+                  Upgrade Plan in Subscription Tab ↗
+                </button>
+              </div>
+            </div>
+          )
         )}
 
         {/* Subscription & Licensing Management View */}

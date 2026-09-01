@@ -107,6 +107,7 @@ export async function GET(request: NextRequest) {
     let liveBusinessName = savedSetting.businessName;
     let livePlanName = savedSetting.planName || 'Pro Subscription';
     let liveBillingCycle = savedSetting.billingCycle || 'MONTHLY';
+    let liveFeatures = savedSetting.features || { posEnabled: true, invoicingEnabled: true };
     let serverMessage = '';
 
     let isServerOnline = true;
@@ -140,12 +141,16 @@ export async function GET(request: NextRequest) {
           if (pingData.license?.billingCycle) {
             liveBillingCycle = pingData.license.billingCycle;
           }
+          if (pingData.license?.features) {
+            liveFeatures = pingData.license.features;
+          }
 
           // Update local DB with real-time status & plan details from licensing authority
           savedSetting.status = liveStatus;
           savedSetting.validUntil = liveValidUntil;
           savedSetting.planName = livePlanName;
           savedSetting.billingCycle = liveBillingCycle;
+          savedSetting.features = liveFeatures;
           savedSetting.lastPingAt = new Date();
           if (pingData.token) savedSetting.signedToken = pingData.token;
           await savedSetting.save();
@@ -173,6 +178,7 @@ export async function GET(request: NextRequest) {
       domain: savedSetting.domain,
       planName: livePlanName,
       billingCycle: liveBillingCycle,
+      features: liveFeatures,
       status: liveStatus,
       validUntil: liveValidUntil,
       issuedAt: savedSetting.issuedAt,

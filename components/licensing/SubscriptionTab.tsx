@@ -19,6 +19,7 @@ import {
   Mail,
   ArrowRight,
   ExternalLink,
+  Lock,
 } from 'lucide-react';
 import { IClientLicenseState } from '@/lib/licensing/licenseTypes';
 import ManualPaymentModal from './ManualPaymentModal';
@@ -91,93 +92,13 @@ export default function SubscriptionTab({
     setTimeout(() => setCopiedKey(false), 2000);
   };
 
-  // Instant Online Renewal via Razorpay
-  const handlePayWithRazorpay = async (plan: any) => {
-    setFeedback(null);
-    try {
-      setIsPayingRazorpay(plan.planId);
-
-      // 1. Create order on server
-      const orderRes = await fetch('/api/license/renew/razorpay/create-order', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          planId: plan.planId,
-          licenseKey: licenseState?.licenseKey,
-        }),
-      });
-
-      const orderData = await orderRes.json();
-      if (!orderData.success) {
-        throw new Error(orderData.message || 'Failed to create Razorpay order');
-      }
-
-      // 2. Launch Razorpay Checkout Modal
-      const options = {
-        key: orderData.keyId || razorpayKeyId,
-        amount: orderData.amount,
-        currency: orderData.currency,
-        name: 'NEXUS PRODUCTS',
-        description: `Subscription Renewal - ${plan.name}`,
-        order_id: orderData.orderId,
-        handler: async function (response: any) {
-          try {
-            // 3. Verify payment signature on server
-            const verifyRes = await fetch('/api/license/renew/razorpay/verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                planId: plan.planId,
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-                transactionId: orderData.transactionId,
-                licenseKey: licenseState?.licenseKey,
-              }),
-            });
-
-            const verifyData = await verifyRes.json();
-            if (verifyData.success) {
-              setFeedback({
-                type: 'success',
-                msg: verifyData.message || 'Subscription renewed successfully!',
-              });
-              await fetchLicenseDetails();
-              if (onRefreshLicense) onRefreshLicense();
-            } else {
-              setFeedback({ type: 'error', msg: verifyData.message || 'Verification failed.' });
-            }
-          } catch (verErr: any) {
-            setFeedback({ type: 'error', msg: verErr.message || 'Payment verification error.' });
-          }
-        },
-        prefill: {
-          name: licenseState?.businessName || 'Store Owner',
-          email: 'client@beeshubfarmland.com',
-          contact: '9876543210',
-        },
-        theme: {
-          color: '#F59E0B',
-        },
-      };
-
-      if (typeof window !== 'undefined' && window.Razorpay) {
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', function (resp: any) {
-          setFeedback({
-            type: 'error',
-            msg: `Payment Failed: ${resp.error?.description || 'Transaction cancelled'}`,
-          });
-        });
-        rzp.open();
-      } else {
-        throw new Error('Razorpay SDK failed to load in browser.');
-      }
-    } catch (err: any) {
-      setFeedback({ type: 'error', msg: err.message || 'Payment initialization failed.' });
-    } finally {
-      setIsPayingRazorpay(null);
-    }
+  // Online Renewal via Licensing Authority Server Hosted Razorpay Checkout
+  const handlePayWithRazorpay = (plan: any) => {
+    const serverUrl = process.env.NEXT_PUBLIC_LICENSING_SERVER_URL || 'http://localhost:4000';
+    const key = licenseState?.licenseKey || '';
+    const returnUrl = encodeURIComponent(window.location.href);
+    const checkoutUrl = `${serverUrl}/checkout?key=${encodeURIComponent(key)}&planId=${encodeURIComponent(plan.planId)}&returnUrl=${returnUrl}`;
+    window.open(checkoutUrl, '_blank');
   };
 
   const handleOpenManualPayment = (plan: any) => {
@@ -308,12 +229,25 @@ export default function SubscriptionTab({
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
             Included in Plan:
           </span>
-          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5 border border-slate-700">
-            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> POS Billing & Counter
-          </span>
-          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5 border border-slate-700">
-            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> GST Invoicing & Quotations
-          </span>
+          {licenseState?.features?.posEnabled !== false ? (
+            <span className="px-3 py-1 bg-emerald-500/10 text-xs font-semibold text-emerald-300 rounded-lg flex items-center gap-1.5 border border-emerald-500/30">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> POS Billing & Counter
+            </span>
+          ) : (
+            <span className="px-3 py-1 bg-slate-800/60 text-xs font-semibold text-slate-400 rounded-lg flex items-center gap-1.5 border border-slate-700/60 line-through opacity-70">
+              <Lock className="w-3.5 h-3.5 text-amber-400" /> POS Billing & Counter (Locked)
+            </span>
+          )}
+
+          {licenseState?.features?.invoicingEnabled !== false ? (
+            <span className="px-3 py-1 bg-emerald-500/10 text-xs font-semibold text-emerald-300 rounded-lg flex items-center gap-1.5 border border-emerald-500/30">
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> GST Invoicing & Quotations
+            </span>
+          ) : (
+            <span className="px-3 py-1 bg-slate-800/60 text-xs font-semibold text-slate-400 rounded-lg flex items-center gap-1.5 border border-slate-700/60 line-through opacity-70">
+              <Lock className="w-3.5 h-3.5 text-amber-400" /> GST Invoicing & Quotations (Locked)
+            </span>
+          )}
         </div>
       </div>
 
@@ -338,7 +272,7 @@ export default function SubscriptionTab({
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {plans.map((plan) => {
             const isPopular = plan.isPopular || plan.billingCycle === 'YEARLY';
             const isProcessing = isPayingRazorpay === plan.planId;
