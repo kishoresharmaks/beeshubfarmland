@@ -1205,6 +1205,8 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                 <Plus className="w-4 h-4" /> Add Product
               </button>
             </div>
+
+            {loadingProducts ? (
               <div className="py-20 text-center">
                 <RefreshCw className="w-8 h-8 text-[#ED3500] animate-spin mx-auto" />
               </div>

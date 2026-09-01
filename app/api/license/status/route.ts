@@ -3,6 +3,8 @@ import connectToDatabase from '@/lib/db';
 import LicenseSetting from '@/models/LicenseSetting';
 import { getLicensingServerUrl, computeClientLicenseState } from '@/lib/licensing/licenseClient';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     await connectToDatabase();
