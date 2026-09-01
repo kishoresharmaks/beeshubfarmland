@@ -1,13 +1,13 @@
 import { IClientLicenseState, ClientLicenseStatus, IClientFeatureMap } from './licenseTypes';
 
 /**
- * Standalone Licensing Server Base URL
+ * Standalone Licensing Server Base URL (Dynamically read from ENV)
  */
 export function getLicensingServerUrl(): string {
   const url =
     process.env.LICENSING_SERVER_URL ||
     process.env.NEXT_PUBLIC_LICENSING_SERVER_URL ||
-    'https://nexus-licensing-server.onrender.com';
+    '';
   return url.replace(/\/$/, '');
 }
 
@@ -116,5 +116,6 @@ export function computeClientLicenseState(data: {
     lastPingAt: data.lastPingAt ? new Date(data.lastPingAt).toISOString() : new Date().toISOString(),
     token: data.token,
     message: data.message,
+    licensingServerUrl: getLicensingServerUrl(),
   };
 }

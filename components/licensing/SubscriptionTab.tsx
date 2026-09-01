@@ -98,7 +98,7 @@ export default function SubscriptionTab({
       licenseState?.licensingServerUrl ||
       process.env.NEXT_PUBLIC_LICENSING_SERVER_URL ||
       process.env.LICENSING_SERVER_URL ||
-      'https://nexus-licensing-server.onrender.com';
+      '';
     const key = licenseState?.licenseKey || '';
     const returnUrl = encodeURIComponent(window.location.href);
     const checkoutUrl = `${serverUrl.replace(/\/$/, '')}/checkout?key=${encodeURIComponent(key)}&planId=${encodeURIComponent(plan.planId)}&returnUrl=${returnUrl}`;
