@@ -7,6 +7,8 @@ export interface ILicenseSetting extends Document {
   licenseKey: string;
   businessName: string;
   domain: string;
+  planName?: string;
+  billingCycle?: string;
   status: ClientLicenseStatusType;
   validUntil: Date;
   issuedAt: Date;
@@ -23,6 +25,8 @@ const LicenseSettingSchema: Schema = new Schema(
     licenseKey: { type: String, default: '', uppercase: true, trim: true },
     businessName: { type: String, default: '' },
     domain: { type: String, default: '*' },
+    planName: { type: String, default: 'Pro Subscription' },
+    billingCycle: { type: String, default: 'MONTHLY' },
     status: {
       type: String,
       enum: ['ACTIVE', 'INACTIVE', 'SUSPENDED', 'EXPIRED', 'INVALID', 'UNLICENSED'],
