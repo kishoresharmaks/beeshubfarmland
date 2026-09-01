@@ -55,7 +55,13 @@ async function resolveMongoUri(uri: string): Promise<string> {
       }).filter((h: string) => h.includes('.mongodb.net'));
 
       if (targetHosts.length > 0) {
-        const directUri = `mongodb://${encodeURIComponent(username)}:${encodeURIComponent(password)}@${targetHosts.join(',')}/${dbName}?ssl=true&authSource=admin&${queryParams || 'retryWrites=true&w=majority'}`;
+        const searchParams = new URLSearchParams(queryParams || 'retryWrites=true&w=majority');
+        if (!searchParams.has('ssl')) searchParams.set('ssl', 'true');
+        if (!searchParams.has('authSource')) searchParams.set('authSource', 'admin');
+
+        const unescapedUser = decodeURIComponent(username);
+        const unescapedPass = decodeURIComponent(password);
+        const directUri = `mongodb://${encodeURIComponent(unescapedUser)}:${encodeURIComponent(unescapedPass)}@${targetHosts.join(',')}/${dbName}?${searchParams.toString()}`;
         console.log('Successfully resolved direct MongoDB Atlas cluster endpoints via DoH!');
         return directUri;
       }

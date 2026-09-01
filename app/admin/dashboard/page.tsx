@@ -32,8 +32,14 @@ import {
   Menu,
   FileText,
   Lock,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import POSCounter from './components/pos/POSCounter';
+import SubscriptionTab from '@/components/licensing/SubscriptionTab';
+import GracePeriodBanner from '@/components/licensing/GracePeriodBanner';
+import LicenseActivationModal from '@/components/licensing/LicenseActivationModal';
+import { IClientLicenseState } from '@/lib/licensing/licenseTypes';
 
 interface BannerItem {
   _id: string;
@@ -114,7 +120,10 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeTab, setActiveTab] = useState<'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos'>('products');
+  const [activeTab, setActiveTab] = useState<
+    'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos' | 'subscription'
+  >('products');
+  const [licenseState, setLicenseState] = useState<IClientLicenseState | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -213,11 +222,31 @@ export default function AdminDashboard() {
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [settingsError, setSettingsError] = useState('');
 
+  // Fetch License & Subscription Status
+  const fetchLicenseStatus = async () => {
+    try {
+      const res = await fetch(`/api/license/status?t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.license) {
+        setLicenseState(data.license);
+      }
+    } catch (err) {
+      console.error('Failed to fetch license status', err);
+    }
+  };
+
   // Fetch All Dashboard Data
   const fetchAllData = async () => {
     try {
       setIsRefreshing(true);
-      await Promise.all([fetchProducts(), fetchCategories(), fetchOrders(), fetchBanners(), fetchSettings()]);
+      await Promise.all([
+        fetchProducts(),
+        fetchCategories(),
+        fetchOrders(),
+        fetchBanners(),
+        fetchSettings(),
+        fetchLicenseStatus(),
+      ]);
     } catch (e) {
       console.error(e);
     } finally {
@@ -532,6 +561,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           fetchOrders();
           fetchBanners();
           fetchSettings();
+          fetchLicenseStatus();
         } else {
           router.replace('/admin/login');
         }
@@ -838,8 +868,23 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
     );
   }
 
+  if (!licenseState || !licenseState.isActivated || licenseState.isLocked) {
+    return (
+      <LicenseActivationModal
+        license={licenseState}
+        onActivated={() => fetchAllData()}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#FFFCFB] text-[#163B5C] flex flex-col justify-between">
+      {/* Expiry & Grace Period Alert Banner */}
+      <GracePeriodBanner
+        license={licenseState}
+        onOpenRenewal={() => setActiveTab('subscription')}
+      />
+
       {/* Header with Refresh & Mobile Menu */}
       <header className="bg-white border-b border-[#E8EDF2] sticky top-0 z-30 shadow-2xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
@@ -1109,6 +1154,21 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
             >
               <FileText className="w-4 h-4 text-[#ED3500]" /> Billing & Accounting ↗ {!isPosUnlocked && <Lock className="w-3 h-3 text-amber-500 inline ml-0.5" />}
             </Link>
+            <button
+              onClick={() => setActiveTab('subscription')}
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
+                activeTab === 'subscription'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
+                  : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
+              }`}
+            >
+              <ShieldCheck className="w-4 h-4 text-amber-500" /> Plan & Subscription
+              {licenseState?.daysRemaining !== undefined && licenseState.daysRemaining <= 7 && (
+                <span className="px-1.5 py-0.2 text-[10px] font-black bg-amber-500 text-white rounded-full">
+                  {licenseState.daysRemaining <= 0 ? '!' : `${licenseState.daysRemaining}d`}
+                </span>
+              )}
+            </button>
           </div>
 
           {activeTab === 'products' && (
@@ -1926,6 +1986,14 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
             products={products}
             categories={categories}
             onRefreshProducts={fetchAllData}
+          />
+        )}
+
+        {/* Subscription & Licensing Management View */}
+        {activeTab === 'subscription' && (
+          <SubscriptionTab
+            initialLicense={licenseState}
+            onRefreshLicense={fetchAllData}
           />
         )}
       </main>
