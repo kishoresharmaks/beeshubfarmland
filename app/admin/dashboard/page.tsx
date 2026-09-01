@@ -906,6 +906,24 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           {/* Desktop Quick Actions */}
           <div className="hidden md:flex items-center gap-3">
             <button
+              onClick={() => setActiveTab('subscription')}
+              className={`px-3.5 py-2 rounded-xl border text-xs font-extrabold flex items-center gap-2 transition-all shadow-xs ${
+                activeTab === 'subscription'
+                  ? 'bg-amber-500 text-white border-amber-600'
+                  : 'bg-amber-50/80 hover:bg-amber-100 border-amber-200 text-amber-900'
+              }`}
+              title="Manage Software License & Subscription Plan"
+            >
+              <ShieldCheck className={`w-4 h-4 ${activeTab === 'subscription' ? 'text-white' : 'text-amber-600'}`} />
+              <span>Plan & Subscription</span>
+              {licenseState?.daysRemaining !== undefined && licenseState.daysRemaining <= 7 && (
+                <span className="px-1.5 py-0.2 text-[10px] font-black bg-amber-600 text-white rounded-full">
+                  {licenseState.daysRemaining <= 0 ? '!' : `${licenseState.daysRemaining}d`}
+                </span>
+              )}
+            </button>
+
+            <button
               onClick={handleOptimizeExistingDatabaseImages}
               disabled={isOptimizingDb}
               className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold text-xs flex items-center gap-2 transition-all shadow-xs"
@@ -956,6 +974,21 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
         {/* Mobile Slide-Down Dropdown Menu */}
         {isMobileMenuOpen && (
           <div className="md:hidden bg-white border-t border-[#E8EDF2] p-4 space-y-2.5 animate-fadeIn shadow-lg">
+            <button
+              onClick={() => {
+                setActiveTab('subscription');
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full p-3 rounded-xl bg-amber-50 text-amber-900 border border-amber-200 font-extrabold text-xs flex items-center justify-between"
+            >
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-amber-600" /> Plan & Subscription
+              </span>
+              <span className="text-[10px] uppercase font-black bg-amber-200 text-amber-900 px-2 py-0.5 rounded">
+                License
+              </span>
+            </button>
+
             <button
               onClick={() => {
                 handleOptimizeExistingDatabaseImages();
@@ -1154,37 +1187,24 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
             >
               <FileText className="w-4 h-4 text-[#ED3500]" /> Billing & Accounting ↗ {!isPosUnlocked && <Lock className="w-3 h-3 text-amber-500 inline ml-0.5" />}
             </Link>
-            <button
-              onClick={() => setActiveTab('subscription')}
-              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
-                activeTab === 'subscription'
-                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
-                  : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
-              }`}
-            >
-              <ShieldCheck className="w-4 h-4 text-amber-500" /> Plan & Subscription
-              {licenseState?.daysRemaining !== undefined && licenseState.daysRemaining <= 7 && (
-                <span className="px-1.5 py-0.2 text-[10px] font-black bg-amber-500 text-white rounded-full">
-                  {licenseState.daysRemaining <= 0 ? '!' : `${licenseState.daysRemaining}d`}
-                </span>
-              )}
-            </button>
           </div>
-
-          {activeTab === 'products' && (
-            <button
-              onClick={openAddProductModal}
-              className="px-3.5 py-2 rounded-xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-xs whitespace-nowrap shrink-0"
-            >
-              <Plus className="w-4 h-4" /> Add Product
-            </button>
-          )}
         </div>
 
         {/* Products Management View */}
         {activeTab === 'products' && (
           <div className="space-y-6">
-            {loadingProducts ? (
+            <div className="flex items-center justify-between bg-white p-4 sm:p-5 rounded-2xl border border-[#E8EDF2] shadow-sm">
+              <div>
+                <h3 className="text-base sm:text-lg font-black text-[#163B5C]">Product Inventory</h3>
+                <p className="text-xs text-[#64748B]">Manage, edit, and organize all {products.length} store products</p>
+              </div>
+              <button
+                onClick={openAddProductModal}
+                className="px-4 py-2.5 rounded-xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all active:scale-95 shrink-0"
+              >
+                <Plus className="w-4 h-4" /> Add Product
+              </button>
+            </div>
               <div className="py-20 text-center">
                 <RefreshCw className="w-8 h-8 text-[#ED3500] animate-spin mx-auto" />
               </div>
