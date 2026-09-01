@@ -94,10 +94,14 @@ export default function SubscriptionTab({
 
   // Online Renewal via Licensing Authority Server Hosted Razorpay Checkout
   const handlePayWithRazorpay = (plan: any) => {
-    const serverUrl = process.env.NEXT_PUBLIC_LICENSING_SERVER_URL || 'http://localhost:4000';
+    const serverUrl =
+      licenseState?.licensingServerUrl ||
+      process.env.NEXT_PUBLIC_LICENSING_SERVER_URL ||
+      process.env.LICENSING_SERVER_URL ||
+      'https://nexus-licensing-server.onrender.com';
     const key = licenseState?.licenseKey || '';
     const returnUrl = encodeURIComponent(window.location.href);
-    const checkoutUrl = `${serverUrl}/checkout?key=${encodeURIComponent(key)}&planId=${encodeURIComponent(plan.planId)}&returnUrl=${returnUrl}`;
+    const checkoutUrl = `${serverUrl.replace(/\/$/, '')}/checkout?key=${encodeURIComponent(key)}&planId=${encodeURIComponent(plan.planId)}&returnUrl=${returnUrl}`;
     window.open(checkoutUrl, '_blank');
   };
 

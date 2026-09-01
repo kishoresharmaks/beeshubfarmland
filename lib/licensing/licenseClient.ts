@@ -4,7 +4,11 @@ import { IClientLicenseState, ClientLicenseStatus, IClientFeatureMap } from './l
  * Standalone Licensing Server Base URL
  */
 export function getLicensingServerUrl(): string {
-  return (process.env.LICENSING_SERVER_URL || 'http://localhost:4000').replace(/\/$/, '');
+  const url =
+    process.env.LICENSING_SERVER_URL ||
+    process.env.NEXT_PUBLIC_LICENSING_SERVER_URL ||
+    'https://nexus-licensing-server.onrender.com';
+  return url.replace(/\/$/, '');
 }
 
 /**

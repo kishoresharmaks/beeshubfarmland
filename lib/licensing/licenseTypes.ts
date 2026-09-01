@@ -26,4 +26,5 @@ export interface IClientLicenseState {
   message?: string;
   supportPhone?: string;
   supportEmail?: string;
+  licensingServerUrl?: string;
 }
