@@ -308,20 +308,11 @@ export default function SubscriptionTab({
           <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
             Included in Plan:
           </span>
-          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> Online E-Commerce Store
-          </span>
-          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5">
+          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5 border border-slate-700">
             <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> POS Billing & Counter
           </span>
-          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> Inventory & Stock Alerts
-          </span>
-          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5">
+          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5 border border-slate-700">
             <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> GST Invoicing & Quotations
-          </span>
-          <span className="px-3 py-1 bg-slate-800 text-xs font-semibold text-slate-200 rounded-lg flex items-center gap-1.5">
-            <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" /> WhatsApp Receipt Sharing
           </span>
         </div>
       </div>
@@ -399,11 +390,11 @@ export default function SubscriptionTab({
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Unrestricted Online Store & POS</span>
+                      <span>POS Billing & Counter</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                      <span>Full Inventory & Ledger Reports</span>
+                      <span>GST Invoicing & Quotations</span>
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
