@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Printer, Share2, Check } from 'lucide-react';
+import { X, Printer, Share2 } from 'lucide-react';
+import { getCompanyConfig, numberToWords } from '@/lib/companyConfig';
 
 interface PrintableDocumentModalProps {
   document?: any;
@@ -15,41 +16,70 @@ export default function PrintableDocumentModal({
   onClose,
 }: PrintableDocumentModalProps) {
   const doc = documentProp || docProp;
+  const company = getCompanyConfig();
+
   const [printMode, setPrintMode] = useState<'A4' | 'THERMAL'>('A4');
-  const [isCopied, setIsCopied] = useState(false);
 
   const handlePrint = () => {
     window.print();
   };
 
+  // Determine Exact Title matching PDF templates
+  const getDocumentTitle = () => {
+    if (!doc?.docType && !doc?.orderType) return 'Tax Invoice';
+    const type = (doc.docType || doc.orderType || '').toUpperCase();
+    if (type.includes('ESTIMATE') || type.includes('QUOTATION')) return 'Estimate';
+    if (type.includes('PAYMENT_IN') || type.includes('PAYMENT_RECEIVED')) return 'Payment-In';
+    if (type.includes('PAYMENT_OUT') || type.includes('PAYMENT_PAID')) return 'Payment-Out';
+    if (type.includes('CREDIT_NOTE')) return 'Credit Note';
+    if (type.includes('PURCHASE_ORDER')) return 'Purchase Order';
+    if (type.includes('PURCHASE')) return 'Purchase Invoice';
+    if (type.includes('POS')) return 'Tax Invoice';
+    return 'Tax Invoice';
+  };
+
+  const docTitle = getDocumentTitle();
+  const grandTotalNum = Number(doc?.grandTotal || doc?.totalAmount || 0);
+
   const getWhatsappText = () => {
-    let msg = `*BEES HUB FARMLAND PVT LTD*\n`;
-    msg += `Document: *${doc.docType.replace('_', ' ')}*\n`;
-    msg += `Doc No: *${doc.docNumber}*\n`;
-    msg += `Date: ${new Date(doc.createdAt).toLocaleDateString('en-IN')}\n`;
-    msg += `Party: ${doc.customerName || doc.vendorName}\n`;
+    let msg = `*${company.name}*\n`;
+    msg += `Document: *${docTitle}*\n`;
+    msg += `Doc No: *${doc?.docNumber || doc?.invoiceNumber || doc?.orderId}*\n`;
+    msg += `Date: ${new Date(doc?.createdAt || doc?.date || Date.now()).toLocaleDateString('en-IN')}\n`;
+    msg += `Party: ${doc?.customerName || doc?.vendorName || doc?.partyId?.name || 'Customer'}\n`;
     msg += `--------------------------------\n`;
-    doc.items?.forEach((i: any, idx: number) => {
-      msg += `${idx + 1}. ${i.name} ${i.variantName ? `(${i.variantName})` : ''} x ${i.quantity} = ₹${i.lineTotal}\n`;
+    doc?.items?.forEach((i: any, idx: number) => {
+      msg += `${idx + 1}. ${i.name || i.productName} ${i.variantName ? `(${i.variantName})` : ''} x ${i.quantity} = ₹${i.lineTotal || i.total || i.price * i.quantity}\n`;
     });
     msg += `--------------------------------\n`;
-    msg += `Subtotal: ₹${doc.subtotal}\n`;
-    msg += `GST: ₹${doc.totalGst}\n`;
-    msg += `*Grand Total: ₹${doc.grandTotal}*\n`;
-    msg += `Balance Due: ₹${doc.balanceAmount}\n`;
-    msg += `Payment Status: ${doc.paymentStatus}\n`;
-    msg += `Thank you for doing business with BeesHub Farmland! 🐝🌾`;
+    msg += `Subtotal: ₹${doc?.subtotal || 0}\n`;
+    msg += `GST: ₹${doc?.totalGst || 0}\n`;
+    msg += `*Grand Total: ₹${grandTotalNum}*\n`;
+    msg += `Balance Due: ₹${doc?.balanceAmount || 0}\n`;
+    msg += `Payment Status: ${doc?.paymentStatus || 'COMPLETED'}\n`;
+    msg += `Thank you for doing business with us! 🌿🌾`;
     return encodeURIComponent(msg);
   };
 
+  const clientName = doc?.customerName || doc?.vendorName || doc?.partyId?.name || 'Walk-in Customer';
+  const clientPhone = doc?.customerPhone || doc?.vendorPhone || doc?.partyId?.phone || '';
+  const clientAddress = doc?.shippingAddress || doc?.billingAddress || doc?.partyId?.address || '';
+  const clientGstin = doc?.partyId?.gstin || doc?.gstin || '';
+  const clientState = doc?.partyId?.state || doc?.state || company.state;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/75 backdrop-blur-sm overflow-hidden print:p-0 print:bg-white print:overflow-visible">
-      {/* CSS Print Styles targeting document container */}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs overflow-hidden print:p-0 print:bg-white print:overflow-visible">
+      {/* Exact PDF Print Styles */}
       <style jsx global>{`
         @media print {
           @page {
             margin: 0;
             size: ${printMode === 'THERMAL' ? '80mm auto' : 'A4 portrait'};
+          }
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
           }
           html, body {
             width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
@@ -68,12 +98,12 @@ export default function PrintableDocumentModal({
             visibility: visible !important;
           }
           #printable-document-area {
-            position: fixed !important;
+            position: absolute !important;
             left: 0 !important;
             top: 0 !important;
             width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
             max-width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
-            padding: ${printMode === 'THERMAL' ? '4mm' : '10mm 15mm'} !important;
+            padding: ${printMode === 'THERMAL' ? '4mm' : '12mm 15mm'} !important;
             margin: 0 !important;
             box-sizing: border-box !important;
             border: none !important;
@@ -81,10 +111,27 @@ export default function PrintableDocumentModal({
             box-shadow: none !important;
             background: white !important;
             color: black !important;
-            font-family: ${printMode === 'THERMAL' ? 'monospace' : 'inherit'} !important;
-            font-size: ${printMode === 'THERMAL' ? '11px' : '13px'} !important;
+            font-family: Arial, Helvetica, sans-serif !important;
+            font-size: ${printMode === 'THERMAL' ? '11px' : '12px'} !important;
             line-height: 1.4 !important;
             z-index: 999999 !important;
+          }
+          .pdf-print-flex {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+          }
+          .pdf-print-grid {
+            display: flex !important;
+            justify-content: space-between !important;
+          }
+          .pdf-header-bg {
+            background-color: #8F8DF5 !important;
+            color: #ffffff !important;
+          }
+          .pdf-[#8F8DF5]-bar {
+            background-color: #8F8DF5 !important;
+            color: #ffffff !important;
           }
           .print\\:hidden {
             display: none !important;
@@ -92,41 +139,41 @@ export default function PrintableDocumentModal({
         }
       `}</style>
 
-      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col border border-[#E8EDF2] shadow-2xl relative print:border-none print:shadow-none print:p-0 print:my-0 print:max-w-full print:max-h-none overflow-hidden">
-        {/* Sticky Modal Top Control Header Bar */}
+      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col border border-[#E8EDF2] shadow-2xl relative print:border-none print:shadow-none print:p-0 print:my-0 print:max-w-full print:max-h-none overflow-hidden">
+        {/* Sticky Control Bar */}
         <div className="p-4 sm:p-5 border-b border-[#E8EDF2] flex items-center justify-between shrink-0 bg-white print:hidden z-10 shadow-2xs">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-[#ED3500]/10 text-[#ED3500] flex items-center justify-center font-bold">
+            <div className="w-10 h-10 rounded-2xl bg-[#8F8DF5]/15 text-[#7B78ED] flex items-center justify-center font-bold">
               <Printer className="w-5 h-5" />
             </div>
             <div>
               <h3 className="font-extrabold text-base text-[#163B5C]">
-                {doc.docType?.replace('_', ' ')} — {doc.docNumber}
+                {docTitle} — {doc?.docNumber || doc?.invoiceNumber || doc?.orderId}
               </h3>
-              <p className="text-xs text-[#64748B]">Preview, Print A4/Thermal Receipt or Share WhatsApp</p>
+              <p className="text-xs text-[#64748B]">Matching PDF Template (*Sales, Estimate, Credit Note, Purchase*)</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={() => setPrintMode(printMode === 'A4' ? 'THERMAL' : 'A4')}
-              className="px-3 py-1.5 rounded-xl border border-[#E8EDF2] text-xs font-bold text-[#163B5C] hover:bg-gray-50"
+              className="px-3.5 py-1.5 rounded-xl border border-[#E8EDF2] text-xs font-bold text-[#163B5C] hover:bg-gray-50"
             >
-              Mode: {printMode === 'A4' ? '📄 A4 Format' : '🧾 Thermal 80mm'}
+              Format: {printMode === 'A4' ? '📄 A4 Format' : '🧾 Thermal 80mm'}
             </button>
             <a
-              href={`https://wa.me/91${doc.customerPhone || doc.vendorPhone}?text=${getWhatsappText()}`}
+              href={`https://wa.me/91${clientPhone}?text=${getWhatsappText()}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-xs"
             >
               <Share2 className="w-3.5 h-3.5" /> WhatsApp
             </a>
             <button
               onClick={handlePrint}
-              className="px-4 py-1.5 rounded-xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[#ED3500]/20"
+              className="px-4 py-1.5 rounded-xl bg-[#7B78ED] hover:bg-[#6865D8] text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-[#7B78ED]/20"
             >
-              <Printer className="w-3.5 h-3.5" /> Print
+              <Printer className="w-3.5 h-3.5" /> Print PDF
             </button>
             <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-100 text-[#64748B]">
               <X className="w-5 h-5" />
@@ -134,95 +181,246 @@ export default function PrintableDocumentModal({
           </div>
         </div>
 
-        {/* Scrollable Document Canvas Wrapper */}
+        {/* Scrollable PDF Template Container */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/70 print:p-0 print:bg-white print:overflow-visible">
-          {/* Printable Document Area */}
+
           <div
             id="printable-document-area"
-            className={`bg-white p-8 sm:p-10 rounded-2xl border border-gray-200 shadow-md ${
-              printMode === 'THERMAL' ? 'max-w-md mx-auto text-xs font-mono' : 'max-w-3xl mx-auto text-sm'
-            } print:border-none print:shadow-none print:p-0 print:max-w-full`}
+            className={`bg-white p-8 sm:p-10 rounded-xl border border-gray-200 shadow-md text-slate-800 space-y-5 ${printMode === 'THERMAL' ? 'max-w-md mx-auto text-xs font-mono' : 'max-w-3xl mx-auto text-xs sm:text-sm font-sans'
+              } print:border-none print:shadow-none print:p-0 print:max-w-full`}
           >
-          <div className="text-center border-b border-gray-200 pb-4 space-y-1">
-            <h2 className="font-black text-lg text-[#163B5C]">BEES HUB FARMLAND PVT LTD</h2>
-            <p className="text-xs text-gray-500">Pure Organic Honey, Spices & Natural Farm Produce</p>
-            <p className="text-xs font-semibold text-gray-700">Phone: +91 95787 84431 | GSTIN: 33AAOCB0453D1Z3</p>
-          </div>
+            {/* 1. TOP HEADER SECTION (Matching PDF Template Layout Exactly) */}
+            <div className="pdf-print-flex flex justify-between items-start border-b-2 border-[#8F8DF5] pb-4">
+              {/* Left Column: Company Details (Loaded from ENV) */}
+              <div className="space-y-0.5 text-xs text-left">
+                <h1 className="font-extrabold text-xl text-slate-900 uppercase tracking-tight">
+                  {company.name}
+                </h1>
+                {company.owner && <p className="font-semibold text-slate-700">{company.owner}</p>}
+                <p className="text-[11px] text-slate-600 max-w-md leading-tight">{company.address}</p>
+                <p className="text-[10px] text-slate-600">
+                  <strong>FSSAI :</strong> {company.fssai} &nbsp;|&nbsp; <strong>IEC :</strong> {company.iec}
+                </p>
+                <p className="text-[10px] text-slate-600">
+                  <strong>Manufacturing :</strong> {company.manufacturing}
+                </p>
+                <p className="text-[10px] font-bold text-slate-700 uppercase tracking-wider mt-1">
+                  {company.certifications}
+                </p>
+                <p className="text-[11px] text-slate-600">
+                  <strong>Phone no.:</strong> {company.phone}
+                </p>
+                <p className="text-[11px] text-slate-600">
+                  <strong>Email:</strong> {company.email}
+                </p>
+                <p className="text-[11px] text-slate-700">
+                  <strong>GSTIN:</strong> {company.gstin}
+                </p>
+                <p className="text-[11px] text-slate-700">
+                  <strong>State:</strong> {company.state}
+                </p>
+              </div>
 
-          {/* Doc Details */}
-          <div className="py-4 border-b border-gray-200 flex justify-between gap-4 text-xs">
-            <div>
-              <span className="font-extrabold uppercase text-[#ED3500] block mb-1">
-                {doc.docType.replace('_', ' ')}
-              </span>
-              <p><strong>Doc No:</strong> {doc.docNumber}</p>
-              <p><strong>Date:</strong> {new Date(doc.createdAt).toLocaleDateString('en-IN')}</p>
+              {/* Right Column: Company Logo */}
+              <div className="text-right flex-shrink-0">
+                <img
+                  src={company.logoUrl}
+                  alt={company.name}
+                  className="w-24 h-24 object-contain rounded-xl border border-slate-200"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
             </div>
-            <div className="text-right">
-              <span className="font-bold text-gray-700 block mb-1">Billed To:</span>
-              <p className="font-extrabold text-[#163B5C]">{doc.customerName || doc.vendorName}</p>
-              <p>Phone: {doc.customerPhone || doc.vendorPhone}</p>
-              {doc.billingAddress && <p className="text-[11px] text-gray-500">{doc.billingAddress}</p>}
-            </div>
-          </div>
 
-          {/* Items Table */}
-          <div className="py-4">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-500 font-bold uppercase">
-                  <th className="py-2">Item</th>
-                  <th className="py-2 text-center">Qty</th>
-                  <th className="py-2 text-right">Price</th>
-                  <th className="py-2 text-right">Total</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {doc.items?.map((item: any, idx: number) => (
-                  <tr key={idx}>
-                    <td className="py-2">
-                      <span className="font-bold text-[#163B5C]">{item.name}</span>
-                      {item.variantName && (
-                        <span className="block text-[10px] text-gray-500">({item.variantName})</span>
-                      )}
-                    </td>
-                    <td className="py-2 text-center">{item.quantity}</td>
-                    <td className="py-2 text-right">₹{item.price || item.purchasePrice}</td>
-                    <td className="py-2 text-right font-bold">₹{item.lineTotal}</td>
+            {/* 2. CENTERED DOCUMENT TITLE BANNER */}
+            <div className="text-center my-3">
+              <h2 className="font-serif font-bold text-2xl text-[#7B78ED] tracking-wide">
+                {docTitle}
+              </h2>
+            </div>
+
+            {/* 3. BILL TO & INVOICE DETAILS ROW */}
+            <div className="pdf-print-grid flex justify-between gap-6 text-xs border-b border-slate-200 pb-4">
+              {/* Left Side: Client / Bill To Info */}
+              <div className="space-y-1 text-left w-1/2">
+                <span className="font-bold text-slate-900 block mb-1">
+                  {docTitle.includes('Payment-In') || docTitle.includes('Receipt') ? 'Received From' : 'Bill To'}
+                </span>
+                <p className="font-bold text-slate-900 uppercase text-sm">{clientName}</p>
+                {clientAddress && <p className="text-slate-600 leading-tight">{clientAddress}</p>}
+                {clientPhone && <p className="text-slate-600">Contact No.: {clientPhone}</p>}
+                {clientGstin && <p className="text-slate-700 font-semibold">GSTIN Number: {clientGstin}</p>}
+                <p className="text-slate-600">State: {clientState}</p>
+              </div>
+
+              {/* Right Side: Invoice Details */}
+              <div className="text-right space-y-1 w-1/2">
+                <span className="font-bold text-slate-900 block mb-1">
+                  {docTitle} Details
+                </span>
+                <p><strong>{docTitle} No.:</strong> {doc?.docNumber || doc?.invoiceNumber || doc?.orderId || '1'}</p>
+                <p><strong>Date:</strong> {new Date(doc?.createdAt || doc?.date || Date.now()).toLocaleDateString('en-IN')}</p>
+                <p><strong>Place of Supply:</strong> {clientState}</p>
+                {doc?.poNumber && <p><strong>PO Number:</strong> {doc.poNumber}</p>}
+                {doc?.poDate && <p><strong>PO Date:</strong> {new Date(doc.poDate).toLocaleDateString('en-IN')}</p>}
+              </div>
+            </div>
+
+            {/* 4. LINE ITEMS TABLE (Purple Accent Header matching PDF Template) */}
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse border border-slate-200">
+                <thead>
+                  <tr className="pdf-header-bg bg-[#8F8DF5] text-white font-bold text-[11px] uppercase">
+                    <th className="py-2.5 px-3 border border-slate-300">#</th>
+                    <th className="py-2.5 px-3 border border-slate-300">Item Name</th>
+                    <th className="py-2.5 px-3 border border-slate-300 text-center">HSN/ SAC</th>
+                    <th className="py-2.5 px-3 border border-slate-300 text-center">Quantity</th>
+                    <th className="py-2.5 px-3 border border-slate-300 text-center">Unit</th>
+                    <th className="py-2.5 px-3 border border-slate-300 text-right">Price/ Unit</th>
+                    <th className="py-2.5 px-3 border border-slate-300 text-center">GST</th>
+                    <th className="py-2.5 px-3 border border-slate-300 text-right">Amount</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {doc?.items && doc.items.length > 0 ? (
+                    doc.items.map((item: any, idx: number) => {
+                      const qty = item.quantity || 1;
+                      const unitPrice = item.price || item.purchasePrice || 0;
+                      const gstPct = item.gstRate || item.gstPercent || 5.0;
+                      const lineAmt = item.lineTotal || item.total || qty * unitPrice;
+                      const gstVal = item.gstAmount || (lineAmt * gstPct) / 100;
+
+                      return (
+                        <tr key={idx} className="hover:bg-slate-50/50">
+                          <td className="py-2.5 px-3 border border-slate-200 text-slate-500 font-medium">{idx + 1}</td>
+                          <td className="py-2.5 px-3 border border-slate-200 font-bold text-slate-800">
+                            {item.name || item.productName || 'Organic Product Item'}
+                            {item.variantName && (
+                              <span className="block text-[10px] text-slate-500 font-normal">({item.variantName})</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 border border-slate-200 text-center text-slate-600 font-mono">{item.hsnCode || '08041030'}</td>
+                          <td className="py-2.5 px-3 border border-slate-200 text-center font-bold text-slate-800">{qty}</td>
+                          <td className="py-2.5 px-3 border border-slate-200 text-center text-slate-600">{item.unit || 'Kg'}</td>
+                          <td className="py-2.5 px-3 border border-slate-200 text-right text-slate-700">₹{unitPrice.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                          <td className="py-2.5 px-3 border border-slate-200 text-center text-slate-600">
+                            ₹{gstVal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                            <span className="block text-[10px] text-slate-400">({gstPct}%)</span>
+                          </td>
+                          <td className="py-2.5 px-3 border border-slate-200 text-right font-bold text-slate-900">₹{lineAmt.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={8} className="py-4 text-center text-slate-400 italic border border-slate-200">
+                        No line items recorded for this invoice.
+                      </td>
+                    </tr>
+                  )}
+
+                  {/* Aggregated Total Row */}
+                  <tr className="border-t-2 border-slate-400 font-bold bg-slate-50">
+                    <td colSpan={3} className="py-2.5 px-3 border border-slate-300 text-slate-900 font-extrabold">Total</td>
+                    <td className="py-2.5 px-3 border border-slate-300 text-center text-slate-900 font-extrabold">
+                      {doc?.items?.reduce((acc: number, i: any) => acc + (i.quantity || 1), 0) || 0}
+                    </td>
+                    <td colSpan={2} className="border border-slate-300"></td>
+                    <td className="py-2.5 px-3 border border-slate-300 text-center text-slate-900 font-extrabold">
+                      ₹{Number(doc?.totalGst || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="py-2.5 px-3 border border-slate-300 text-right text-slate-900 font-black text-sm">
+                      ₹{grandTotalNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* 5. FINANCIAL BREAKDOWN & TERMS SECTION */}
+            <div className="pdf-print-grid flex justify-between gap-6 text-xs pt-2">
+
+              {/* Left Column: Words, Terms & Bank Details */}
+              <div className="space-y-3 text-left w-1/2">
+                <div>
+                  <span className="font-bold text-slate-900 block mb-1">Invoice Amount In Words</span>
+                  <p className="text-slate-800 italic font-medium bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    {numberToWords(grandTotalNum)}
+                  </p>
+                </div>
+
+                <div>
+                  <span className="font-bold text-slate-900 block mb-0.5">Terms And Conditions</span>
+                  <p className="text-slate-600">Thank you for doing business with us.</p>
+                </div>
+
+                {/* Bank Pay To Details */}
+                <div className="pt-2 border-t border-slate-200 space-y-0.5">
+                  <span className="font-bold text-slate-900 block mb-1">Pay To:</span>
+                  <p className="text-slate-600"><strong>Bank Name:</strong> {company.bankName}</p>
+                  <p className="text-slate-600"><strong>Bank Account No.:</strong> {company.bankAccountNo}</p>
+                  <p className="text-slate-600"><strong>Bank IFSC code:</strong> {company.bankIfsc}</p>
+                  <p className="text-slate-600"><strong>Account Holder's Name:</strong> {company.bankHolder}</p>
+                </div>
+              </div>
+
+              {/* Right Column: Calculations Card & Signature */}
+              <div className="space-y-4 w-1/2 flex flex-col justify-between">
+
+                <div className="space-y-1 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
+                  <div className="flex justify-between text-slate-600 py-0.5">
+                    <span>Sub Total</span>
+                    <span>₹{Number(doc?.subtotal || grandTotalNum * 0.95).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600 py-0.5">
+                    <span>SGST@2.5%</span>
+                    <span>₹{(Number(doc?.totalGst || 0) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-600 py-0.5">
+                    <span>CGST@2.5%</span>
+                    <span>₹{(Number(doc?.totalGst || 0) / 2).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  {/* Grand Total Bar */}
+                  <div className="pdf-header-bg flex justify-between text-sm font-black bg-[#8F8DF5] text-white p-2 rounded-lg my-1.5 shadow-2xs">
+                    <span>Total</span>
+                    <span>₹{grandTotalNum.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+
+                  <div className="flex justify-between text-slate-700 py-0.5">
+                    <span>Received</span>
+                    <span>₹{Number(doc?.paidAmount || doc?.received || grandTotalNum).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700 py-0.5">
+                    <span>Balance</span>
+                    <span>₹{Number(doc?.balanceAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700 py-0.5">
+                    <span>Payment Mode</span>
+                    <span className="font-semibold">{doc?.paymentMethod || 'Cash'}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-700 py-0.5">
+                    <span>Current Balance</span>
+                    <span>₹0.00</span>
+                  </div>
+                </div>
+
+                {/* Authorized Signatory Block */}
+                <div className="text-right pt-2 space-y-6">
+                  <p className="font-bold text-slate-800 text-xs">For: {company.name}</p>
+                  <div className="inline-block border-t border-slate-400 pt-1 text-[11px] font-bold text-slate-700">
+                    Authorized Signatory
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
           </div>
 
-          {/* Totals */}
-          <div className="border-t border-gray-200 pt-3 space-y-1.5 text-xs text-right">
-            <div className="flex justify-between">
-              <span className="text-gray-500">Subtotal:</span>
-              <span className="font-bold">₹{doc.subtotal}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-500">GST Tax:</span>
-              <span className="font-bold">₹{doc.totalGst}</span>
-            </div>
-            <div className="flex justify-between text-sm font-black text-[#ED3500] pt-1 border-t">
-              <span>Grand Total:</span>
-              <span>₹{doc.grandTotal}</span>
-            </div>
-            <div className="flex justify-between text-xs text-gray-600">
-              <span>Paid Amount:</span>
-              <span>₹{doc.paidAmount}</span>
-            </div>
-            <div className="flex justify-between text-xs font-bold text-rose-600">
-              <span>Balance Due:</span>
-              <span>₹{doc.balanceAmount}</span>
-            </div>
-          </div>
-
-          <div className="mt-6 pt-4 border-t border-dashed border-gray-300 text-center text-[10px] text-gray-400">
-            This is a computer-generated tax invoice from BeesHub Farmland Billing System (GSTIN: 33AAOCB0453D1Z3).
-          </div>
-          </div>
         </div>
       </div>
     </div>
