@@ -68,7 +68,7 @@ export default function PrintableDocumentModal({
   const clientState = doc?.partyId?.state || doc?.state || company.state;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs overflow-hidden print:p-0 print:bg-white print:overflow-visible">
+    <div id="printable-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-xs overflow-hidden print:p-0 print:bg-white print:overflow-visible">
       {/* Exact PDF Print Styles */}
       <style jsx global>{`
         @media print {
@@ -82,40 +82,73 @@ export default function PrintableDocumentModal({
             color-adjust: exact !important;
           }
           html, body {
-            width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
-            height: 100% !important;
+            width: 100% !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             background: white !important;
             color: black !important;
             overflow: visible !important;
           }
+
+          /* HIDE ALL BACKGROUND PAGE CONTENT */
           body * {
             visibility: hidden !important;
           }
+
+          /* UN-STYLE MODAL PARENT CONTAINERS SO THEY DON'T CLIP */
+          #printable-modal-backdrop,
+          #printable-modal-dialog,
+          #printable-modal-canvas {
+            visibility: visible !important;
+            position: static !important;
+            display: block !important;
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            max-height: none !important;
+            height: auto !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            overflow: visible !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            inset: auto !important;
+          }
+
+          /* UNHIDE PRINTABLE DOCUMENT & ALL ITS CHILDREN */
           #printable-document-area,
           #printable-document-area * {
             visibility: visible !important;
           }
+
+          /* POSITION PDF TEMPLATE AT ABSOLUTE TOP OF PAGE 1 */
           #printable-document-area {
             position: absolute !important;
             left: 0 !important;
             top: 0 !important;
+            display: block !important;
             width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
             max-width: ${printMode === 'THERMAL' ? '80mm' : '100%'} !important;
             padding: ${printMode === 'THERMAL' ? '4mm' : '12mm 15mm'} !important;
             margin: 0 !important;
             box-sizing: border-box !important;
             border: none !important;
-            border-radius: 0 !important;
             box-shadow: none !important;
             background: white !important;
             color: black !important;
             font-family: Arial, Helvetica, sans-serif !important;
             font-size: ${printMode === 'THERMAL' ? '11px' : '12px'} !important;
             line-height: 1.4 !important;
-            z-index: 999999 !important;
+            z-index: 99999999 !important;
           }
+
+          .print-control-bar,
+          .print\\:hidden {
+            display: none !important;
+            visibility: hidden !important;
+          }
+
           .pdf-print-flex {
             display: flex !important;
             justify-content: space-between !important;
@@ -129,19 +162,12 @@ export default function PrintableDocumentModal({
             background-color: #8F8DF5 !important;
             color: #ffffff !important;
           }
-          .pdf-[#8F8DF5]-bar {
-            background-color: #8F8DF5 !important;
-            color: #ffffff !important;
-          }
-          .print\\:hidden {
-            display: none !important;
-          }
         }
       `}</style>
 
-      <div className="bg-white rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col border border-[#E8EDF2] shadow-2xl relative print:border-none print:shadow-none print:p-0 print:my-0 print:max-w-full print:max-h-none overflow-hidden">
+      <div id="printable-modal-dialog" className="bg-white rounded-3xl max-w-4xl w-full max-h-[94vh] flex flex-col border border-[#E8EDF2] shadow-2xl relative print:border-none print:shadow-none print:p-0 print:my-0 print:max-w-full print:max-h-none overflow-hidden">
         {/* Sticky Control Bar */}
-        <div className="p-4 sm:p-5 border-b border-[#E8EDF2] flex items-center justify-between shrink-0 bg-white print:hidden z-10 shadow-2xs">
+        <div className="print-control-bar p-4 sm:p-5 border-b border-[#E8EDF2] flex items-center justify-between shrink-0 bg-white print:hidden z-10 shadow-2xs">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-[#8F8DF5]/15 text-[#7B78ED] flex items-center justify-center font-bold">
               <Printer className="w-5 h-5" />
@@ -182,7 +208,7 @@ export default function PrintableDocumentModal({
         </div>
 
         {/* Scrollable PDF Template Container */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/70 print:p-0 print:bg-white print:overflow-visible">
+        <div id="printable-modal-canvas" className="flex-1 overflow-y-auto p-4 sm:p-8 bg-slate-100/70 print:p-0 print:bg-white print:overflow-visible">
 
           <div
             id="printable-document-area"
