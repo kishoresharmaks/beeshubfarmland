@@ -28,3 +28,44 @@ export function formatDocNumber(prefix: string, count: number): string {
   const seq = String(count + 1).padStart(4, '0');
   return `${prefix}-${dateStr}-${seq}`;
 }
+
+export async function generateNextDocNumber(
+  model: any,
+  prefix: string,
+  field: string = 'docNumber'
+): Promise<string> {
+  const now = new Date();
+  const istDateStr = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(now)
+    .replace(/-/g, '');
+
+  const pattern = new RegExp(`^${prefix}-${istDateStr}-`);
+  const latest = await model
+    .findOne({ [field]: pattern })
+    .sort({ [field]: -1 })
+    .lean();
+
+  let nextSeq = 1;
+  if (latest && latest[field]) {
+    const parts = (latest[field] as string).split('-');
+    const lastPart = parts[parts.length - 1];
+    const parsed = parseInt(lastPart, 10);
+    if (!isNaN(parsed)) {
+      nextSeq = parsed + 1;
+    }
+  }
+
+  let docNumber = `${prefix}-${istDateStr}-${String(nextSeq).padStart(4, '0')}`;
+  while (await model.exists({ [field]: docNumber })) {
+    nextSeq++;
+    docNumber = `${prefix}-${istDateStr}-${String(nextSeq).padStart(4, '0')}`;
+  }
+
+  return docNumber;
+}
+

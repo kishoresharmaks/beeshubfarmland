@@ -4,7 +4,8 @@ import SaleDocument from '@/models/SaleDocument';
 import Product from '@/models/Product';
 import Party from '@/models/Party';
 import Order from '@/models/Order';
-import { generateDocPrefix, formatDocNumber } from '@/lib/billingUtils';
+import PaymentTransaction from '@/models/PaymentTransaction';
+import { generateDocPrefix, generateNextDocNumber } from '@/lib/billingUtils';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET(req: NextRequest) {
@@ -27,15 +28,22 @@ export async function GET(req: NextRequest) {
 
       const mappedDocs = docs.map((d: any) => ({
         ...d,
-        status: d.status === 'Converted' ? 'Converted' : d.paymentStatus === 'Paid' ? 'Completed' : 'Active',
+        status:
+          d.status === 'Converted'
+            ? 'Converted'
+            : d.status === 'Cancelled'
+            ? 'Cancelled'
+            : d.paymentStatus === 'Paid'
+            ? 'Completed'
+            : 'Active',
       }));
 
       const mappedOrders = orders.map((ord: any) => ({
         _id: String(ord._id),
         docType: 'SALE_INVOICE',
         docNumber: ord.invoiceNumber || ord.orderNumber || `BH-POS-${String(ord._id).slice(-6).toUpperCase()}`,
-        customerName: ord.customerName || ord.shippingAddress?.fullName || 'Walk-in Guest',
-        customerPhone: ord.customerPhone || ord.shippingAddress?.phone || '0000000000',
+        customerName: ord.customerName || 'Walk-in Guest',
+        customerPhone: ord.customerPhone || '0000000000',
         customerEmail: ord.customerEmail || '',
         items: ord.items || [],
         subtotal: ord.subtotal || ord.totalAmount,
@@ -70,8 +78,8 @@ export async function GET(req: NextRequest) {
         _id: String(ord._id),
         docType: 'SALE_ORDER',
         docNumber: ord.orderNumber || ord.invoiceNumber || `BH-ORD-${String(ord._id).slice(-6).toUpperCase()}`,
-        customerName: ord.customerName || ord.shippingAddress?.fullName || 'Online Customer',
-        customerPhone: ord.customerPhone || ord.shippingAddress?.phone || '0000000000',
+        customerName: ord.customerName || 'Online Customer',
+        customerPhone: ord.customerPhone || '0000000000',
         customerEmail: ord.customerEmail || '',
         items: ord.items || [],
         subtotal: ord.subtotal || ord.totalAmount,
@@ -101,6 +109,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
+  const deductedItems: { productId: string; variantName?: string; quantity: number }[] = [];
   try {
     await connectToDatabase();
     const body = await req.json();
@@ -113,44 +122,81 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Generate unique Document Number
+    // 1. Generate unique Document Number with collision safety
     const prefix = generateDocPrefix(docType);
-    const count = await SaleDocument.countDocuments({ docType });
-    const docNumber = formatDocNumber(prefix, count);
+    const docNumber = await generateNextDocNumber(SaleDocument, prefix);
 
-    // 2. Perform Stock Adjustments
+    // 2. Perform Stock Adjustments with availability validation & rollback tracking
     if (docType === 'SALE_INVOICE') {
       for (const item of items) {
+        let res: any;
         if (item.variantName) {
-          const res = await Product.updateOne(
-            { _id: item.productId, 'variants.name': item.variantName },
-            { $inc: { 'variants.$.quantity': -item.quantity, stock: -item.quantity } }
+          res = await Product.updateOne(
+            {
+              _id: item.productId,
+              'variants.name': item.variantName,
+              'variants.quantity': { $gte: item.quantity },
+              quantity: { $gte: item.quantity },
+            },
+            {
+              $inc: {
+                'variants.$.quantity': -item.quantity,
+                quantity: -item.quantity,
+              },
+            }
           );
-          if (res.modifiedCount === 0) {
-            await Product.updateOne(
-              { _id: item.productId },
-              { $inc: { stock: -item.quantity } }
-            );
-          }
         } else {
-          await Product.updateOne(
-            { _id: item.productId },
-            { $inc: { stock: -item.quantity } }
+          res = await Product.updateOne(
+            { _id: item.productId, quantity: { $gte: item.quantity } },
+            { $inc: { quantity: -item.quantity } }
           );
         }
+
+        if (res.modifiedCount === 0) {
+          // Rollback any already deducted items
+          for (const roll of deductedItems) {
+            if (roll.variantName) {
+              await Product.updateOne(
+                { _id: roll.productId, 'variants.name': roll.variantName },
+                { $inc: { 'variants.$.quantity': roll.quantity, quantity: roll.quantity } }
+              );
+            } else {
+              await Product.updateOne(
+                { _id: roll.productId },
+                { $inc: { quantity: roll.quantity } }
+              );
+            }
+          }
+
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Insufficient stock for "${item.name}${
+                item.variantName ? ` (${item.variantName})` : ''
+              }". Available stock is less than requested quantity.`,
+            },
+            { status: 400 }
+          );
+        }
+
+        deductedItems.push({
+          productId: item.productId,
+          variantName: item.variantName,
+          quantity: item.quantity,
+        });
       }
     } else if (docType === 'SALE_RETURN') {
-      // Add stock back
+      // Add stock back to inventory
       for (const item of items) {
         if (item.variantName) {
           await Product.updateOne(
             { _id: item.productId, 'variants.name': item.variantName },
-            { $inc: { 'variants.$.quantity': item.quantity, stock: item.quantity } }
+            { $inc: { 'variants.$.quantity': item.quantity, quantity: item.quantity } }
           );
         } else {
           await Product.updateOne(
             { _id: item.productId },
-            { $inc: { stock: item.quantity } }
+            { $inc: { quantity: item.quantity } }
           );
         }
       }
@@ -160,34 +206,76 @@ export async function POST(req: NextRequest) {
     const subtotal = items.reduce((s: number, i: any) => s + (i.lineSubtotal || i.price * i.quantity), 0);
     const totalGst = items.reduce((s: number, i: any) => s + (i.lineGst || 0), 0);
     const grandTotal = items.reduce((s: number, i: any) => s + (i.lineTotal || i.price * i.quantity), 0);
-    const balanceAmount = Math.max(0, grandTotal - paidAmount);
-    const paymentStatus = paidAmount >= grandTotal ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
+    const balanceAmount = Math.max(0, grandTotal - Number(paidAmount || 0));
+    const paymentStatus = Number(paidAmount || 0) >= grandTotal ? 'Paid' : Number(paidAmount || 0) > 0 ? 'Partial' : 'Pending';
 
-    // 4. Create Document
-    const newDoc = await SaleDocument.create({
-      docType,
-      docNumber,
-      partyId: body.partyId || '',
-      customerName,
-      customerPhone,
-      customerEmail: body.customerEmail || '',
-      billingAddress: body.billingAddress || '',
-      items,
-      subtotal,
-      totalGst,
-      grandTotal,
-      paidAmount,
-      balanceAmount,
-      paymentMethod: body.paymentMethod || 'CASH',
-      paymentStatus,
-      status: 'Active',
-      notes: body.notes || '',
-    });
+    // 4. Create Document with automatic rollback protection
+    let newDoc: any;
+    try {
+      newDoc = await SaleDocument.create({
+        docType,
+        docNumber,
+        partyId: body.partyId || '',
+        customerName,
+        customerPhone,
+        customerEmail: body.customerEmail || '',
+        billingAddress: body.billingAddress || '',
+        items,
+        subtotal,
+        totalGst,
+        grandTotal,
+        paidAmount: Number(paidAmount || 0),
+        balanceAmount,
+        paymentMethod: body.paymentMethod || 'CASH',
+        paymentStatus,
+        status: 'Active',
+        notes: body.notes || '',
+      });
+    } catch (createErr: any) {
+      // Rollback deducted items
+      if (docType === 'SALE_INVOICE') {
+        for (const roll of deductedItems) {
+          if (roll.variantName) {
+            await Product.updateOne(
+              { _id: roll.productId, 'variants.name': roll.variantName },
+              { $inc: { 'variants.$.quantity': roll.quantity, quantity: roll.quantity } }
+            );
+          } else {
+            await Product.updateOne(
+              { _id: roll.productId },
+              { $inc: { quantity: roll.quantity } }
+            );
+          }
+        }
+      }
+      throw createErr;
+    }
 
-    // 5. Update Party Balance if partyId provided
-    if (body.partyId) {
+    // 5. Update Party Balance ONLY for finalized documents (SALE_INVOICE & SALE_RETURN)
+    // Non-finalized estimates/orders (QUOTATION, PROFORMA, SALE_ORDER) must NOT alter party balances
+    if (body.partyId && (docType === 'SALE_INVOICE' || docType === 'SALE_RETURN')) {
       const balanceChange = docType === 'SALE_RETURN' ? -grandTotal : balanceAmount;
       await Party.findByIdAndUpdate(body.partyId, { $inc: { currentBalance: balanceChange } });
+    }
+
+    // 6. Record authoritative PaymentTransaction if invoice created with paid amount
+    if (docType === 'SALE_INVOICE' && Number(paidAmount || 0) > 0) {
+      try {
+        await PaymentTransaction.create({
+          paymentType: 'PAYMENT_IN',
+          partyId: body.partyId || '',
+          partyName: customerName,
+          partyPhone: customerPhone,
+          amount: Number(paidAmount),
+          paymentMode: body.paymentMethod || 'CASH',
+          referenceNo: body.referenceNo || 'INITIAL_INVOICE_PAYMENT',
+          docId: String(newDoc._id),
+          docNumber: docNumber,
+          notes: `Initial payment for Sale Invoice #${docNumber}`,
+        });
+      } catch (payErr) {
+        console.error('Warning: Failed to create initial PaymentTransaction:', payErr);
+      }
     }
 
     return NextResponse.json({ success: true, data: newDoc }, { status: 201 });
@@ -209,24 +297,66 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'Source document not found.' }, { status: 404 });
       }
 
-      // Create new SALE_INVOICE from Quotation/Proforma
+      // Generate unique SALE_INVOICE number
       const prefix = generateDocPrefix('SALE_INVOICE');
-      const count = await SaleDocument.countDocuments({ docType: 'SALE_INVOICE' });
-      const invoiceNumber = formatDocNumber(prefix, count);
+      const invoiceNumber = await generateNextDocNumber(SaleDocument, prefix);
 
-      // Deduct stock for new invoice
+      // Deduct stock with availability validation
+      const deductedItems: { productId: string; variantName?: string; quantity: number }[] = [];
       for (const item of sourceDoc.items) {
+        let res: any;
         if (item.variantName) {
-          await Product.updateOne(
-            { _id: item.productId, 'variants.name': item.variantName },
-            { $inc: { 'variants.$.quantity': -item.quantity, stock: -item.quantity } }
+          res = await Product.updateOne(
+            {
+              _id: item.productId,
+              'variants.name': item.variantName,
+              'variants.quantity': { $gte: item.quantity },
+              quantity: { $gte: item.quantity },
+            },
+            {
+              $inc: {
+                'variants.$.quantity': -item.quantity,
+                quantity: -item.quantity,
+              },
+            }
           );
         } else {
-          await Product.updateOne(
-            { _id: item.productId },
-            { $inc: { stock: -item.quantity } }
+          res = await Product.updateOne(
+            { _id: item.productId, quantity: { $gte: item.quantity } },
+            { $inc: { quantity: -item.quantity } }
           );
         }
+
+        if (res.modifiedCount === 0) {
+          for (const roll of deductedItems) {
+            if (roll.variantName) {
+              await Product.updateOne(
+                { _id: roll.productId, 'variants.name': roll.variantName },
+                { $inc: { 'variants.$.quantity': roll.quantity, quantity: roll.quantity } }
+              );
+            } else {
+              await Product.updateOne(
+                { _id: roll.productId },
+                { $inc: { quantity: roll.quantity } }
+              );
+            }
+          }
+          return NextResponse.json(
+            {
+              success: false,
+              message: `Cannot convert: Insufficient stock for "${item.name}${
+                item.variantName ? ` (${item.variantName})` : ''
+              }".`,
+            },
+            { status: 400 }
+          );
+        }
+
+        deductedItems.push({
+          productId: item.productId,
+          variantName: item.variantName,
+          quantity: item.quantity,
+        });
       }
 
       const advancePaid = sourceDoc.paidAmount || 0;
@@ -253,7 +383,34 @@ export async function PUT(req: NextRequest) {
         notes: `Converted from ${sourceDoc.docType} #${sourceDoc.docNumber}`,
       });
 
-      // Mark source doc as Converted, clear balance and set paymentStatus to Paid
+      // Update party balance now that estimate is converted to an active invoice
+      if (sourceDoc.partyId && remainingBalance > 0) {
+        await Party.findByIdAndUpdate(sourceDoc.partyId, {
+          $inc: { currentBalance: remainingBalance },
+        });
+      }
+
+      // If advance payment existed on the source document, record transaction for the new invoice
+      if (advancePaid > 0) {
+        try {
+          await PaymentTransaction.create({
+            paymentType: 'PAYMENT_IN',
+            partyId: sourceDoc.partyId || '',
+            partyName: sourceDoc.customerName,
+            partyPhone: sourceDoc.customerPhone,
+            amount: advancePaid,
+            paymentMode: sourceDoc.paymentMethod || 'CASH',
+            referenceNo: 'CONVERTED_ADVANCE_PAYMENT',
+            docId: String(invoiceDoc._id),
+            docNumber: invoiceNumber,
+            notes: `Advance payment carried from ${sourceDoc.docType} #${sourceDoc.docNumber}`,
+          });
+        } catch (payErr) {
+          console.error('Warning: Failed to record advance PaymentTransaction on conversion:', payErr);
+        }
+      }
+
+      // Mark source doc as Converted
       sourceDoc.status = 'Converted';
       sourceDoc.convertedToDocId = String(invoiceDoc._id);
       sourceDoc.balanceAmount = 0;
@@ -268,6 +425,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
 
 export async function DELETE(req: NextRequest) {
   if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();

@@ -26,8 +26,8 @@ export default function PrintableDocumentModal({
 
   // Determine Exact Title matching PDF templates
   const getDocumentTitle = () => {
-    if (!doc?.docType && !doc?.orderType) return 'Tax Invoice';
-    const type = (doc.docType || doc.orderType || '').toUpperCase();
+    if (!doc?.docType && !doc?.orderType && !doc?.paymentType) return 'Tax Invoice';
+    const type = (doc.docType || doc.paymentType || doc.orderType || '').toUpperCase();
     if (type.includes('ESTIMATE') || type.includes('QUOTATION')) return 'Estimate';
     if (type.includes('PAYMENT_IN') || type.includes('PAYMENT_RECEIVED')) return 'Payment-In';
     if (type.includes('PAYMENT_OUT') || type.includes('PAYMENT_PAID')) return 'Payment-Out';
@@ -39,14 +39,14 @@ export default function PrintableDocumentModal({
   };
 
   const docTitle = getDocumentTitle();
-  const grandTotalNum = Number(doc?.grandTotal || doc?.totalAmount || 0);
+  const grandTotalNum = Number(doc?.grandTotal || doc?.totalAmount || doc?.amount || 0);
 
   const getWhatsappText = () => {
     let msg = `*${company.name}*\n`;
     msg += `Document: *${docTitle}*\n`;
-    msg += `Doc No: *${doc?.docNumber || doc?.invoiceNumber || doc?.orderId}*\n`;
+    msg += `Doc No: *${doc?.docNumber || doc?.invoiceNumber || doc?.orderId || doc?.referenceNo}*\n`;
     msg += `Date: ${new Date(doc?.createdAt || doc?.date || Date.now()).toLocaleDateString('en-IN')}\n`;
-    msg += `Party: ${doc?.customerName || doc?.vendorName || doc?.partyId?.name || 'Customer'}\n`;
+    msg += `Party: ${doc?.customerName || doc?.vendorName || doc?.partyName || doc?.partyId?.name || 'Customer'}\n`;
     msg += `--------------------------------\n`;
     doc?.items?.forEach((i: any, idx: number) => {
       msg += `${idx + 1}. ${i.name || i.productName} ${i.variantName ? `(${i.variantName})` : ''} x ${i.quantity} = ₹${i.lineTotal || i.total || i.price * i.quantity}\n`;
@@ -61,8 +61,8 @@ export default function PrintableDocumentModal({
     return encodeURIComponent(msg);
   };
 
-  const clientName = doc?.customerName || doc?.vendorName || doc?.partyId?.name || 'Walk-in Customer';
-  const clientPhone = doc?.customerPhone || doc?.vendorPhone || doc?.partyId?.phone || '';
+  const clientName = doc?.customerName || doc?.vendorName || doc?.partyName || doc?.partyId?.name || 'Walk-in Customer';
+  const clientPhone = doc?.customerPhone || doc?.vendorPhone || doc?.partyPhone || doc?.partyId?.phone || '';
   const clientAddress = doc?.shippingAddress || doc?.billingAddress || doc?.partyId?.address || '';
   const clientGstin = doc?.partyId?.gstin || doc?.gstin || '';
   const clientState = doc?.partyId?.state || doc?.state || company.state;
@@ -314,9 +314,10 @@ export default function PrintableDocumentModal({
                     doc.items.map((item: any, idx: number) => {
                       const qty = item.quantity || 1;
                       const unitPrice = item.price || item.purchasePrice || 0;
-                      const gstPct = item.gstRate || item.gstPercent || 5.0;
-                      const lineAmt = item.lineTotal || item.total || qty * unitPrice;
-                      const gstVal = item.gstAmount || (lineAmt * gstPct) / 100;
+                      const gstPct = item.gst !== undefined ? Number(item.gst) : item.gstRate !== undefined ? Number(item.gstRate) : item.gstPercent !== undefined ? Number(item.gstPercent) : 5.0;
+                      const lineSubtotal = item.lineSubtotal || qty * unitPrice;
+                      const gstVal = item.lineGst !== undefined ? Number(item.lineGst) : item.gstAmount !== undefined ? Number(item.gstAmount) : (lineSubtotal * gstPct) / 100;
+                      const lineAmt = item.lineTotal || (lineSubtotal + gstVal);
 
                       return (
                         <tr key={idx} className="hover:bg-slate-50/50">
@@ -417,7 +418,7 @@ export default function PrintableDocumentModal({
 
                   <div className="flex justify-between text-slate-700 py-0.5">
                     <span>Received</span>
-                    <span>₹{Number(doc?.paidAmount || doc?.received || grandTotalNum).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                    <span>₹{Number(doc?.paidAmount !== undefined ? doc.paidAmount : doc?.received !== undefined ? doc.received : 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                   </div>
                   <div className="flex justify-between text-slate-700 py-0.5">
                     <span>Balance</span>

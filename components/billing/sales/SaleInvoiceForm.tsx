@@ -238,7 +238,7 @@ export default function SaleInvoiceForm({
                 <option value="">+ Add Product Item to Bill</option>
                 {products.map((p) => (
                   <option key={p._id} value={p._id}>
-                    {p.name} — ₹{p.price} ({p.stock} in stock)
+                    {p.name} — ₹{p.price} ({p.quantity ?? 0} in stock)
                   </option>
                 ))}
               </select>

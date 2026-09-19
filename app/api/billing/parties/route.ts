@@ -3,6 +3,8 @@ import connectToDatabase from '@/lib/db';
 import Party from '@/models/Party';
 import Order from '@/models/Order';
 import SaleDocument from '@/models/SaleDocument';
+import PurchaseDocument from '@/models/PurchaseDocument';
+import PaymentTransaction from '@/models/PaymentTransaction';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET(req: NextRequest) {
@@ -81,21 +83,63 @@ export async function GET(req: NextRequest) {
 
     const rawParties = await Party.find(query).sort({ name: 1 }).lean();
 
-    // Recalculate exact live currentBalance for each party from SaleDocument & Payment records
+    // Recalculate exact live currentBalance for each party from SaleDocument, PurchaseDocument & unlinked Payment records
     const partiesWithLiveBalance = await Promise.all(
       rawParties.map(async (party: any) => {
-        const saleDocs = await SaleDocument.find({
-          status: 'Active',
-          $or: [{ partyId: party._id }, { customerPhone: party.phone }],
-        }).lean();
-
         let liveBalance = Number(party.openingBalance || 0);
 
-        for (const doc of saleDocs) {
-          if (doc.docType === 'SALE_INVOICE') {
-            liveBalance += Number(doc.balanceAmount || 0);
-          } else if (doc.docType === 'SALE_RETURN') {
-            liveBalance -= Number(doc.grandTotal || 0);
+        // If Customer or Both: check SaleDocument
+        if (party.partyType === 'CUSTOMER' || party.partyType === 'BOTH') {
+          const saleDocs = await SaleDocument.find({
+            status: { $in: ['Active', 'Completed'] },
+            $or: [{ partyId: String(party._id) }, { customerPhone: party.phone }],
+          }).lean();
+
+          for (const doc of saleDocs) {
+            if (doc.docType === 'SALE_INVOICE') {
+              liveBalance += Number(doc.balanceAmount || 0);
+            } else if (doc.docType === 'SALE_RETURN') {
+              liveBalance -= Number(doc.grandTotal || 0);
+            }
+          }
+
+          // Unlinked PAYMENT_IN transactions (direct payments against customer balance without docId)
+          const unlinkedPaymentsIn = await PaymentTransaction.find({
+            paymentType: 'PAYMENT_IN',
+            partyId: String(party._id),
+            $or: [{ docId: '' }, { docId: null }, { docId: { $exists: false } }],
+          }).lean();
+
+          for (const p of unlinkedPaymentsIn) {
+            liveBalance -= Number(p.amount || 0);
+          }
+        }
+
+        // If Vendor or Both: check PurchaseDocument
+        if (party.partyType === 'VENDOR' || party.partyType === 'BOTH') {
+          const purDocs = await PurchaseDocument.find({
+            status: { $in: ['Active', 'Completed'] },
+            $or: [{ vendorId: String(party._id) }, { vendorPhone: party.phone }],
+          }).lean();
+
+          for (const doc of purDocs) {
+            if (doc.docType === 'PURCHASE_BILL') {
+              // Negative = payables (we owe vendor)
+              liveBalance -= Number(doc.balanceAmount || 0);
+            } else if (doc.docType === 'PURCHASE_RETURN') {
+              liveBalance += Number(doc.grandTotal || 0);
+            }
+          }
+
+          // Unlinked PAYMENT_OUT transactions (direct payouts to vendor without docId)
+          const unlinkedPaymentsOut = await PaymentTransaction.find({
+            paymentType: 'PAYMENT_OUT',
+            partyId: String(party._id),
+            $or: [{ docId: '' }, { docId: null }, { docId: { $exists: false } }],
+          }).lean();
+
+          for (const p of unlinkedPaymentsOut) {
+            liveBalance += Number(p.amount || 0);
           }
         }
 
@@ -111,6 +155,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+
 
 export async function POST(req: NextRequest) {
   if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();

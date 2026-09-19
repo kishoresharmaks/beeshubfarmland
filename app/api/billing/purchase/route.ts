@@ -3,7 +3,8 @@ import connectToDatabase from '@/lib/db';
 import PurchaseDocument from '@/models/PurchaseDocument';
 import Product from '@/models/Product';
 import Party from '@/models/Party';
-import { generateDocPrefix, formatDocNumber } from '@/lib/billingUtils';
+import PaymentTransaction from '@/models/PaymentTransaction';
+import { generateDocPrefix, generateNextDocNumber } from '@/lib/billingUtils';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET(req: NextRequest) {
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
+  const adjustedItems: { productId: string; variantName?: string; quantity: number }[] = [];
   try {
     await connectToDatabase();
     const body = await req.json();
@@ -37,32 +39,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Generate unique Document Number
+    // 1. Generate unique Document Number with collision safety
     const prefix = generateDocPrefix(docType);
-    const count = await PurchaseDocument.countDocuments({ docType });
-    const docNumber = formatDocNumber(prefix, count);
+    const docNumber = await generateNextDocNumber(PurchaseDocument, prefix);
 
-    // 2. Perform Stock Adjustments
+    // 2. Perform Stock Adjustments with inventory field quantity
     if (docType === 'PURCHASE_BILL') {
       // Inward Stock: Add stock
       for (const item of items) {
         if (item.variantName) {
-          const res = await Product.updateOne(
+          await Product.updateOne(
             { _id: item.productId, 'variants.name': item.variantName },
-            { $inc: { 'variants.$.quantity': item.quantity, stock: item.quantity } }
+            { $inc: { 'variants.$.quantity': item.quantity, quantity: item.quantity } }
           );
-          if (res.modifiedCount === 0) {
-            await Product.updateOne(
-              { _id: item.productId },
-              { $inc: { stock: item.quantity } }
-            );
-          }
         } else {
           await Product.updateOne(
             { _id: item.productId },
-            { $inc: { stock: item.quantity } }
+            { $inc: { quantity: item.quantity } }
           );
         }
+        adjustedItems.push({
+          productId: item.productId,
+          variantName: item.variantName,
+          quantity: item.quantity,
+        });
       }
     } else if (docType === 'PURCHASE_RETURN') {
       // Return to vendor: Deduct stock
@@ -70,14 +70,19 @@ export async function POST(req: NextRequest) {
         if (item.variantName) {
           await Product.updateOne(
             { _id: item.productId, 'variants.name': item.variantName },
-            { $inc: { 'variants.$.quantity': -item.quantity, stock: -item.quantity } }
+            { $inc: { 'variants.$.quantity': -item.quantity, quantity: -item.quantity } }
           );
         } else {
           await Product.updateOne(
             { _id: item.productId },
-            { $inc: { stock: -item.quantity } }
+            { $inc: { quantity: -item.quantity } }
           );
         }
+        adjustedItems.push({
+          productId: item.productId,
+          variantName: item.variantName,
+          quantity: item.quantity,
+        });
       }
     }
 
@@ -85,34 +90,89 @@ export async function POST(req: NextRequest) {
     const subtotal = items.reduce((s: number, i: any) => s + (i.lineSubtotal || i.purchasePrice * i.quantity), 0);
     const totalGst = items.reduce((s: number, i: any) => s + (i.lineGst || 0), 0);
     const grandTotal = items.reduce((s: number, i: any) => s + (i.lineTotal || i.purchasePrice * i.quantity), 0);
-    const balanceAmount = Math.max(0, grandTotal - paidAmount);
-    const paymentStatus = paidAmount >= grandTotal ? 'Paid' : paidAmount > 0 ? 'Partial' : 'Pending';
+    const balanceAmount = Math.max(0, grandTotal - Number(paidAmount || 0));
+    const paymentStatus = Number(paidAmount || 0) >= grandTotal ? 'Paid' : Number(paidAmount || 0) > 0 ? 'Partial' : 'Pending';
 
-    // 4. Create Purchase Document
-    const newDoc = await PurchaseDocument.create({
-      docType,
-      docNumber,
-      vendorId: body.vendorId || '',
-      vendorName,
-      vendorPhone,
-      vendorGstin: body.vendorGstin || '',
-      vendorAddress: body.vendorAddress || '',
-      items,
-      subtotal,
-      totalGst,
-      grandTotal,
-      paidAmount,
-      balanceAmount,
-      paymentMethod: body.paymentMethod || 'CASH',
-      paymentStatus,
-      status: 'Active',
-      notes: body.notes || '',
-    });
+    // 4. Create Purchase Document with rollback safety
+    let newDoc: any;
+    try {
+      newDoc = await PurchaseDocument.create({
+        docType,
+        docNumber,
+        vendorId: body.vendorId || '',
+        vendorName,
+        vendorPhone,
+        vendorGstin: body.vendorGstin || '',
+        vendorAddress: body.vendorAddress || '',
+        items,
+        subtotal,
+        totalGst,
+        grandTotal,
+        paidAmount: Number(paidAmount || 0),
+        balanceAmount,
+        paymentMethod: body.paymentMethod || 'CASH',
+        paymentStatus,
+        status: 'Active',
+        notes: body.notes || '',
+      });
+    } catch (createErr: any) {
+      // Rollback stock changes if creation failed
+      if (docType === 'PURCHASE_BILL') {
+        for (const roll of adjustedItems) {
+          if (roll.variantName) {
+            await Product.updateOne(
+              { _id: roll.productId, 'variants.name': roll.variantName },
+              { $inc: { 'variants.$.quantity': -roll.quantity, quantity: -roll.quantity } }
+            );
+          } else {
+            await Product.updateOne(
+              { _id: roll.productId },
+              { $inc: { quantity: -roll.quantity } }
+            );
+          }
+        }
+      } else if (docType === 'PURCHASE_RETURN') {
+        for (const roll of adjustedItems) {
+          if (roll.variantName) {
+            await Product.updateOne(
+              { _id: roll.productId, 'variants.name': roll.variantName },
+              { $inc: { 'variants.$.quantity': roll.quantity, quantity: roll.quantity } }
+            );
+          } else {
+            await Product.updateOne(
+              { _id: roll.productId },
+              { $inc: { quantity: roll.quantity } }
+            );
+          }
+        }
+      }
+      throw createErr;
+    }
 
-    // 5. Update Vendor Balance if vendorId provided
-    if (body.vendorId) {
+    // 5. Update Vendor Balance ONLY for PURCHASE_BILL and PURCHASE_RETURN (skip PURCHASE_ORDER)
+    if (body.vendorId && (docType === 'PURCHASE_BILL' || docType === 'PURCHASE_RETURN')) {
       const balanceChange = docType === 'PURCHASE_RETURN' ? grandTotal : -balanceAmount;
       await Party.findByIdAndUpdate(body.vendorId, { $inc: { currentBalance: balanceChange } });
+    }
+
+    // 6. Record authoritative PaymentTransaction if purchase bill created with payout
+    if (docType === 'PURCHASE_BILL' && Number(paidAmount || 0) > 0) {
+      try {
+        await PaymentTransaction.create({
+          paymentType: 'PAYMENT_OUT',
+          partyId: body.vendorId || '',
+          partyName: vendorName,
+          partyPhone: vendorPhone,
+          amount: Number(paidAmount),
+          paymentMode: body.paymentMethod || 'CASH',
+          referenceNo: body.referenceNo || 'INITIAL_BILL_PAYMENT',
+          docId: String(newDoc._id),
+          docNumber: docNumber,
+          notes: `Initial payout for Purchase Bill #${docNumber}`,
+        });
+      } catch (payErr) {
+        console.error('Warning: Failed to create initial PaymentTransaction for purchase:', payErr);
+      }
     }
 
     return NextResponse.json({ success: true, data: newDoc }, { status: 201 });
@@ -134,22 +194,21 @@ export async function PUT(req: NextRequest) {
         return NextResponse.json({ success: false, message: 'PO document not found.' }, { status: 404 });
       }
 
-      // Create new PURCHASE_BILL from PO
+      // Generate unique PURCHASE_BILL number
       const prefix = generateDocPrefix('PURCHASE_BILL');
-      const count = await PurchaseDocument.countDocuments({ docType: 'PURCHASE_BILL' });
-      const billNumber = formatDocNumber(prefix, count);
+      const billNumber = await generateNextDocNumber(PurchaseDocument, prefix);
 
-      // Add inward stock for new purchase bill
+      // Add inward stock for new purchase bill using quantity field
       for (const item of poDoc.items) {
         if (item.variantName) {
           await Product.updateOne(
             { _id: item.productId, 'variants.name': item.variantName },
-            { $inc: { 'variants.$.quantity': item.quantity, stock: item.quantity } }
+            { $inc: { 'variants.$.quantity': item.quantity, quantity: item.quantity } }
           );
         } else {
           await Product.updateOne(
             { _id: item.productId },
-            { $inc: { stock: item.quantity } }
+            { $inc: { quantity: item.quantity } }
           );
         }
       }
@@ -173,6 +232,13 @@ export async function PUT(req: NextRequest) {
         notes: `Converted from PO #${poDoc.docNumber}`,
       });
 
+      // Update vendor balance when PO is converted into a finalized purchase bill
+      if (poDoc.vendorId) {
+        await Party.findByIdAndUpdate(poDoc.vendorId, {
+          $inc: { currentBalance: -billDoc.balanceAmount },
+        });
+      }
+
       // Mark PO as Converted
       poDoc.status = 'Converted';
       poDoc.convertedToDocId = String(billDoc._id);
@@ -186,3 +252,4 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+

@@ -54,9 +54,9 @@ export default function CustomerLedgerModal({ party, onClose }: CustomerLedgerMo
             </div>
             <div>
               <h3 className="font-extrabold text-base text-[#163B5C]">
-                Customer Account & Order History
+                Party Account & Transaction Ledger
               </h3>
-              <p className="text-xs text-[#64748B]">Complete ledger statements & purchase logs for {party.name}</p>
+              <p className="text-xs text-[#64748B]">Complete ledger statements & transaction logs for {party.name}</p>
             </div>
           </div>
 
@@ -175,6 +175,26 @@ export default function CustomerLedgerModal({ party, onClose }: CustomerLedgerMo
                           ) : tx.type === 'SALE_RETURN' ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-800 border border-rose-200">
                               ↩️ SALE RETURN
+                            </span>
+                          ) : tx.type === 'PURCHASE_BILL' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-indigo-100 text-indigo-800 border border-indigo-200">
+                              📦 PURCHASE BILL
+                            </span>
+                          ) : tx.type === 'PURCHASE_ORDER' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-100 text-slate-800 border border-slate-200">
+                              📋 PURCHASE ORDER
+                            </span>
+                          ) : tx.type === 'PURCHASE_RETURN' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-orange-100 text-orange-800 border border-orange-200">
+                              ↩️ PURCHASE RETURN
+                            </span>
+                          ) : tx.type === 'PAYMENT_IN' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              💵 PAYMENT IN
+                            </span>
+                          ) : tx.type === 'PAYMENT_OUT' ? (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-800 border border-amber-200">
+                              💸 PAYMENT OUT
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-100 text-emerald-800 border border-emerald-200">

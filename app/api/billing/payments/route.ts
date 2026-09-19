@@ -18,55 +18,65 @@ export async function GET(req: NextRequest) {
     if (type) filter.paymentType = type;
 
     const txns = await PaymentTransaction.find(filter).sort({ createdAt: -1 }).lean();
+    // Track docIds and docNumbers already backed by explicit PaymentTransactions
+    const existingDocIds = new Set(
+      txns.map((t: any) => String(t.docId || '')).filter(Boolean)
+    );
     const existingDocNumbers = new Set(
-      txns.map((t: any) => t.docNumber).filter((d: string) => Boolean(d))
+      txns.map((t: any) => String(t.docNumber || '')).filter(Boolean)
     );
 
     if (!type || type === 'PAYMENT_IN') {
-      // 1. Fetch POS Counter & Online Order payments (excluding already recorded docNumbers)
+      // 1. Fetch POS Counter & Online Order payments (legacy orders without PaymentTransaction)
       const orderPayments = await Order.find({
         status: { $ne: 'Cancelled' },
         $or: [{ paymentStatus: 'Paid' }, { cashReceived: { $gt: 0 } }],
-        invoiceNumber: { $nin: Array.from(existingDocNumbers) },
-        orderNumber: { $nin: Array.from(existingDocNumbers) },
+        _id: { $nin: Array.from(existingDocIds).filter((id) => id.length === 24) },
       })
         .sort({ createdAt: -1 })
         .lean();
 
-      const mappedOrderPayments = orderPayments.map((ord: any) => ({
-        _id: `ord_${ord._id}`,
-        paymentType: 'PAYMENT_IN',
-        partyName: ord.customerName || ord.shippingAddress?.fullName || 'Walk-in Guest',
-        partyPhone: ord.customerPhone || ord.shippingAddress?.phone || '0000000000',
-        amount: ord.paymentStatus === 'Paid' ? ord.totalAmount : ord.cashReceived || ord.totalAmount,
-        paymentMode: ord.paymentMethod || 'CASH',
-        referenceNo: ord.transactionId || ord.paymentMethod || 'DIRECT',
-        docNumber: ord.invoiceNumber || ord.orderNumber || `BH-POS-${String(ord._id).slice(-6).toUpperCase()}`,
-        notes: ord.orderType === 'POS' ? 'POS Counter Billing' : 'Online Customer Checkout',
-        createdAt: ord.createdAt,
-      }));
+      const mappedOrderPayments = orderPayments
+        .filter((ord: any) => {
+          const num = ord.invoiceNumber || ord.orderNumber;
+          return !num || !existingDocNumbers.has(num);
+        })
+        .map((ord: any) => ({
+          _id: `ord_${ord._id}`,
+          paymentType: 'PAYMENT_IN',
+          partyName: ord.customerName || 'Walk-in Guest',
+          partyPhone: ord.customerPhone || '0000000000',
+          amount: ord.paymentStatus === 'Paid' ? ord.totalAmount : ord.cashReceived || ord.totalAmount,
+          paymentMode: ord.paymentMethod || 'CASH',
+          referenceNo: ord.transactionId || ord.paymentMethod || 'DIRECT',
+          docNumber: ord.invoiceNumber || ord.orderNumber || `BH-POS-${String(ord._id).slice(-6).toUpperCase()}`,
+          notes: ord.orderType === 'POS' ? 'POS Counter Billing' : 'Online Customer Checkout',
+          createdAt: ord.createdAt,
+        }));
 
-      // 2. Fetch Sale Document payments where paidAmount > 0 (excluding already recorded docNumbers)
+      // 2. Fetch legacy Sale Documents with paidAmount > 0 that lack explicit PaymentTransactions
       const saleDocPayments = await SaleDocument.find({
         docType: 'SALE_INVOICE',
         paidAmount: { $gt: 0 },
-        docNumber: { $nin: Array.from(existingDocNumbers) },
+        _id: { $nin: Array.from(existingDocIds).filter((id) => id.length === 24) },
       })
         .sort({ createdAt: -1 })
         .lean();
 
-      const mappedSaleDocPayments = saleDocPayments.map((doc: any) => ({
-        _id: `saledoc_${doc._id}`,
-        paymentType: 'PAYMENT_IN',
-        partyName: doc.customerName,
-        partyPhone: doc.customerPhone,
-        amount: doc.paidAmount,
-        paymentMode: doc.paymentMethod || 'CASH',
-        referenceNo: 'TAX_INVOICE_PAID',
-        docNumber: doc.docNumber,
-        notes: `Sale Invoice Payout (#${doc.docNumber})`,
-        createdAt: doc.createdAt,
-      }));
+      const mappedSaleDocPayments = saleDocPayments
+        .filter((doc: any) => !existingDocNumbers.has(doc.docNumber))
+        .map((doc: any) => ({
+          _id: `saledoc_${doc._id}`,
+          paymentType: 'PAYMENT_IN',
+          partyName: doc.customerName,
+          partyPhone: doc.customerPhone,
+          amount: doc.paidAmount,
+          paymentMode: doc.paymentMethod || 'CASH',
+          referenceNo: 'TAX_INVOICE_PAID',
+          docNumber: doc.docNumber,
+          notes: `Sale Invoice Payout (#${doc.docNumber})`,
+          createdAt: doc.createdAt,
+        }));
 
       const combinedIn = [...txns, ...mappedOrderPayments, ...mappedSaleDocPayments].sort(
         (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -76,27 +86,29 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'PAYMENT_OUT') {
-      // Fetch Purchase Document payouts where paidAmount > 0 (excluding already recorded docNumbers)
+      // Fetch legacy Purchase Documents with paidAmount > 0 that lack explicit PaymentTransactions
       const purDocPayments = await PurchaseDocument.find({
         docType: 'PURCHASE_BILL',
         paidAmount: { $gt: 0 },
-        docNumber: { $nin: Array.from(existingDocNumbers) },
+        _id: { $nin: Array.from(existingDocIds).filter((id) => id.length === 24) },
       })
         .sort({ createdAt: -1 })
         .lean();
 
-      const mappedPurDocPayments = purDocPayments.map((doc: any) => ({
-        _id: `purdoc_${doc._id}`,
-        paymentType: 'PAYMENT_OUT',
-        partyName: doc.vendorName,
-        partyPhone: doc.vendorPhone,
-        amount: doc.paidAmount,
-        paymentMode: doc.paymentMethod || 'CASH',
-        referenceNo: 'SUPPLIER_BILL_PAID',
-        docNumber: doc.docNumber,
-        notes: `Vendor Purchase Bill Payout (#${doc.docNumber})`,
-        createdAt: doc.createdAt,
-      }));
+      const mappedPurDocPayments = purDocPayments
+        .filter((doc: any) => !existingDocNumbers.has(doc.docNumber))
+        .map((doc: any) => ({
+          _id: `purdoc_${doc._id}`,
+          paymentType: 'PAYMENT_OUT',
+          partyName: doc.vendorName,
+          partyPhone: doc.vendorPhone,
+          amount: doc.paidAmount,
+          paymentMode: doc.paymentMethod || 'CASH',
+          referenceNo: 'SUPPLIER_BILL_PAID',
+          docNumber: doc.docNumber,
+          notes: `Vendor Purchase Bill Payout (#${doc.docNumber})`,
+          createdAt: doc.createdAt,
+        }));
 
       const combinedOut = [...txns, ...mappedPurDocPayments].sort(
         (a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -118,7 +130,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const { paymentType, partyName, partyPhone, amount, paymentMode, docId } = body;
-    if (!paymentType || !partyName || !amount || amount <= 0) {
+    if (!paymentType || !partyName || !amount || Number(amount) <= 0) {
       return NextResponse.json(
         { success: false, message: 'Payment type, party name, and valid amount required.' },
         { status: 400 }
@@ -147,7 +159,22 @@ export async function POST(req: NextRequest) {
           saleDoc.balanceAmount = Math.max(0, saleDoc.grandTotal - saleDoc.paidAmount);
           saleDoc.paymentStatus =
             saleDoc.paidAmount >= saleDoc.grandTotal ? 'Paid' : 'Partial';
+          if (saleDoc.paidAmount >= saleDoc.grandTotal) {
+            saleDoc.status = 'Completed';
+          }
           await saleDoc.save();
+        } else {
+          // Check if docId is an Order (Storefront or POS)
+          const order = await Order.findById(docId);
+          if (order) {
+            const currentPaid = order.paymentStatus === 'Paid' ? order.totalAmount : (order.cashReceived || 0);
+            const newPaid = currentPaid + Number(amount);
+            order.cashReceived = newPaid;
+            if (newPaid >= order.totalAmount) {
+              order.paymentStatus = 'Paid';
+            }
+            await order.save();
+          }
         }
       } else if (paymentType === 'PAYMENT_OUT') {
         const purDoc = await PurchaseDocument.findById(docId);
@@ -156,6 +183,9 @@ export async function POST(req: NextRequest) {
           purDoc.balanceAmount = Math.max(0, purDoc.grandTotal - purDoc.paidAmount);
           purDoc.paymentStatus =
             purDoc.paidAmount >= purDoc.grandTotal ? 'Paid' : 'Partial';
+          if (purDoc.paidAmount >= purDoc.grandTotal) {
+            purDoc.status = 'Completed';
+          }
           await purDoc.save();
         }
       }
@@ -172,3 +202,4 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
+

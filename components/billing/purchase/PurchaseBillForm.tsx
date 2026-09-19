@@ -242,7 +242,7 @@ export default function PurchaseBillForm({
                 <option value="">+ Add Product Item to Purchase Bill</option>
                 {products.map((p) => (
                   <option key={p._id} value={p._id}>
-                    {p.name} (Current Stock: {p.stock})
+                    {p.name} (Current Stock: {p.quantity ?? 0})
                   </option>
                 ))}
               </select>
