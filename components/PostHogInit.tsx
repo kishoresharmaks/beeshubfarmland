@@ -21,6 +21,7 @@ export default function PostHogInit() {
       posthog.init(token, {
         api_host: host,
         defaults: '2026-05-30',
+        capture_pageview: 'history_change',
         capture_exceptions: true,
         debug: process.env.NODE_ENV === 'development',
         tracing_headers: [window.location.hostname],
