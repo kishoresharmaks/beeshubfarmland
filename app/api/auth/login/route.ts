@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function POST(request: Request) {
   try {
@@ -20,6 +21,10 @@ export async function POST(request: Request) {
         maxAge: 60 * 60 * 24, // 1 day
       });
 
+      await captureServerEvent(request, 'admin_logged_in', {
+        authentication_method: 'password',
+      }, 'admin-session');
+
       return response;
     }
 
@@ -28,6 +33,7 @@ export async function POST(request: Request) {
       { status: 401 }
     );
   } catch (error: any) {
+    await captureServerException(request, error, 'admin-session');
     return NextResponse.json(
       { success: false, message: error.message || 'Server error' },
       { status: 500 }

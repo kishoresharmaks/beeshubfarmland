@@ -3,6 +3,7 @@ import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
 import Party from '@/models/Party';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function GET() {
   try {
@@ -123,11 +124,19 @@ export async function POST(request: Request) {
       }
     }
 
+    await captureServerEvent(request, 'online_order_placed', {
+      order_id: orderId,
+      item_count: items.length,
+      total_amount: totalAmount,
+      payment_method: method,
+    }, `order:${String(newOrder._id)}`);
+
     return NextResponse.json(
       { success: true, message: 'Order created successfully', data: newOrder },
       { status: 201 }
     );
   } catch (error: any) {
+    await captureServerException(request, error, 'online-checkout');
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to place order' },
       { status: 500 }

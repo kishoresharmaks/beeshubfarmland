@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Outfit, Inter } from "next/font/google";
+import PostHogInit from "@/components/PostHogInit";
 import "./globals.css";
 
 const outfit = Outfit({
@@ -109,6 +110,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-screen bg-[#FFFCFB] text-[#163B5C] antialiased flex flex-col justify-between">
+        <PostHogInit />
         {children}
       </body>
     </html>

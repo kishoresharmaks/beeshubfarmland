@@ -6,6 +6,7 @@ import PurchaseDocument from '@/models/PurchaseDocument';
 import Order from '@/models/Order';
 import Party from '@/models/Party';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function GET(req: NextRequest) {
   if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
@@ -197,8 +198,17 @@ export async function POST(req: NextRequest) {
       await Party.findByIdAndUpdate(body.partyId, { $inc: { currentBalance: balanceAdj } });
     }
 
+    await captureServerEvent(req, 'payment_recorded', {
+      transaction_id: String(txn._id),
+      payment_type: paymentType,
+      amount: Number(amount),
+      payment_mode: paymentMode || 'CASH',
+      has_document: Boolean(docId),
+    }, 'admin-billing');
+
     return NextResponse.json({ success: true, data: txn }, { status: 201 });
   } catch (error: any) {
+    await captureServerException(req, error, 'admin-billing');
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }

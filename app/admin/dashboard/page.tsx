@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import posthog from 'posthog-js';
 import {
   Plus,
   Package,
@@ -826,6 +827,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
   // Logout
   const handleLogout = async () => {
     await fetch('/api/auth/logout', { method: 'POST' });
+    posthog.reset();
     router.push('/admin/login');
   };
 

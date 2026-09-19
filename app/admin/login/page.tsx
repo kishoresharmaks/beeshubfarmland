@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import posthog from 'posthog-js';
 import { Lock, User, ArrowRight, ShieldCheck, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function AdminLoginPage() {
@@ -18,19 +19,34 @@ export default function AdminLoginPage() {
 
     try {
       setLoading(true);
+      const digest = await crypto.subtle.digest(
+        'SHA-256',
+        new TextEncoder().encode(username.trim().toLowerCase())
+      );
+      const adminDistinctId = `admin:${Array.from(new Uint8Array(digest))
+        .map((byte) => byte.toString(16).padStart(2, '0'))
+        .join('')}`;
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-POSTHOG-DISTINCT-ID': adminDistinctId,
+        },
         body: JSON.stringify({ username, password }),
       });
 
       const data = await res.json();
       if (data.success) {
+        posthog.identify(adminDistinctId, {
+          email: username.trim().toLowerCase(),
+          role: 'admin',
+        });
         router.push('/admin/dashboard');
       } else {
         setError(data.message || 'Invalid email or password');
       }
     } catch (err: any) {
+      posthog.captureException(err);
       setError('Connection error while logging in.');
     } finally {
       setLoading(false);

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function PATCH(
   request: Request,
@@ -62,12 +63,21 @@ export async function PATCH(
       { new: true }
     );
 
+    await captureServerEvent(request, 'order_updated', {
+      order_id: existingOrder.orderId || id,
+      previous_order_status: existingOrder.status,
+      order_status: updatedOrder?.status,
+      previous_payment_status: existingOrder.paymentStatus,
+      payment_status: updatedOrder?.paymentStatus,
+    }, `order:${id}`);
+
     return NextResponse.json({
       success: true,
       message: 'Order updated successfully',
       data: updatedOrder,
     });
   } catch (error: any) {
+    await captureServerException(request, error, `order:${params.id}`);
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to update order' },
       { status: 500 }

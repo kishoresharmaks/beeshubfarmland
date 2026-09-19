@@ -4,6 +4,7 @@ import Product from '@/models/Product';
 import Order from '@/models/Order';
 import Party from '@/models/Party';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function POST(request: NextRequest) {
   if (!isAuthenticatedAdmin(request)) return unauthenticatedResponse();
@@ -252,6 +253,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    await captureServerEvent(request, 'pos_sale_completed', {
+      order_id: orderId,
+      invoice_number: invoiceNumber,
+      item_count: verifiedItems.length,
+      total_amount: calculatedFinalTotal,
+      discount_amount: discountAmount,
+      payment_method: paymentMethod,
+    }, `cashier:${cashierId}`);
+
     return NextResponse.json(
       {
         success: true,
@@ -262,6 +272,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error: any) {
     console.error('POS Billing Error:', error);
+    await captureServerException(request, error, 'pos-counter');
     return NextResponse.json(
       { success: false, message: error.message || 'Server error completing POS billing' },
       { status: 500 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -92,11 +93,20 @@ export async function POST(request: Request) {
       variants: formattedVariants,
     });
 
+    await captureServerEvent(request, 'product_created', {
+      product_id: String(newProduct._id),
+      category: category || 'General',
+      price: numPrice,
+      initial_quantity: numQuantity,
+      variant_count: formattedVariants.length,
+    }, 'admin-catalog');
+
     return NextResponse.json(
       { success: true, message: 'Product created successfully', data: newProduct },
       { status: 201 }
     );
   } catch (error: any) {
+    await captureServerException(request, error, 'admin-catalog');
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to create product' },
       { status: 500 }

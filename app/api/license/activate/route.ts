@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import LicenseSetting from '@/models/LicenseSetting';
 import { getLicensingServerUrl, computeClientLicenseState } from '@/lib/licensing/licenseClient';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function POST(request: NextRequest) {
   try {
@@ -83,6 +84,11 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Store activated with License Key: ${cleanKey} (${lic.businessName})`);
 
+    await captureServerEvent(request, 'license_activated', {
+      license_status: clientState.status,
+      has_expiration_date: Boolean(clientState.validUntil),
+    }, 'store-license');
+
     return NextResponse.json({
       success: true,
       message: 'License activated successfully! Welcome to BeesHub.',
@@ -90,6 +96,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Activation Error in Store:', error);
+    await captureServerException(request, error, 'store-license');
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to activate license.' },
       { status: 500 }

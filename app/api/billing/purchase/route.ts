@@ -6,6 +6,7 @@ import Party from '@/models/Party';
 import PaymentTransaction from '@/models/PaymentTransaction';
 import { generateDocPrefix, generateNextDocNumber } from '@/lib/billingUtils';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function GET(req: NextRequest) {
   if (!isAuthenticatedAdmin(req)) return unauthenticatedResponse();
@@ -175,8 +176,18 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    await captureServerEvent(req, 'purchase_document_created', {
+      document_id: String(newDoc._id),
+      document_type: docType,
+      item_count: items.length,
+      grand_total: grandTotal,
+      paid_amount: Number(paidAmount || 0),
+      payment_status: paymentStatus,
+    }, 'admin-billing');
+
     return NextResponse.json({ success: true, data: newDoc }, { status: 201 });
   } catch (error: any) {
+    await captureServerException(req, error, 'admin-billing');
     return NextResponse.json({ success: false, message: error.message }, { status: 500 });
   }
 }
