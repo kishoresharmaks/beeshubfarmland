@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Category from '@/models/Category';
+import { captureServerException } from '@/lib/posthog-server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectToDatabase();
     const categories = await Category.find({}).sort({ name: 1 });
     return NextResponse.json({ success: true, count: categories.length, data: categories });
   } catch (error: any) {
+    console.error('GET /api/categories failed:', error.message);
+    await captureServerException(request, error, 'storefront-catalog');
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch categories' },
       { status: 500 }
