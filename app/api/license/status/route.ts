@@ -188,6 +188,26 @@ export async function GET(request: NextRequest) {
       serverOnline: isServerOnline,
     });
 
+    // Check if requester is logged in as admin
+    const adminToken =
+      request.cookies.get('__Host-admin_token')?.value ||
+      request.cookies.get('admin_token')?.value;
+    const isAdmin = Boolean(adminToken && adminToken.trim().length > 0);
+
+    // Non-admin callers receive only safe operational status (prevents public leakage of licenseKey, token, licensingServerUrl)
+    if (!isAdmin && clientState.isValid && !clientState.isLocked) {
+      return NextResponse.json({
+        success: true,
+        isActivated: clientState.isActivated,
+        license: {
+          isValid: clientState.isValid,
+          status: clientState.status,
+          isLocked: clientState.isLocked,
+          features: clientState.features,
+        },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       isActivated: true,
