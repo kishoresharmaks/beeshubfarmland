@@ -61,9 +61,32 @@ async function resolveMongoUri(uri: string): Promise<string> {
         if (!searchParams.has('ssl')) searchParams.set('ssl', 'true');
         if (!searchParams.has('authSource')) searchParams.set('authSource', 'admin');
 
+        // Fetch TXT record to retrieve replicaSet and authSource configurations
+        try {
+          const dohTxtUrl = `https://dns.google/resolve?name=${hostname}&type=TXT`;
+          const txtRes = await fetch(dohTxtUrl);
+          const txtJson = await txtRes.json();
+          if (txtJson && txtJson.Answer && txtJson.Answer.length > 0) {
+            for (const ans of txtJson.Answer) {
+              if (ans.data) {
+                const cleanData = ans.data.replace(/"/g, '');
+                const txtParams = new URLSearchParams(cleanData);
+                txtParams.forEach((val, key) => {
+                  if (!searchParams.has(key)) {
+                    searchParams.set(key, val);
+                  }
+                });
+              }
+            }
+          }
+        } catch (txtErr: any) {
+          console.error('DoH TXT lookup error:', txtErr.message);
+        }
+
         const unescapedUser = decodeURIComponent(username);
         const unescapedPass = decodeURIComponent(password);
-        const directUri = `mongodb://${encodeURIComponent(unescapedUser)}:${encodeURIComponent(unescapedPass)}@${targetHosts.join(',')}/${dbName}?${searchParams.toString()}`;
+        const targetDb = dbName || 'test';
+        const directUri = `mongodb://${encodeURIComponent(unescapedUser)}:${encodeURIComponent(unescapedPass)}@${targetHosts.join(',')}/${targetDb}?${searchParams.toString()}`;
         console.log('Successfully resolved direct MongoDB Atlas cluster endpoints via DoH!');
         return directUri;
       }
