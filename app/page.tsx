@@ -100,6 +100,7 @@ export default function CustomerStore() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [catalogError, setCatalogError] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [sortBy, setSortBy] = useState('newest');
@@ -264,6 +265,7 @@ export default function CustomerStore() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      setCatalogError(false);
       const url = new URL('/api/products', window.location.origin);
       if (searchQuery) url.searchParams.append('search', searchQuery);
       if (selectedCategory !== 'All') url.searchParams.append('category', selectedCategory);
@@ -272,9 +274,12 @@ export default function CustomerStore() {
       const data = await res.json();
       if (data.success) {
         setProducts(data.data);
+      } else {
+        setCatalogError(true);
       }
     } catch (err) {
       console.error('Error fetching products:', err);
+      setCatalogError(true);
     } finally {
       setLoading(false);
     }
@@ -917,6 +922,26 @@ ${productUrl}
                 <div className="h-4 bg-[#E8EDF2] rounded w-1/2"></div>
               </div>
             ))}
+          </div>
+        ) : catalogError ? (
+          <div className="py-20 text-center bg-white rounded-3xl border border-[#E8EDF2] max-w-lg mx-auto p-8 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-[#FFF8F5] text-[#ED3500] flex items-center justify-center mx-auto">
+              <RefreshCw className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-[#163B5C]">We couldn't load products</h3>
+            <p className="text-sm text-[#64748B]">
+              Something went wrong on our side. Please try again.
+            </p>
+            <button
+              onClick={() => {
+                fetchProducts();
+                fetchCategories();
+                fetchBanners();
+              }}
+              className="px-5 py-2.5 rounded-full bg-[#ED3500] text-white font-medium text-xs hover:bg-[#D02E00] transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         ) : sortedProducts.length === 0 ? (
           <div className="py-20 text-center bg-white rounded-3xl border border-[#E8EDF2] max-w-lg mx-auto p-8 space-y-4">

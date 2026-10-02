@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Banner from '@/models/Banner';
+import { captureServerException } from '@/lib/posthog-server';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectToDatabase();
     try {
@@ -19,6 +20,8 @@ export async function GET() {
       }
     );
   } catch (error: any) {
+    console.error('GET /api/banners failed:', error.message);
+    await captureServerException(request, error, 'storefront-catalog');
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch banners' },
       { status: 500 }

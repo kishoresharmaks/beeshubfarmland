@@ -43,6 +43,8 @@ export async function GET(request: Request) {
       }
     );
   } catch (error: any) {
+    console.error('GET /api/products failed:', error.message);
+    await captureServerException(request, error, 'storefront-catalog');
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to fetch products' },
       { status: 500 }

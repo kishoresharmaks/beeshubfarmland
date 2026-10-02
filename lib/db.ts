@@ -144,8 +144,8 @@ async function connectToDatabase() {
           await mongoose.disconnect();
         }
 
-        // Fallback connection to local MongoDB if Atlas connection fails
-        if (MONGODB_URI !== 'mongodb://127.0.0.1:27017/beeshub') {
+        // Fallback connection to local MongoDB if Atlas connection fails (development only)
+        if (process.env.NODE_ENV !== 'production' && MONGODB_URI !== 'mongodb://127.0.0.1:27017/beeshub') {
           console.log('Attempting fallback connection to local MongoDB (mongodb://127.0.0.1:27017/beeshub)...');
           try {
             const localConn = await mongoose.connect('mongodb://127.0.0.1:27017/beeshub', opts);
