@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 
+export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

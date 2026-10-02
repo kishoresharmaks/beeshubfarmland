@@ -1,12 +1,14 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
 
-// Configure DNS defaults for Node.js on Windows
+// Configure DNS defaults for Node.js (Windows DNS SRV bug workaround)
 try {
   if (dns.setDefaultResultOrder) {
     dns.setDefaultResultOrder('ipv4first');
   }
-  dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+  if (process.platform === 'win32') {
+    dns.setServers(['8.8.8.8', '1.1.1.1', '8.8.4.4']);
+  }
 } catch (err) {
   // Ignore DNS config errors
 }
