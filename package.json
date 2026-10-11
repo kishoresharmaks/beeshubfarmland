@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "postbuild": "node -e \"const fs=require('fs'); if(fs.existsSync('.next/standalone')){ fs.cpSync('public', '.next/standalone/public', {recursive: true, force: true}); fs.cpSync('.next/static', '.next/standalone/.next/static', {recursive: true, force: true}); console.log('Static assets synced to standalone.'); }\"",
     "start": "next start -H 0.0.0.0",
     "lint": "next lint"
   },
