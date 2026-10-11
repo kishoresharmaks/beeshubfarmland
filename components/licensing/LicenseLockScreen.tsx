@@ -107,8 +107,8 @@ export default function LicenseLockScreen({
 
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
-            alert('Payment verified! Your subscription is renewed.');
-            onUnlocked();
+            setFeedback(verifyData.message || 'Payment verified. Finalizing your license…');
+            setTimeout(fetchPlansAndConfig, 5000);
           } else {
             setFeedback(verifyData.message || 'Payment verification failed.');
           }
