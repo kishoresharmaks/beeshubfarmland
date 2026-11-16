@@ -26,9 +26,15 @@ export interface IOrder extends Document {
   discountType?: 'FLAT' | 'PERCENTAGE';
   discountValue?: number;
   discountAmount?: number;
-  paymentMethod: 'COD' | 'UPI' | 'CASH';
+  paymentMethod: 'COD' | 'UPI' | 'CASH' | 'RAZORPAY';
   paymentStatus: 'Pending' | 'Paid' | 'Failed';
   transactionId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+  inventoryDeducted: boolean;
+  inventoryConflict: boolean;
+  conflictNotes?: string;
   cashReceived?: number;
   changeReturned?: number;
   cashierName?: string;
@@ -72,7 +78,7 @@ const OrderSchema: Schema = new Schema(
     discountAmount: { type: Number, default: 0 },
     paymentMethod: {
       type: String,
-      enum: ['COD', 'UPI', 'CASH'],
+      enum: ['COD', 'UPI', 'CASH', 'RAZORPAY'],
       default: 'COD',
     },
     paymentStatus: {
@@ -81,6 +87,12 @@ const OrderSchema: Schema = new Schema(
       default: 'Pending',
     },
     transactionId: { type: String, default: '' },
+    razorpayOrderId: { type: String, sparse: true, index: true },
+    razorpayPaymentId: { type: String, sparse: true, index: true },
+    razorpaySignature: { type: String, default: '' },
+    inventoryDeducted: { type: Boolean, default: false, index: true },
+    inventoryConflict: { type: Boolean, default: false, index: true },
+    conflictNotes: { type: String, default: '' },
     cashReceived: { type: Number },
     changeReturned: { type: Number },
     cashierName: { type: String, default: '' },

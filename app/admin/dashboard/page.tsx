@@ -106,9 +106,13 @@ interface Order {
   discountType?: 'FLAT' | 'PERCENTAGE';
   discountValue?: number;
   discountAmount?: number;
-  paymentMethod: 'COD' | 'UPI' | 'CASH';
+  paymentMethod: 'COD' | 'UPI' | 'CASH' | 'RAZORPAY';
   paymentStatus: 'Pending' | 'Paid' | 'Failed';
   transactionId?: string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  inventoryConflict?: boolean;
+  conflictNotes?: string;
   cashReceived?: number;
   changeReturned?: number;
   cashierName?: string;
@@ -217,7 +221,11 @@ export default function AdminDashboard() {
   const [bannerError, setBannerError] = useState('');
 
   // Settings State
-  const [paymentSettings, setPaymentSettings] = useState({ enableUPI: true, enableCOD: true });
+  const [paymentSettings, setPaymentSettings] = useState({
+    enableOnlinePayment: true,
+    enableUPI: true,
+    enableCOD: true,
+  });
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [isSubmittingSettings, setIsSubmittingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState('');
@@ -330,6 +338,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (data.success && data.data) {
         setPaymentSettings({
+          enableOnlinePayment: data.data.enableOnlinePayment ?? data.data.enableUPI ?? true,
           enableUPI: data.data.enableUPI ?? true,
           enableCOD: data.data.enableCOD ?? true,
         });
@@ -1526,18 +1535,24 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                           {/* Payment Method Badge */}
                           <span
                             className={`px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1 ${
-                              order.paymentMethod === 'UPI'
+                              order.paymentMethod === 'RAZORPAY'
+                                ? 'bg-orange-100 text-orange-800'
+                                : order.paymentMethod === 'UPI'
                                 ? 'bg-purple-100 text-purple-700'
                                 : 'bg-slate-100 text-slate-700'
                             }`}
                           >
-                            {order.paymentMethod === 'UPI' ? (
+                            {order.paymentMethod === 'RAZORPAY' ? (
+                              <>
+                                <CreditCard className="w-3.5 h-3.5 text-[#ED3500]" /> Razorpay
+                              </>
+                            ) : order.paymentMethod === 'UPI' ? (
                               <>
                                 <QrCode className="w-3.5 h-3.5" /> Online UPI
                               </>
                             ) : (
                               <>
-                                <CreditCard className="w-3.5 h-3.5" /> Cash on Delivery
+                                <CreditCard className="w-3.5 h-3.5" /> {order.paymentMethod === 'CASH' ? 'Cash' : 'Cash on Delivery'}
                               </>
                             )}
                           </span>
@@ -1552,6 +1567,13 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                           >
                             {order.paymentStatus || 'Pending'}
                           </span>
+
+                          {/* Inventory Conflict Alert Badge */}
+                          {order.inventoryConflict && (
+                            <span className="px-3 py-1 rounded-full text-xs font-black bg-rose-100 text-rose-700 border border-rose-300 flex items-center gap-1">
+                              ⚠️ Stock Conflict
+                            </span>
+                          )}
                         </div>
                         <span className="text-xs text-[#64748B]">
                           Placed on {new Date(order.createdAt).toLocaleString('en-IN')}
@@ -1605,6 +1627,21 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                       </div>
                     </div>
 
+                    {/* Inventory Conflict Alert Banner */}
+                    {order.inventoryConflict && (
+                      <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5 animate-pulse">
+                        <span className="font-black shrink-0 text-rose-600">⚠️ STOCK CONFLICT:</span>
+                        <div className="space-y-0.5">
+                          <p className="font-semibold">
+                            {order.conflictNotes || 'Inventory depleted during simultaneous customer checkout before payment verification.'}
+                          </p>
+                          <p className="text-[11px] text-rose-600">
+                            Action required: Review inventory levels, fulfill manually if stock is available, or initiate a refund.
+                          </p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Customer & Items grid */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 text-xs">
                       {/* Customer Details */}
@@ -1628,6 +1665,20 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                               {order.shippingAddress} (Pincode: {order.pincode})
                             </span>
                           </p>
+
+                          {order.paymentMethod === 'RAZORPAY' && (
+                            <div className="pt-2 border-t border-[#E8EDF2] space-y-1 text-xs">
+                              <span className="font-bold text-[#163B5C] block">Razorpay Payment ID:</span>
+                              <code className="bg-orange-50 text-orange-800 px-2 py-1 rounded font-mono text-[11px] block border border-orange-200">
+                                {order.razorpayPaymentId || order.transactionId || 'Awaiting Webhook/Verify'}
+                              </code>
+                              {order.razorpayOrderId && (
+                                <div className="text-[10px] text-[#64748B] pt-0.5">
+                                  Order Ref: <span className="font-mono text-[#163B5C]">{order.razorpayOrderId}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {order.paymentMethod === 'UPI' && (
                             <div className="pt-2 border-t border-[#E8EDF2] space-y-1 text-xs">
@@ -1912,27 +1963,27 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               )}
 
               <form onSubmit={handleSaveSettings} className="space-y-6">
-                {/* UPI Toggle Card */}
+                {/* Online Payment (Razorpay) Toggle Card */}
                 <div className="p-5 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 rounded-2xl bg-[#ED3500]/10 text-[#ED3500] flex items-center justify-center font-black">
-                      <QrCode className="w-6 h-6" />
+                      <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="font-extrabold text-[#163B5C]">Online UPI Payment</h3>
+                        <h3 className="font-extrabold text-[#163B5C]">Online Payment Gateway (Razorpay)</h3>
                         <span
                           className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                            paymentSettings.enableUPI
+                            paymentSettings.enableOnlinePayment ?? paymentSettings.enableUPI
                               ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                               : 'bg-rose-100 text-rose-700 border border-rose-200'
                           }`}
                         >
-                          {paymentSettings.enableUPI ? 'Active' : 'Disabled'}
+                          {(paymentSettings.enableOnlinePayment ?? paymentSettings.enableUPI) ? 'Active' : 'Disabled'}
                         </span>
                       </div>
                       <p className="text-xs text-[#64748B] mt-0.5">
-                        Allows customers to pay instantly using Google Pay, PhonePe, Paytm, BHIM, or any UPI app.
+                        Allows customers to pay securely online via UPI, Credit/Debit Cards, NetBanking, and Wallets using Razorpay.
                       </p>
                     </div>
                   </div>
@@ -1940,9 +1991,13 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                   <label className="relative inline-flex items-center cursor-pointer select-none">
                     <input
                       type="checkbox"
-                      checked={paymentSettings.enableUPI}
+                      checked={paymentSettings.enableOnlinePayment ?? paymentSettings.enableUPI}
                       onChange={(e) =>
-                        setPaymentSettings({ ...paymentSettings, enableUPI: e.target.checked })
+                        setPaymentSettings({
+                          ...paymentSettings,
+                          enableOnlinePayment: e.target.checked,
+                          enableUPI: e.target.checked,
+                        })
                       }
                       className="sr-only peer"
                     />

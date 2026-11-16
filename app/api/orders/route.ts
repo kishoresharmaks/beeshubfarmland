@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
-import Party from '@/models/Party';
+import { fulfillOrderAtomically } from '@/lib/inventory';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function GET() {
@@ -31,13 +31,11 @@ export async function POST(request: Request) {
       pincode,
       items,
       paymentMethod,
-      transactionId,
     } = body;
 
     if (
       !customerName ||
       !customerPhone ||
-      !customerEmail ||
       !shippingAddress ||
       !pincode ||
       !items ||
@@ -50,93 +48,110 @@ export async function POST(request: Request) {
       );
     }
 
-    // Precise GST & Subtotal Calculation
+    // Authoritative Server-Side Calculation of Prices & Totals
     let subtotal = 0;
     let totalGst = 0;
+    const validatedItems: any[] = [];
 
     for (const item of items) {
-      const itemPrice = Number(item.price) || 0;
-      const itemQty = Number(item.quantity) || 1;
-      const itemGstRate = item.gst !== undefined ? Number(item.gst) : 0;
+      const productId = item.productId;
+      if (!productId) continue;
 
-      const itemSubtotal = itemPrice * itemQty;
-      const itemGstAmount = (itemSubtotal * itemGstRate) / 100;
+      const product = await Product.findById(productId).lean();
+      if (!product) continue;
+
+      const requestedQty = Math.max(1, Number(item.quantity) || 1);
+      const variantName = item.variantName?.trim() || '';
+
+      let unitPrice = Number(product.price) || 0;
+      if (variantName && Array.isArray(product.variants) && product.variants.length > 0) {
+        const matchingVariant = product.variants.find(
+          (v: any) => v.name?.trim().toLowerCase() === variantName.toLowerCase()
+        );
+        if (matchingVariant) {
+          unitPrice = Number(matchingVariant.price) || unitPrice;
+        }
+      }
+
+      const gstRate = product.gst !== undefined ? Number(product.gst) : 0;
+      const itemSubtotal = unitPrice * requestedQty;
+      const itemGst = (itemSubtotal * gstRate) / 100;
 
       subtotal += itemSubtotal;
-      totalGst += itemGstAmount;
+      totalGst += itemGst;
 
-      // Decrement product inventory if product exists
-      if (item.productId) {
-        await Product.findByIdAndUpdate(item.productId, {
-          $inc: { quantity: -itemQty },
-        });
-      }
+      validatedItems.push({
+        productId: String(product._id),
+        name: product.name,
+        variantName: variantName,
+        price: unitPrice,
+        quantity: requestedQty,
+        gst: gstRate,
+        image: product.image || item.image || '',
+      });
     }
 
     subtotal = Math.round(subtotal);
     totalGst = Math.round(totalGst);
     const totalAmount = subtotal + totalGst;
 
-    // Generate strictly sequential order ID starting from ORD-1001
-    const orderCount = await Order.countDocuments();
-    const nextSeqNumber = 1001 + orderCount;
-    const orderId = `ORD-${nextSeqNumber}`;
+    // Collision-Safe Sequential Order ID
+    const timestampSuffix = Date.now().toString().slice(-6);
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const orderId = `ORD-${timestampSuffix}-${randomSuffix}`;
 
-    const method = paymentMethod === 'UPI' ? 'UPI' : 'COD';
-    // Online UPI & COD orders start as 'Pending' until manually verified by Admin
-    const pStatus = 'Pending';
+    const method = paymentMethod === 'COD' ? 'COD' : 'COD';
 
+    // Create Initial Pending Order
     const newOrder = await Order.create({
       orderId,
-      customerName,
-      customerPhone,
-      customerEmail,
-      shippingAddress,
-      pincode,
-      items,
+      orderType: 'ONLINE',
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim(),
+      customerEmail: customerEmail?.trim() || '',
+      shippingAddress: shippingAddress.trim(),
+      pincode: pincode.trim(),
+      items: validatedItems,
       subtotal,
       totalGst,
       totalAmount,
       paymentMethod: method,
-      paymentStatus: pStatus,
-      transactionId: transactionId || '',
+      paymentStatus: 'Pending',
       status: 'Pending',
+      inventoryDeducted: false,
+      inventoryConflict: false,
     });
 
-    // Auto-sync Customer into Party Directory for billing & accounting
-    if (customerPhone && customerPhone !== '0000000000') {
-      try {
-        await Party.findOneAndUpdate(
-          { phone: customerPhone.trim() },
-          {
-            $setOnInsert: { partyType: 'CUSTOMER', openingBalance: 0, currentBalance: 0 },
-            $set: {
-              name: customerName.trim(),
-              phone: customerPhone.trim(),
-              email: customerEmail.trim(),
-              address: `${shippingAddress}, ${pincode}`,
-            },
-          },
-          { upsert: true, new: true }
-        );
-      } catch (partyErr) {
-        console.error('Failed to sync party', partyErr);
-      }
-    }
+    // Delegate stock decrements and party directory synchronization to unified inventory service
+    const fulfillmentResult = await fulfillOrderAtomically({
+      orderId,
+      isCOD: true,
+    });
 
-    await captureServerEvent(request, 'online_order_placed', {
-      order_id: orderId,
-      item_count: items.length,
-      total_amount: totalAmount,
-      payment_method: method,
-    }, `order:${String(newOrder._id)}`);
+    await captureServerEvent(
+      request,
+      'cod_order_placed',
+      {
+        order_id: orderId,
+        item_count: validatedItems.length,
+        total_amount: totalAmount,
+        payment_method: method,
+        conflict: fulfillmentResult.conflict,
+      },
+      `order:${String(newOrder._id)}`
+    );
 
     return NextResponse.json(
-      { success: true, message: 'Order created successfully', data: newOrder },
+      {
+        success: true,
+        message: 'Order created successfully',
+        data: fulfillmentResult.order,
+        conflict: fulfillmentResult.conflict,
+      },
       { status: 201 }
     );
   } catch (error: any) {
-    await captureServerException(request, error, 'online-checkout');
+    await captureServerException(request, error, 'cod-checkout');
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to place order' },
       { status: 500 }

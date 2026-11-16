@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Script from 'next/script';
 import {
   ShoppingBag,
   Search,
@@ -34,6 +35,12 @@ import {
   Youtube,
   Share2,
 } from 'lucide-react';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
 
 interface ProductVariant {
   _id?: string;
@@ -89,9 +96,11 @@ interface TrackedOrder {
   subtotal: number;
   totalGst: number;
   totalAmount: number;
-  paymentMethod: 'COD' | 'UPI';
+  paymentMethod: 'COD' | 'UPI' | 'RAZORPAY';
   paymentStatus: 'Pending' | 'Paid' | 'Failed';
   transactionId?: string;
+  razorpayPaymentId?: string;
+  inventoryConflict?: boolean;
   status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
   createdAt: string;
 }
@@ -130,7 +139,7 @@ export default function CustomerStore() {
     customerEmail: '',
     shippingAddress: '',
     pincode: '',
-    paymentMethod: 'UPI' as 'COD' | 'UPI',
+    paymentMethod: 'RAZORPAY' as 'COD' | 'RAZORPAY' | 'UPI',
     transactionId: '',
   });
 
@@ -142,7 +151,11 @@ export default function CustomerStore() {
   const [formError, setFormError] = useState('');
 
   // Payment Gateway Settings State
-  const [paymentSettings, setPaymentSettings] = useState({ enableUPI: true, enableCOD: true });
+  const [paymentSettings, setPaymentSettings] = useState({
+    enableOnlinePayment: true,
+    enableUPI: true,
+    enableCOD: true,
+  });
 
   // Hero Banners State
   const [banners, setBanners] = useState<BannerItem[]>([]);
@@ -169,18 +182,21 @@ export default function CustomerStore() {
       const res = await fetch('/api/settings');
       const data = await res.json();
       if (data.success && data.data) {
+        const isOnlineEnabled =
+          data.data.enableOnlinePayment ?? data.data.enableUPI ?? true;
         const settings = {
-          enableUPI: data.data.enableUPI ?? true,
+          enableOnlinePayment: isOnlineEnabled,
+          enableUPI: isOnlineEnabled,
           enableCOD: data.data.enableCOD ?? true,
         };
         setPaymentSettings(settings);
 
         setCheckoutForm((prev) => {
-          if (!settings.enableUPI && prev.paymentMethod === 'UPI' && settings.enableCOD) {
+          if (!settings.enableOnlinePayment && (prev.paymentMethod === 'RAZORPAY' || prev.paymentMethod === 'UPI') && settings.enableCOD) {
             return { ...prev, paymentMethod: 'COD' };
           }
-          if (!settings.enableCOD && prev.paymentMethod === 'COD' && settings.enableUPI) {
-            return { ...prev, paymentMethod: 'UPI' };
+          if (!settings.enableCOD && prev.paymentMethod === 'COD' && settings.enableOnlinePayment) {
+            return { ...prev, paymentMethod: 'RAZORPAY' };
           }
           return prev;
         });
@@ -479,39 +495,137 @@ export default function CustomerStore() {
       return;
     }
 
-    if (!paymentSettings.enableUPI && !paymentSettings.enableCOD) {
+    const isOnlineAvailable = paymentSettings.enableOnlinePayment ?? paymentSettings.enableUPI ?? true;
+
+    if (!isOnlineAvailable && !paymentSettings.enableCOD) {
       setFormError('Checkout is currently disabled as all payment options are disabled by store administration.');
       return;
     }
 
-    if (checkoutForm.paymentMethod === 'UPI' && !paymentSettings.enableUPI) {
-      setFormError('Online UPI Payment option is currently disabled by store administration. Please choose Cash on Delivery.');
+    if ((checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') && !isOnlineAvailable) {
+      setFormError('Online payment option is currently disabled by store administration. Please choose Cash on Delivery.');
       return;
     }
 
     if (checkoutForm.paymentMethod === 'COD' && !paymentSettings.enableCOD) {
-      setFormError('Cash on Delivery payment option is currently disabled by store administration. Please choose Online UPI.');
-      return;
-    }
-
-    if (checkoutForm.paymentMethod === 'UPI' && !checkoutForm.transactionId.trim()) {
-      setFormError('Please enter your 12-digit UPI Reference / UTR Number after completing payment.');
+      setFormError('Cash on Delivery payment option is currently disabled by store administration. Please choose Online Payment.');
       return;
     }
 
     try {
       setSubmittingOrder(true);
+      const itemsPayload = cart.map((item) => ({
+        productId: item.product._id,
+        name: item.selectedVariant ? `${item.product.name} (${item.selectedVariant.name})` : item.product.name,
+        variantName: item.selectedVariant ? item.selectedVariant.name : '',
+        price: item.selectedVariant ? item.selectedVariant.price : item.product.price,
+        quantity: item.quantity,
+        gst: item.product.gst !== undefined ? item.product.gst : 0,
+        image: item.product.image,
+      }));
+
+      // ==========================================
+      // Branch 1: Online Payment via Razorpay
+      // ==========================================
+      if (checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') {
+        const createRes = await fetch('/api/orders/razorpay/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerName: checkoutForm.customerName,
+            customerPhone: checkoutForm.customerPhone,
+            customerEmail: checkoutForm.customerEmail,
+            shippingAddress: checkoutForm.shippingAddress,
+            pincode: checkoutForm.pincode,
+            items: itemsPayload,
+          }),
+        });
+
+        const createData = await createRes.json();
+        if (!createData.success) {
+          setFormError(createData.message || 'Failed to initiate online payment.');
+          setSubmittingOrder(false);
+          return;
+        }
+
+        if (typeof window === 'undefined' || !window.Razorpay) {
+          setFormError('Razorpay checkout SDK is still loading. Please try again in a few seconds.');
+          setSubmittingOrder(false);
+          return;
+        }
+
+        const options = {
+          key: createData.keyId,
+          amount: createData.amountInPaise,
+          currency: createData.currency || 'INR',
+          name: 'BEES HUB FARMLAND PRIVATE LIMITED',
+          description: `Order ${createData.orderId}`,
+          order_id: createData.razorpayOrderId,
+          prefill: {
+            name: checkoutForm.customerName,
+            email: checkoutForm.customerEmail,
+            contact: checkoutForm.customerPhone,
+          },
+          theme: {
+            color: '#ED3500',
+          },
+          modal: {
+            ondismiss: () => {
+              setSubmittingOrder(false);
+              setFormError('Payment was not completed. You can try again or switch to Cash on Delivery.');
+            },
+          },
+          handler: async (response: any) => {
+            try {
+              setSubmittingOrder(true);
+              const verifyRes = await fetch('/api/orders/razorpay/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: createData.orderId,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                setOrderSuccess(verifyData.data);
+                setCart([]);
+                setIsCheckoutOpen(false);
+                setIsCartOpen(false);
+
+                try {
+                  localStorage.removeItem('beeshub_cart');
+                  localStorage.removeItem('beeshub_checkout_form');
+                  localStorage.removeItem('beeshub_checkout_open');
+                } catch (e) { }
+
+                fetchProducts();
+              } else {
+                setFormError(verifyData.message || 'Payment verification failed.');
+              }
+            } catch (err: any) {
+              setFormError(err.message || 'Error communicating with payment verification server.');
+            } finally {
+              setSubmittingOrder(false);
+            }
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        return;
+      }
+
+      // ==========================================
+      // Branch 2: Cash on Delivery (COD)
+      // ==========================================
       const payload = {
         ...checkoutForm,
-        items: cart.map((item) => ({
-          productId: item.product._id,
-          name: item.selectedVariant ? `${item.product.name} (${item.selectedVariant.name})` : item.product.name,
-          variantName: item.selectedVariant ? item.selectedVariant.name : '',
-          price: item.selectedVariant ? item.selectedVariant.price : item.product.price,
-          quantity: item.quantity,
-          gst: item.product.gst !== undefined ? item.product.gst : 0,
-          image: item.product.image,
-        })),
+        paymentMethod: 'COD',
+        items: itemsPayload,
       };
 
       const res = await fetch('/api/orders', {
@@ -527,21 +641,22 @@ export default function CustomerStore() {
         setIsCheckoutOpen(false);
         setIsCartOpen(false);
 
-        // Clear local storage after successful checkout
         try {
           localStorage.removeItem('beeshub_cart');
           localStorage.removeItem('beeshub_checkout_form');
           localStorage.removeItem('beeshub_checkout_open');
         } catch (e) { }
 
-        fetchProducts(); // Refresh stock
+        fetchProducts();
       } else {
         setFormError(data.message || 'Failed to place order.');
       }
     } catch (err: any) {
       setFormError(err.message || 'Network error occurred while submitting order.');
     } finally {
-      setSubmittingOrder(false);
+      if (checkoutForm.paymentMethod === 'COD') {
+        setSubmittingOrder(false);
+      }
     }
   };
 
@@ -562,8 +677,8 @@ ${order.customerPhone ? `📞 *Phone:* ${order.customerPhone}\n` : ''}${order.sh
 ${itemsList}
 
 💰 *Total Amount:* ₹${order.totalAmount ? order.totalAmount.toLocaleString('en-IN') : 0}
-💳 *Payment Mode:* ${order.paymentMethod === 'UPI' ? 'Online UPI' : 'Cash on Delivery'} (${order.paymentStatus || 'Pending'})
-${order.transactionId ? `🔢 *UTR / Ref:* ${order.transactionId}\n` : ''}${order.status ? `📦 *Status:* ${order.status}\n` : ''}
+💳 *Payment Mode:* ${order.paymentMethod === 'RAZORPAY' ? 'Online Payment (Razorpay)' : order.paymentMethod === 'UPI' ? 'Online UPI' : 'Cash on Delivery'} (${order.paymentStatus || 'Pending'})
+${order.razorpayPaymentId ? `💳 *Payment ID:* ${order.razorpayPaymentId}\n` : ''}${order.transactionId ? `🔢 *UTR / Ref:* ${order.transactionId}\n` : ''}${order.status ? `📦 *Status:* ${order.status}\n` : ''}
 Please assist me with this order. Thank you!`;
 
     return `https://wa.me/919578784431?text=${encodeURIComponent(text)}`;
@@ -601,6 +716,7 @@ ${productUrl}
 
   return (
     <div className="min-h-screen flex flex-col justify-between bg-[#FFFCFB] text-[#163B5C]">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
       {/* Real E-Commerce Store Header Nav */}
       <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#E8EDF2] transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
@@ -1262,8 +1378,12 @@ ${productUrl}
 
                         <div className="text-right">
                           <span className="text-xs font-extrabold text-purple-700 block">
-                            {ord.paymentMethod === 'UPI' ? 'Online UPI' : 'Cash on Delivery'} (
-                            {ord.paymentStatus || 'Pending'})
+                            {ord.paymentMethod === 'RAZORPAY'
+                              ? 'Online (Razorpay)'
+                              : ord.paymentMethod === 'UPI'
+                              ? 'Online UPI'
+                              : 'Cash on Delivery'}{' '}
+                            ({ord.paymentStatus || 'Pending'})
                           </span>
                           <span className="text-sm font-black text-[#ED3500]">
                             Total: ₹{ord.totalAmount.toLocaleString('en-IN')}
@@ -1712,7 +1832,7 @@ ${productUrl}
                     2. Select Payment Method
                   </h4>
 
-                  {!paymentSettings.enableUPI && !paymentSettings.enableCOD ? (
+                  {!paymentSettings.enableOnlinePayment && !paymentSettings.enableUPI && !paymentSettings.enableCOD ? (
                     <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold space-y-1">
                       <p>⚠️ Payment Gateway Notice</p>
                       <p className="font-normal text-[11px]">
@@ -1721,34 +1841,34 @@ ${productUrl}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      {/* Unified UPI Option */}
-                      {paymentSettings.enableUPI && (
+                      {/* Razorpay Online Payment Option */}
+                      {(paymentSettings.enableOnlinePayment || paymentSettings.enableUPI) && (
                         <button
                           type="button"
-                          onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'UPI' })}
-                          className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'UPI'
+                          onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'RAZORPAY' })}
+                          className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI'
                             ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
                             : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
                             }`}
                         >
                           <div className="flex items-center justify-between w-full">
-                            <QrCode className="w-6 h-6 text-[#ED3500]" />
+                            <CreditCard className="w-6 h-6 text-[#ED3500]" />
                             <span
-                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'UPI'
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI'
                                 ? 'border-[#ED3500] bg-[#ED3500]'
                                 : 'border-[#64748B]'
                                 }`}
                             >
-                              {checkoutForm.paymentMethod === 'UPI' && (
+                              {(checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') && (
                                 <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
                               )}
                             </span>
                           </div>
                           <div className="text-left">
                             <span className="font-bold text-sm text-[#163B5C] block">
-                              Online UPI / QR
+                              Pay Online
                             </span>
-                            <span className="text-[11px] text-[#64748B]">GPay, PhonePe, Paytm</span>
+                            <span className="text-[11px] text-[#64748B]">UPI, Cards, NetBanking</span>
                           </div>
                         </button>
                       )}
@@ -1764,7 +1884,7 @@ ${productUrl}
                             }`}
                         >
                           <div className="flex items-center justify-between w-full">
-                            <CreditCard className="w-6 h-6 text-[#10B981]" />
+                            <Truck className="w-6 h-6 text-[#10B981]" />
                             <span
                               className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'COD'
                                 ? 'border-[#ED3500] bg-[#ED3500]'
@@ -1787,108 +1907,28 @@ ${productUrl}
                     </div>
                   )}
 
-                  {/* Dynamic UPI Gateway Panel */}
-                  {checkoutForm.paymentMethod === 'UPI' && (
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-50 via-white to-orange-50 border border-purple-200 space-y-4 animate-fadeIn">
+                  {/* Razorpay Online Payment Info Panel */}
+                  {(checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50/70 via-white to-blue-50/50 border border-orange-200/80 space-y-3 animate-fadeIn">
                       <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-purple-950 uppercase tracking-wider flex items-center gap-1.5">
-                          <QrCode className="w-4 h-4 text-[#ED3500]" /> Unified UPI Payment Gateway
+                        <span className="font-bold text-xs text-[#163B5C] uppercase tracking-wider flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-[#ED3500]" /> Razorpay Secure Gateway
                         </span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-purple-200 text-purple-900 text-[10px] font-extrabold">
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
                           Instant Pay
                         </span>
                       </div>
 
-                      {/* Official Merchant VPA Display (Read-Only) */}
-                      <div className="space-y-1">
-                        <label className="text-[11px] font-bold text-slate-600 block">
-                          Official Merchant UPI VPA ID:
-                        </label>
-                        <div className="flex items-center justify-between gap-2 p-2.5 bg-white border border-purple-200 rounded-xl shadow-xs">
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <code className="text-xs font-mono font-bold text-purple-950">
-                              {merchantUpiId}
-                            </code>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={handleCopyUpi}
-                            className="px-3 py-1 rounded-lg bg-purple-600 text-white text-xs font-bold flex items-center gap-1 hover:bg-purple-700 transition-colors"
-                          >
-                            {copiedUpi ? <Check className="w-3.5 h-3.5 text-emerald-300" /> : <Copy className="w-3.5 h-3.5" />}
-                            {copiedUpi ? 'Copied!' : 'Copy UPI'}
-                          </button>
-                        </div>
-                      </div>
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Pay safely using your preferred method: <strong>Google Pay, PhonePe, Paytm, Any UPI App, Credit / Debit Cards, or Net Banking</strong>. Your order will be confirmed immediately after successful payment.
+                      </p>
 
-                      {/* UPI QR Code & App Launchers */}
-                      <div className="flex flex-col sm:flex-row items-center gap-5 p-3 rounded-xl bg-white border border-purple-100 shadow-xs">
-                        <div className="text-center shrink-0">
-                          <img
-                            src={qrCodeImageUrl}
-                            alt="Scan UPI QR Code"
-                            className="w-36 h-36 rounded-xl border border-purple-200 p-1 mx-auto bg-white"
-                          />
-                          <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                            Scan with GPay / PhonePe / Paytm
-                          </span>
-                        </div>
-
-                        <div className="space-y-2 flex-1 w-full text-center sm:text-left">
-                          <span className="text-xs text-slate-600 block">
-                            Amount to Pay: <strong className="text-[#ED3500] text-base font-black">₹{cartGrandTotal.toLocaleString('en-IN')}</strong>
-                          </span>
-
-                          <p className="text-[11px] text-slate-500">
-                            Click below to launch your mobile UPI App directly:
-                          </p>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            <a
-                              href={upiIntentUrl}
-                              onClick={() => {
-                                try {
-                                  localStorage.setItem('beeshub_checkout_open', 'true');
-                                } catch (e) { }
-                              }}
-                              className="px-3 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs text-center border border-blue-200 flex items-center justify-center gap-1.5 transition-all"
-                            >
-                              <Smartphone className="w-3.5 h-3.5" /> Open GPay / UPI
-                            </a>
-                            <a
-                              href={upiIntentUrl}
-                              onClick={() => {
-                                try {
-                                  localStorage.setItem('beeshub_checkout_open', 'true');
-                                } catch (e) { }
-                              }}
-                              className="px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs text-center border border-purple-200 flex items-center justify-center gap-1.5 transition-all"
-                            >
-                              <Smartphone className="w-3.5 h-3.5" /> PhonePe / Paytm
-                            </a>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* UTR Input */}
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-[#163B5C] block">
-                          Enter 12-Digit UPI UTR / Reference No. *
-                        </label>
-                        <input
-                          type="text"
-                          required={checkoutForm.paymentMethod === 'UPI'}
-                          placeholder="e.g. 428901928374 (From Payment Receipt)"
-                          value={checkoutForm.transactionId}
-                          onChange={(e) =>
-                            setCheckoutForm({ ...checkoutForm, transactionId: e.target.value })
-                          }
-                          className="w-full px-4 py-2 rounded-xl border border-purple-300 text-sm focus:outline-none focus:border-[#ED3500] bg-white font-mono"
-                        />
-                        <span className="text-[10px] text-slate-500 block">
-                          Enter UTR / Ref ID received after paying on GPay / PhonePe / Paytm.
+                      <div className="flex items-center justify-between pt-2 border-t border-orange-100/80 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1 text-[#163B5C] font-semibold">
+                          <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" /> 256-bit Encrypted Checkout
                         </span>
+                        <span className="font-bold text-[#ED3500]">Zero Extra Gateway Fees</span>
                       </div>
                     </div>
                   )}
@@ -1914,12 +1954,12 @@ ${productUrl}
                       </span>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full font-bold text-xs ${checkoutForm.paymentMethod === 'UPI'
-                        ? 'bg-purple-100 text-purple-700'
+                      className={`px-3 py-1 rounded-full font-bold text-xs ${checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI'
+                        ? 'bg-orange-100 text-[#ED3500]'
                         : 'bg-[#10B981]/10 text-[#10B981]'
                         }`}
                     >
-                      {checkoutForm.paymentMethod === 'UPI' ? 'UPI Payment' : 'Cash on Delivery'}
+                      {checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI' ? 'Online Payment' : 'Cash on Delivery'}
                     </span>
                   </div>
                 </div>
@@ -1931,9 +1971,11 @@ ${productUrl}
                 >
                   {submittingOrder ? (
                     <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI' ? (
+                    'Proceed to Pay Online'
                   ) : (
-                    'Confirm & Place Order'
-                  )}
+                    'Confirm Cash on Delivery Order'
+                  ))}
                 </button>
               </form>
             </div>
@@ -1967,11 +2009,21 @@ ${productUrl}
               <div className="flex justify-between">
                 <span>Payment Mode:</span>
                 <strong className="text-purple-700 font-bold">
-                  {orderSuccess.paymentMethod === 'UPI' ? 'Online UPI' : 'Cash on Delivery (COD)'} (
-                  {orderSuccess.paymentStatus || 'Pending'})
+                  {orderSuccess.paymentMethod === 'RAZORPAY'
+                    ? 'Online Payment (Razorpay)'
+                    : orderSuccess.paymentMethod === 'UPI'
+                    ? 'Online UPI'
+                    : 'Cash on Delivery (COD)'}{' '}
+                  ({orderSuccess.paymentStatus || 'Pending'})
                 </strong>
               </div>
-              {orderSuccess.paymentMethod === 'UPI' && (
+              {orderSuccess.razorpayPaymentId && (
+                <div className="flex justify-between">
+                  <span>Razorpay Payment ID:</span>
+                  <code className="text-[#163B5C] font-mono text-[11px]">{orderSuccess.razorpayPaymentId}</code>
+                </div>
+              )}
+              {orderSuccess.paymentMethod === 'UPI' && orderSuccess.transactionId && (
                 <div className="flex justify-between">
                   <span>UTR / Ref No:</span>
                   <code className="text-[#163B5C] font-mono text-[11px]">{orderSuccess.transactionId}</code>

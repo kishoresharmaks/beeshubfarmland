@@ -7,8 +7,13 @@ export async function GET() {
     await connectToDatabase();
     let settings = await Settings.findOne({ key: 'global' }).lean();
     if (!settings) {
-      const created = await Settings.create({ key: 'global', enableUPI: true, enableCOD: true });
+      const created = await Settings.create({ key: 'global', enableOnlinePayment: true, enableUPI: true, enableCOD: true });
       settings = created.toObject();
+    } else {
+      // Backward-compatibility fallback
+      if (settings.enableOnlinePayment === undefined) {
+        settings.enableOnlinePayment = settings.enableUPI ?? true;
+      }
     }
     return NextResponse.json(
       { success: true, data: settings },
@@ -30,10 +35,16 @@ export async function POST(request: Request) {
   try {
     await connectToDatabase();
     const body = await request.json();
-    const { enableUPI, enableCOD } = body;
+    const { enableOnlinePayment, enableUPI, enableCOD } = body;
 
     const updateFields: any = {};
-    if (typeof enableUPI === 'boolean') updateFields.enableUPI = enableUPI;
+    if (typeof enableOnlinePayment === 'boolean') {
+      updateFields.enableOnlinePayment = enableOnlinePayment;
+      updateFields.enableUPI = enableOnlinePayment;
+    } else if (typeof enableUPI === 'boolean') {
+      updateFields.enableOnlinePayment = enableUPI;
+      updateFields.enableUPI = enableUPI;
+    }
     if (typeof enableCOD === 'boolean') updateFields.enableCOD = enableCOD;
 
     const settings = await Settings.findOneAndUpdate(
