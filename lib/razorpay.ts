@@ -8,15 +8,26 @@ export interface IRazorpayOrderResponse {
   status: string;
 }
 
+/**
+ * Server-side Razorpay credentials are missing or rejected by the gateway.
+ * The message is for operators only; do not show it to customers.
+ */
+export class RazorpayConfigError extends Error {
+  constructor(message: string, public readonly httpStatus?: number) {
+    super(message);
+    this.name = 'RazorpayConfigError';
+  }
+}
+
 export function getRazorpayKeys() {
-  let keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  let keyId = process.env.RAZORPAY_KEY_ID;
   let keySecret = process.env.RAZORPAY_KEY_SECRET;
 
   if (!keyId) {
-    throw new Error('Missing required environment variable: RAZORPAY_KEY_ID or NEXT_PUBLIC_RAZORPAY_KEY_ID');
+    throw new RazorpayConfigError('Missing required environment variable: RAZORPAY_KEY_ID');
   }
   if (!keySecret) {
-    throw new Error('Missing required environment variable: RAZORPAY_KEY_SECRET');
+    throw new RazorpayConfigError('Missing required environment variable: RAZORPAY_KEY_SECRET');
   }
 
   // Strip accidental leading/trailing quotes or whitespace from environment variables
@@ -67,8 +78,9 @@ export async function createRazorpayOrder(options: {
     });
 
     if (response.status === 401) {
-      throw new Error(
-        'Authentication failed with Razorpay: Invalid Key ID or Key Secret. Verify that RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your server .env match the same mode (test vs live) and are active in Razorpay Dashboard.'
+      throw new RazorpayConfigError(
+        'Authentication failed with Razorpay: Invalid Key ID or Key Secret. Verify that RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your server .env match the same mode (test vs live) and are active in Razorpay Dashboard.',
+        response.status
       );
     }
 
