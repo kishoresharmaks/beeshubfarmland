@@ -9,8 +9,8 @@ export interface IRazorpayOrderResponse {
 }
 
 export function getRazorpayKeys() {
-  const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  let keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  let keySecret = process.env.RAZORPAY_KEY_SECRET;
 
   if (!keyId) {
     throw new Error('Missing required environment variable: RAZORPAY_KEY_ID or NEXT_PUBLIC_RAZORPAY_KEY_ID');
@@ -18,6 +18,10 @@ export function getRazorpayKeys() {
   if (!keySecret) {
     throw new Error('Missing required environment variable: RAZORPAY_KEY_SECRET');
   }
+
+  // Strip accidental leading/trailing quotes or whitespace from environment variables
+  keyId = keyId.trim().replace(/^['"]|['"]$/g, '');
+  keySecret = keySecret.trim().replace(/^['"]|['"]$/g, '');
 
   return { keyId, keySecret };
 }
@@ -52,9 +56,23 @@ export async function createRazorpayOrder(options: {
 
   if (!response.ok) {
     const errData = await response.json().catch(() => ({}));
-    throw new Error(
-      errData.error?.description || `Razorpay order creation failed with status ${response.status}`
-    );
+    const description = errData.error?.description || `Razorpay order creation failed with status ${response.status}`;
+    
+    console.error(`Razorpay order creation failed [HTTP ${response.status}]:`, {
+      code: errData.error?.code,
+      description: errData.error?.description,
+      keyPrefix: keyId ? `${keyId.substring(0, 8)}... (len: ${keyId.length})` : 'none',
+      hasSecret: !!keySecret,
+      secretLength: keySecret ? keySecret.length : 0,
+    });
+
+    if (response.status === 401) {
+      throw new Error(
+        'Authentication failed with Razorpay: Invalid Key ID or Key Secret. Verify that RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in your server .env match the same mode (test vs live) and are active in Razorpay Dashboard.'
+      );
+    }
+
+    throw new Error(description);
   }
 
   const orderData = await response.json();
@@ -99,10 +117,12 @@ export function verifyRazorpayWebhookSignature(options: {
   rawBody: string;
   signature: string;
 }): boolean {
-  const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
+  let webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET || process.env.RAZORPAY_KEY_SECRET;
   if (!webhookSecret) {
     throw new Error('Missing RAZORPAY_WEBHOOK_SECRET or RAZORPAY_KEY_SECRET for webhook verification');
   }
+
+  webhookSecret = webhookSecret.trim().replace(/^['"]|['"]$/g, '');
 
   if (!options.rawBody || !options.signature) {
     return false;

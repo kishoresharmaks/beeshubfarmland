@@ -19,8 +19,8 @@ npm install --legacy-peer-deps
 echo "🔨 Building project..."
 npm run build
 
-# Restart PM2
+# Restart PM2 with updated environment variables
 echo "🔄 Reloading PM2 process..."
-pm2 reload beeshub-web || pm2 restart beeshub-web
+pm2 reload beeshub-web --update-env || pm2 restart beeshub-web --update-env
 
 echo "✅ Deployment completed successfully!"
