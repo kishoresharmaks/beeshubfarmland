@@ -32,7 +32,10 @@ export const metadata: Metadata = {
   creator: "BEES HUB FARMLAND PRIVATE LIMITED",
   publisher: "BEES HUB FARMLAND PRIVATE LIMITED",
   icons: {
-    icon: "/logo.jpg",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon.png", type: "image/png" },
+    ],
     apple: "/logo.jpg",
   },
   openGraph: {
