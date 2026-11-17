@@ -80,9 +80,7 @@ export default function NewProductSpotlight({
     return () => clearInterval(timer);
   }, [productList.length, isPaused]);
 
-  if (productList.length === 0) return null;
-
-  const currentItem = productList[currentIndex] || productList[0];
+  const currentItem: Partial<SpotlightData> = productList[currentIndex] || productList[0] || {};
 
   const {
     productId = '',
@@ -106,6 +104,7 @@ export default function NewProductSpotlight({
 
   // Track spotlight impression in PostHog
   useEffect(() => {
+    if (productList.length === 0) return;
     try {
       if (typeof window !== 'undefined' && (window as any).posthog) {
         (window as any).posthog.capture('product_spotlight_view', {
@@ -119,6 +118,9 @@ export default function NewProductSpotlight({
       }
     } catch (err) {}
   }, [productId, productTitle, price, inStock, currentIndex, productList.length]);
+
+  // Keep this guard below every hook so the hook count stays the same on each render.
+  if (productList.length === 0) return null;
 
   const handleCtaClick = (e: React.MouseEvent) => {
     try {
