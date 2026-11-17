@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
+import NewProductSpotlight, { SpotlightData } from '@/components/NewProductSpotlight';
 import {
   ShoppingBag,
   Search,
@@ -206,9 +207,52 @@ export default function CustomerStore() {
     }
   };
 
+  // New Product Spotlight State
+  const [spotlightData, setSpotlightData] = useState<SpotlightData | null>(null);
+
+  const fetchSpotlight = async () => {
+    try {
+      const res = await fetch('/api/spotlight');
+      const data = await res.json();
+      if (data.success && data.active && data.data) {
+        setSpotlightData(data.data);
+      } else {
+        setSpotlightData(null);
+      }
+    } catch (err) {
+      console.error('Failed to fetch spotlight:', err);
+    }
+  };
+
+  const handleSelectSpotlightProduct = (productId: string) => {
+    if (!productId) return;
+    const targetProduct = products.find((p) => p._id === productId);
+    if (targetProduct) {
+      setSelectedProduct(targetProduct);
+      setHighlightedProductId(targetProduct._id);
+      try {
+        if (typeof window !== 'undefined' && (window as any).posthog) {
+          (window as any).posthog.capture('product_spotlight_product_view', {
+            product_id: targetProduct._id,
+            product_name: targetProduct.name,
+            price: targetProduct.price,
+          });
+        }
+      } catch (e) {}
+      // Smooth scroll to product details
+      const el = document.getElementById(`product-${targetProduct._id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      window.location.href = `/product/${productId}`;
+    }
+  };
+
   useEffect(() => {
     fetchBanners();
     fetchPaymentSettings();
+    fetchSpotlight();
   }, []);
 
   useEffect(() => {
@@ -801,6 +845,12 @@ ${productUrl}
           </div>
         </div>
       </header>
+
+      {/* 2. Premium New Product Spotlight Banner */}
+      <NewProductSpotlight
+        data={spotlightData}
+        onSelectProduct={handleSelectSpotlightProduct}
+      />
 
       {/* Modern E-Commerce Hero Showcase Banner with Dynamic Admin Banners */}
       <section className="bg-gradient-to-br from-[#FFF5F2] via-[#FFFCFB] to-[#FFF8F5] border-b border-[#E8EDF2] py-10 sm:py-14 px-4 sm:px-6 lg:px-8 relative overflow-hidden">

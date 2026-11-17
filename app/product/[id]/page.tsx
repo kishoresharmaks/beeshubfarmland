@@ -60,6 +60,60 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function ProductPage({ params }: Props) {
-  return <ProductClientRedirect id={params.id} />;
+export default async function ProductPage({ params }: Props) {
+  let product: any = null;
+  try {
+    await connectToDatabase();
+    product = await Product.findById(params.id).lean();
+  } catch (e) {}
+
+  const productJsonLd = product
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        description: product.description,
+        image: product.image
+          ? product.image.startsWith('http') || product.image.startsWith('/')
+            ? product.image
+            : `https://beeshubfarmland.com/logo.jpg`
+          : 'https://beeshubfarmland.com/logo.jpg',
+        brand: {
+          '@type': 'Brand',
+          name: 'BeesHub Farmland',
+        },
+        category: product.category || 'Organic Farm Produce',
+        sku: String(product._id),
+        offers: {
+          '@type': 'Offer',
+          price: product.price,
+          priceCurrency: 'INR',
+          availability:
+            product.quantity > 0
+              ? 'https://schema.org/InStock'
+              : 'https://schema.org/OutOfStock',
+          url: `https://beeshubfarmland.com/product/${params.id}`,
+          itemCondition: 'https://schema.org/NewCondition',
+          seller: {
+            '@type': 'Organization',
+            name: 'BEES HUB FARMLAND PRIVATE LIMITED',
+            telephone: '+919578784431',
+          },
+        },
+      }
+    : null;
+
+  return (
+    <>
+      {productJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(productJsonLd),
+          }}
+        />
+      )}
+      <ProductClientRedirect id={params.id} />
+    </>
+  );
 }

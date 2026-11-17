@@ -35,7 +35,7 @@ export async function POST(request: Request) {
   try {
     await connectToDatabase();
     const body = await request.json();
-    const { enableOnlinePayment, enableUPI, enableCOD } = body;
+    const { enableOnlinePayment, enableUPI, enableCOD, spotlight } = body;
 
     const updateFields: any = {};
     if (typeof enableOnlinePayment === 'boolean') {
@@ -46,6 +46,7 @@ export async function POST(request: Request) {
       updateFields.enableUPI = enableUPI;
     }
     if (typeof enableCOD === 'boolean') updateFields.enableCOD = enableCOD;
+    if (spotlight && typeof spotlight === 'object') updateFields.spotlight = spotlight;
 
     const settings = await Settings.findOneAndUpdate(
       { key: 'global' },

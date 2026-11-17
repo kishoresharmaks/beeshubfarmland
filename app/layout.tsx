@@ -79,25 +79,55 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: JSON.stringify({
               "@context": "https://schema.org",
-              "@type": "Store",
-              "name": "BEES HUB FARMLAND PRIVATE LIMITED",
-              "image": "https://beeshubfarmland.com/logo.jpg",
-              "@id": "https://beeshubfarmland.com",
-              "url": "https://beeshubfarmland.com",
-              "telephone": "+919578784431",
-              "priceRange": "₹₹",
-              "address": {
-                "@type": "PostalAddress",
-                "streetAddress": "2/26-1, Muhilanvilai, Monikettipottal, nagercoil",
-                "addressLocality": "Kanyakumari District",
-                "addressRegion": "Tamil Nadu",
-                "postalCode": "629501",
-                "addressCountry": "IN"
-              },
-              "sameAs": [
-                "https://www.facebook.com/Beeshubfarmland/",
-                "https://www.instagram.com/beeshubfarmland",
-                "https://www.youtube.com/@BeesHubFarmlandPvtLtd"
+              "@graph": [
+                {
+                  "@type": ["Store", "Organization"],
+                  "@id": "https://beeshubfarmland.com/#organization",
+                  "name": "BEES HUB FARMLAND PRIVATE LIMITED",
+                  "legalName": "BEES HUB FARMLAND PRIVATE LIMITED",
+                  "alternateName": "BeesHub Farmland",
+                  "url": "https://beeshubfarmland.com",
+                  "logo": {
+                    "@type": "ImageObject",
+                    "url": "https://beeshubfarmland.com/logo.jpg",
+                    "caption": "BEES HUB FARMLAND PRIVATE LIMITED Logo"
+                  },
+                  "image": "https://beeshubfarmland.com/logo.jpg",
+                  "telephone": "+919578784431",
+                  "priceRange": "₹₹",
+                  "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": "2/26-1, Muhilanvilai, Monikettipottal, nagercoil",
+                    "addressLocality": "Kanyakumari District",
+                    "addressRegion": "Tamil Nadu",
+                    "postalCode": "629501",
+                    "addressCountry": "IN"
+                  },
+                  "areaServed": {
+                    "@type": "Country",
+                    "name": "India"
+                  },
+                  "sameAs": [
+                    "https://www.facebook.com/Beeshubfarmland/",
+                    "https://www.instagram.com/beeshubfarmland",
+                    "https://www.youtube.com/@BeesHubFarmlandPvtLtd"
+                  ]
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://beeshubfarmland.com/#website",
+                  "url": "https://beeshubfarmland.com",
+                  "name": "BeesHub Farmland",
+                  "description": "Pure honey, natural spices and organic farm produce delivered directly from Kanyakumari farmlands.",
+                  "publisher": {
+                    "@id": "https://beeshubfarmland.com/#organization"
+                  },
+                  "potentialAction": {
+                    "@type": "SearchAction",
+                    "target": "https://beeshubfarmland.com/?search={search_term_string}",
+                    "query-input": "required name=search_term_string"
+                  }
+                }
               ]
             })
           }}
