@@ -231,20 +231,37 @@ export default function AdminDashboard() {
   const [settingsSuccess, setSettingsSuccess] = useState('');
   const [settingsError, setSettingsError] = useState('');
 
-  // Spotlight Settings State
-  const [spotlightConfig, setSpotlightConfig] = useState({
-    isActive: true,
-    productId: '',
-    badgeText: 'NEW ARRIVAL ✨',
-    headingPrefix: 'Introducing Our',
-    productTitle: 'Pure Forest Honey',
-    shortDescription: 'Raw, unprocessed and 100% natural honey directly from trusted farm beekeepers in Western Ghats, Kanyakumari.',
-    productImage: '/images/beeshub-pure-forest-honey-spotlight.webp',
-    ctaLabel: 'Shop New Product',
-    benefit1: '100% Natural',
-    benefit2: 'No Additives',
-    benefit3: 'Farm Sourced',
-  });
+  // Spotlight Settings State (Supports Single or Multiple Spotlight Products)
+  interface SpotlightConfigItem {
+    isActive: boolean;
+    productId: string;
+    badgeText: string;
+    headingPrefix: string;
+    productTitle: string;
+    shortDescription: string;
+    productImage: string;
+    ctaLabel: string;
+    benefit1: string;
+    benefit2: string;
+    benefit3: string;
+  }
+
+  const [spotlightsList, setSpotlightsList] = useState<SpotlightConfigItem[]>([
+    {
+      isActive: true,
+      productId: '',
+      badgeText: 'NEW ARRIVAL ✨',
+      headingPrefix: 'Introducing Our',
+      productTitle: 'Pure Forest Honey',
+      shortDescription:
+        'Raw, unprocessed and 100% natural honey directly from trusted farm beekeepers in Western Ghats, Kanyakumari.',
+      productImage: '/images/beeshub-pure-forest-honey-spotlight.webp',
+      ctaLabel: 'Shop New Product',
+      benefit1: '100% Natural',
+      benefit2: 'No Additives',
+      benefit3: 'Farm Sourced',
+    },
+  ]);
   const [isSubmittingSpotlight, setIsSubmittingSpotlight] = useState(false);
   const [spotlightSuccess, setSpotlightSuccess] = useState('');
   const [spotlightError, setSpotlightError] = useState('');
@@ -361,21 +378,39 @@ export default function AdminDashboard() {
           enableCOD: data.data.enableCOD ?? true,
         });
 
-        if (data.data.spotlight) {
+        if (data.data.spotlights && Array.isArray(data.data.spotlights) && data.data.spotlights.length > 0) {
+          setSpotlightsList(
+            data.data.spotlights.map((sp: any) => ({
+              isActive: sp.isActive ?? true,
+              productId: sp.productId || '',
+              badgeText: sp.badgeText || 'NEW ARRIVAL ✨',
+              headingPrefix: sp.headingPrefix || 'Introducing Our',
+              productTitle: sp.productTitle || '',
+              shortDescription: sp.shortDescription || '',
+              productImage: sp.productImage || '/images/beeshub-pure-forest-honey-spotlight.webp',
+              ctaLabel: sp.ctaLabel || 'Shop New Product',
+              benefit1: sp.benefits?.[0]?.text || '100% Natural',
+              benefit2: sp.benefits?.[1]?.text || 'No Additives',
+              benefit3: sp.benefits?.[2]?.text || 'Farm Sourced',
+            }))
+          );
+        } else if (data.data.spotlight) {
           const sp = data.data.spotlight;
-          setSpotlightConfig({
-            isActive: sp.isActive ?? true,
-            productId: sp.productId || '',
-            badgeText: sp.badgeText || 'NEW ARRIVAL ✨',
-            headingPrefix: sp.headingPrefix || 'Introducing Our',
-            productTitle: sp.productTitle || 'Pure Forest Honey',
-            shortDescription: sp.shortDescription || '',
-            productImage: sp.productImage || '/images/beeshub-pure-forest-honey-spotlight.webp',
-            ctaLabel: sp.ctaLabel || 'Shop New Product',
-            benefit1: sp.benefits?.[0]?.text || '100% Natural',
-            benefit2: sp.benefits?.[1]?.text || 'No Additives',
-            benefit3: sp.benefits?.[2]?.text || 'Farm Sourced',
-          });
+          setSpotlightsList([
+            {
+              isActive: sp.isActive ?? true,
+              productId: sp.productId || '',
+              badgeText: sp.badgeText || 'NEW ARRIVAL ✨',
+              headingPrefix: sp.headingPrefix || 'Introducing Our',
+              productTitle: sp.productTitle || 'Pure Forest Honey',
+              shortDescription: sp.shortDescription || '',
+              productImage: sp.productImage || '/images/beeshub-pure-forest-honey-spotlight.webp',
+              ctaLabel: sp.ctaLabel || 'Shop New Product',
+              benefit1: sp.benefits?.[0]?.text || '100% Natural',
+              benefit2: sp.benefits?.[1]?.text || 'No Additives',
+              benefit3: sp.benefits?.[2]?.text || 'Farm Sourced',
+            },
+          ]);
         }
       }
     } catch (err) {
@@ -385,6 +420,50 @@ export default function AdminDashboard() {
     }
   };
 
+  // Add another spotlight item
+  const handleAddSpotlightItem = () => {
+    setSpotlightsList((prev) => [
+      ...prev,
+      {
+        isActive: true,
+        productId: '',
+        badgeText: 'NEW ARRIVAL ✨',
+        headingPrefix: 'Introducing Our',
+        productTitle: '',
+        shortDescription: '',
+        productImage: '/images/beeshub-pure-forest-honey-spotlight.webp',
+        ctaLabel: 'Shop New Product',
+        benefit1: '100% Pure',
+        benefit2: 'Direct from Farm',
+        benefit3: 'Premium Quality',
+      },
+    ]);
+  };
+
+  // Remove a spotlight item
+  const handleRemoveSpotlightItem = (index: number) => {
+    if (spotlightsList.length <= 1) {
+      alert(
+        'You must keep at least one spotlight configuration. If you do not want it shown on the storefront, toggle its switch to Disabled.'
+      );
+      return;
+    }
+    setSpotlightsList((prev) => prev.filter((_, idx) => idx !== index));
+  };
+
+  // Update a field in a spotlight item
+  const handleUpdateSpotlightItem = (
+    index: number,
+    field: keyof SpotlightConfigItem,
+    value: any
+  ) => {
+    setSpotlightsList((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
+  };
+
   // Save Spotlight Settings
   const handleSaveSpotlight = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -392,30 +471,33 @@ export default function AdminDashboard() {
     setSpotlightError('');
     try {
       setIsSubmittingSpotlight(true);
-      const payload = {
-        isActive: spotlightConfig.isActive,
-        productId: spotlightConfig.productId,
-        badgeText: spotlightConfig.badgeText,
-        headingPrefix: spotlightConfig.headingPrefix,
-        productTitle: spotlightConfig.productTitle,
-        shortDescription: spotlightConfig.shortDescription,
-        productImage: spotlightConfig.productImage,
-        ctaLabel: spotlightConfig.ctaLabel,
+      const payload = spotlightsList.map((item) => ({
+        isActive: item.isActive,
+        productId: item.productId,
+        badgeText: item.badgeText || 'NEW ARRIVAL ✨',
+        headingPrefix: item.headingPrefix || 'Introducing Our',
+        productTitle: item.productTitle || 'New Arrival Product',
+        shortDescription: item.shortDescription || '',
+        productImage: item.productImage || '/images/beeshub-pure-forest-honey-spotlight.webp',
+        ctaLabel: item.ctaLabel || 'Shop New Product',
         benefits: [
-          { icon: 'natural', text: spotlightConfig.benefit1 },
-          { icon: 'additives', text: spotlightConfig.benefit2 },
-          { icon: 'farm', text: spotlightConfig.benefit3 },
+          { icon: 'natural', text: item.benefit1 || '100% Natural' },
+          { icon: 'additives', text: item.benefit2 || 'No Additives' },
+          { icon: 'farm', text: item.benefit3 || 'Farm Sourced' },
         ],
-      };
+      }));
 
       const res = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spotlight: payload }),
+        body: JSON.stringify({
+          spotlights: payload,
+          spotlight: payload[0] || null,
+        }),
       });
       const data = await res.json();
       if (data.success) {
-        setSpotlightSuccess('Product Spotlight settings saved and live on homepage!');
+        setSpotlightSuccess('All Product Spotlight banners saved and live on homepage!');
         setTimeout(() => setSpotlightSuccess(''), 3500);
       } else {
         setSpotlightError(data.message || 'Failed to update spotlight settings');
@@ -2135,25 +2217,34 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
             </div>
 
             {/* Product Spotlight Configuration Card */}
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E8EDF2] shadow-sm max-w-3xl">
-              <div className="flex items-center justify-between pb-6 border-b border-[#E8EDF2] mb-6">
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-[#E8EDF2] shadow-sm max-w-4xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-[#E8EDF2] gap-4 mb-6">
                 <div>
                   <h2 className="text-xl font-extrabold text-[#163B5C] flex items-center gap-2">
-                    <Sparkles className="w-6 h-6 text-[#ED3500]" /> Product Spotlight Banner
+                    <Sparkles className="w-6 h-6 text-[#ED3500]" /> Product Spotlight Banners
                   </h2>
                   <p className="text-xs text-[#64748B] mt-1">
-                    Control the premium product spotlight banner displayed below the header on the storefront.
+                    Control one or multiple new product spotlight banners below the storefront header. When multiple products are active, they automatically rotate in a smooth carousel with next/prev navigation!
                   </p>
                 </div>
-                <span
-                  className={`px-3 py-1 rounded-full text-xs font-bold ${
-                    spotlightConfig.isActive
-                      ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-                      : 'bg-rose-100 text-rose-700 border border-rose-200'
-                  }`}
-                >
-                  {spotlightConfig.isActive ? 'Active on Storefront' : 'Disabled'}
-                </span>
+                <div className="flex items-center gap-3">
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-bold ${
+                      spotlightsList.some((s) => s.isActive)
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                        : 'bg-rose-100 text-rose-700 border border-rose-200'
+                    }`}
+                  >
+                    {spotlightsList.filter((s) => s.isActive).length} Active on Storefront
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleAddSpotlightItem}
+                    className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#ED3500] hover:bg-[#D63000] text-white text-xs font-bold shadow transition-all cursor-pointer"
+                  >
+                    <Plus className="w-4 h-4" /> Add Spotlight
+                  </button>
+                </div>
               </div>
 
               {spotlightSuccess && (
@@ -2169,182 +2260,261 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                 </div>
               )}
 
-              <form onSubmit={handleSaveSpotlight} className="space-y-6">
-                {/* Active Toggle */}
-                <div className="p-4 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] flex items-center justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-[#163B5C] text-sm">Enable Spotlight Banner</h3>
-                    <p className="text-xs text-[#64748B]">When active, this banner is displayed immediately below the store header.</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={spotlightConfig.isActive}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, isActive: e.target.checked })
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-12 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ED3500]"></div>
-                  </label>
-                </div>
-
-                {/* Linked Product Selector */}
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-                    Select Linked Store Product
-                  </label>
-                  <select
-                    value={spotlightConfig.productId}
-                    onChange={(e) => {
-                      const selectedId = e.target.value;
-                      const selected = products.find((p) => p._id === selectedId);
-                      setSpotlightConfig({
-                        ...spotlightConfig,
-                        productId: selectedId,
-                        productTitle: selected ? selected.name : spotlightConfig.productTitle,
-                        shortDescription: selected ? selected.description : spotlightConfig.shortDescription,
-                      });
-                    }}
-                    className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white font-medium text-[#163B5C]"
+              <form onSubmit={handleSaveSpotlight} className="space-y-8">
+                {spotlightsList.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="p-5 sm:p-6 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] space-y-5 relative transition-all hover:border-[#ED3500]/40"
                   >
-                    <option value="">Auto-Detect (Pure Forest Honey / Featured Product)</option>
-                    {products.map((p) => (
-                      <option key={p._id} value={p._id}>
-                        {p.name} — ₹{p.price.toLocaleString('en-IN')} ({p.category} | Stock: {p.quantity})
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-[11px] text-[#64748B]">
-                    Selecting a product automatically syncs live price, stock availability, and quick-view checkout.
-                  </p>
-                </div>
+                    {/* Item Card Header */}
+                    <div className="flex items-center justify-between pb-4 border-b border-[#E8EDF2]">
+                      <div className="flex items-center gap-2.5">
+                        <span className="w-7 h-7 rounded-full bg-[#163B5C] text-white font-extrabold text-xs flex items-center justify-center">
+                          {idx + 1}
+                        </span>
+                        <div>
+                          <h3 className="font-extrabold text-[#163B5C] text-sm">
+                            {item.productTitle || `Spotlight Product #${idx + 1}`}
+                          </h3>
+                          <p className="text-[11px] text-[#64748B]">
+                            {item.isActive ? 'Active on banner carousel' : 'Disabled (Hidden from storefront)'}
+                          </p>
+                        </div>
+                      </div>
 
-                {/* Banner Copy Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-                      Badge Text
-                    </label>
-                    <input
-                      type="text"
-                      value={spotlightConfig.badgeText}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, badgeText: e.target.value })
-                      }
-                      placeholder="e.g. NEW ARRIVAL ✨"
-                      className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
-                    />
+                      <div className="flex items-center gap-3">
+                        {/* Individual Active Toggle */}
+                        <label className="relative inline-flex items-center cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={item.isActive}
+                            onChange={(e) =>
+                              handleUpdateSpotlightItem(idx, 'isActive', e.target.checked)
+                            }
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#ED3500]"></div>
+                        </label>
+
+                        {/* Remove Button */}
+                        {spotlightsList.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSpotlightItem(idx)}
+                            className="p-1.5 rounded-lg text-[#64748B] hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Remove this spotlight product"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Linked Store Product Selector */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                        Select Linked Store Product
+                      </label>
+                      <select
+                        value={item.productId}
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const selected = products.find((p) => p._id === selectedId);
+                          handleUpdateSpotlightItem(idx, 'productId', selectedId);
+                          if (selected) {
+                            handleUpdateSpotlightItem(idx, 'productTitle', selected.name);
+                            handleUpdateSpotlightItem(idx, 'shortDescription', selected.description || '');
+                            if (selected.image) {
+                              handleUpdateSpotlightItem(idx, 'productImage', selected.image);
+                            }
+                          }
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white font-medium text-[#163B5C]"
+                      >
+                        <option value="">Choose a product from store...</option>
+                        {products.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.name} — ₹{p.price.toLocaleString('en-IN')} ({p.category} | Stock: {p.quantity})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[11px] text-[#64748B]">
+                        Selecting a product automatically syncs live price, stock availability, and quick-view checkout.
+                      </p>
+                    </div>
+
+                    {/* Banner Image URL & Preview */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                        Spotlight Product Image (URL or Path)
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="w-16 h-12 rounded-xl border border-[#E8EDF2] bg-white overflow-hidden flex-shrink-0 flex items-center justify-center relative">
+                          {item.productImage ? (
+                            <img
+                              src={item.productImage}
+                              alt="Spotlight preview"
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ImageIcon className="w-5 h-5 text-gray-400" />
+                          )}
+                        </div>
+                        <input
+                          type="text"
+                          value={item.productImage}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'productImage', e.target.value)
+                          }
+                          placeholder="/images/... or https://..."
+                          className="flex-1 px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
+                        />
+                      </div>
+                      <p className="text-[11px] text-[#64748B]">
+                        Uses the product image by default, or you can paste a custom high-resolution banner image path (e.g. <code className="bg-gray-100 px-1 rounded">/images/beeshub-pure-forest-honey-spotlight.webp</code>).
+                      </p>
+                    </div>
+
+                    {/* Banner Copy Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                          Badge Text
+                        </label>
+                        <input
+                          type="text"
+                          value={item.badgeText}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'badgeText', e.target.value)
+                          }
+                          placeholder="e.g. NEW ARRIVAL ✨"
+                          className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                          Intro Prefix
+                        </label>
+                        <input
+                          type="text"
+                          value={item.headingPrefix}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'headingPrefix', e.target.value)
+                          }
+                          placeholder="e.g. Introducing Our"
+                          className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                          Product Headline Title
+                        </label>
+                        <input
+                          type="text"
+                          value={item.productTitle}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'productTitle', e.target.value)
+                          }
+                          placeholder="e.g. Pure Forest Honey"
+                          className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white font-bold"
+                        />
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                          CTA Button Text
+                        </label>
+                        <input
+                          type="text"
+                          value={item.ctaLabel}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'ctaLabel', e.target.value)
+                          }
+                          placeholder="e.g. Shop New Product"
+                          className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                        Short Description
+                      </label>
+                      <textarea
+                        rows={2}
+                        value={item.shortDescription}
+                        onChange={(e) =>
+                          handleUpdateSpotlightItem(idx, 'shortDescription', e.target.value)
+                        }
+                        placeholder="Brief description for spotlight banner..."
+                        className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
+                      />
+                    </div>
+
+                    {/* 3 Key Benefits */}
+                    <div className="space-y-2 pt-2 border-t border-[#E8EDF2]">
+                      <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
+                        3 Key Product Benefits
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <input
+                          type="text"
+                          value={item.benefit1}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'benefit1', e.target.value)
+                          }
+                          placeholder="Benefit 1 (e.g. 100% Natural)"
+                          className="w-full px-3 py-2 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500] bg-white font-semibold"
+                        />
+                        <input
+                          type="text"
+                          value={item.benefit2}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'benefit2', e.target.value)
+                          }
+                          placeholder="Benefit 2 (e.g. No Additives)"
+                          className="w-full px-3 py-2 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500] bg-white font-semibold"
+                        />
+                        <input
+                          type="text"
+                          value={item.benefit3}
+                          onChange={(e) =>
+                            handleUpdateSpotlightItem(idx, 'benefit3', e.target.value)
+                          }
+                          placeholder="Benefit 3 (e.g. Farm Sourced)"
+                          className="w-full px-3 py-2 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500] bg-white font-semibold"
+                        />
+                      </div>
+                    </div>
                   </div>
+                ))}
 
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-                      Intro Prefix
-                    </label>
-                    <input
-                      type="text"
-                      value={spotlightConfig.headingPrefix}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, headingPrefix: e.target.value })
-                      }
-                      placeholder="e.g. Introducing Our"
-                      className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
-                    />
-                  </div>
-                </div>
+                {/* Add Another Product Button */}
+                <button
+                  type="button"
+                  onClick={handleAddSpotlightItem}
+                  className="w-full py-3.5 rounded-2xl border-2 border-dashed border-[#ED3500]/40 hover:border-[#ED3500] bg-[#FFF8F6] hover:bg-[#FFEFEA] text-[#ED3500] font-bold text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Plus className="w-5 h-5" /> Add Another Spotlight Product
+                </button>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-                      Product Headline Title
-                    </label>
-                    <input
-                      type="text"
-                      value={spotlightConfig.productTitle}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, productTitle: e.target.value })
-                      }
-                      placeholder="e.g. Pure Forest Honey"
-                      className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white font-bold"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-                      CTA Button Text
-                    </label>
-                    <input
-                      type="text"
-                      value={spotlightConfig.ctaLabel}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, ctaLabel: e.target.value })
-                      }
-                      placeholder="e.g. Shop New Product"
-                      className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-                    Short Description
-                  </label>
-                  <textarea
-                    rows={2}
-                    value={spotlightConfig.shortDescription}
-                    onChange={(e) =>
-                      setSpotlightConfig({ ...spotlightConfig, shortDescription: e.target.value })
-                    }
-                    placeholder="Brief description for spotlight banner..."
-                    className="w-full px-4 py-2 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500] bg-white"
-                  />
-                </div>
-
-                {/* 3 Key Benefits */}
-                <div className="space-y-2 pt-2 border-t border-[#E8EDF2]">
-                  <label className="block text-xs font-bold text-[#163B5C] uppercase tracking-wider">
-                    3 Key Product Benefits
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    <input
-                      type="text"
-                      value={spotlightConfig.benefit1}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, benefit1: e.target.value })
-                      }
-                      placeholder="Benefit 1 (e.g. 100% Natural)"
-                      className="w-full px-3 py-2 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500] bg-white font-semibold"
-                    />
-                    <input
-                      type="text"
-                      value={spotlightConfig.benefit2}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, benefit2: e.target.value })
-                      }
-                      placeholder="Benefit 2 (e.g. No Additives)"
-                      className="w-full px-3 py-2 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500] bg-white font-semibold"
-                    />
-                    <input
-                      type="text"
-                      value={spotlightConfig.benefit3}
-                      onChange={(e) =>
-                        setSpotlightConfig({ ...spotlightConfig, benefit3: e.target.value })
-                      }
-                      placeholder="Benefit 3 (e.g. Farm Sourced)"
-                      className="w-full px-3 py-2 rounded-xl border border-[#E8EDF2] text-xs focus:outline-none focus:border-[#ED3500] bg-white font-semibold"
-                    />
-                  </div>
-                </div>
-
+                {/* Save All Button */}
                 <button
                   type="submit"
                   disabled={isSubmittingSpotlight}
-                  className="w-full py-3.5 rounded-2xl bg-[#163B5C] hover:bg-[#112F4A] text-white font-bold text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 rounded-2xl bg-[#163B5C] hover:bg-[#112F4A] text-white font-bold text-sm uppercase tracking-wider shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
                   {isSubmittingSpotlight ? (
                     <RefreshCw className="w-5 h-5 animate-spin" />
                   ) : (
-                    'Save Spotlight Configuration'
+                    <>
+                      <Check className="w-5 h-5 text-emerald-400" />
+                      Save All Spotlight Products
+                    </>
                   )}
                 </button>
               </form>

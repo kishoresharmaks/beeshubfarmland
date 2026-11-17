@@ -26,9 +26,44 @@ export interface ISettings extends Document {
   enableUPI: boolean;
   enableCOD: boolean;
   spotlight?: ISpotlightConfig;
+  spotlights?: ISpotlightConfig[];
   createdAt: Date;
   updatedAt: Date;
 }
+
+const SpotlightItemSchema = new Schema({
+  isActive: { type: Boolean, default: true },
+  productId: { type: String, default: '' },
+  badgeText: { type: String, default: 'NEW ARRIVAL ✨' },
+  headingPrefix: { type: String, default: 'Introducing Our' },
+  productTitle: { type: String, default: 'Pure Forest Honey' },
+  shortDescription: {
+    type: String,
+    default:
+      'Raw, unprocessed and 100% natural honey directly from trusted farm beekeepers in Western Ghats, Kanyakumari.',
+  },
+  productImage: {
+    type: String,
+    default: '/images/beeshub-pure-forest-honey-spotlight.webp',
+  },
+  benefits: {
+    type: [
+      {
+        icon: { type: String, default: 'natural' },
+        text: { type: String, default: '100% Natural' },
+      },
+    ],
+    default: [
+      { icon: 'natural', text: '100% Natural' },
+      { icon: 'additives', text: 'No Additives' },
+      { icon: 'farm', text: 'Farm Sourced' },
+    ],
+  },
+  ctaLabel: { type: String, default: 'Shop New Product' },
+  ctaLink: { type: String, default: '' },
+  startDate: { type: Date },
+  endDate: { type: Date },
+});
 
 const SettingsSchema: Schema = new Schema(
   {
@@ -36,39 +71,8 @@ const SettingsSchema: Schema = new Schema(
     enableOnlinePayment: { type: Boolean, default: true },
     enableUPI: { type: Boolean, default: true },
     enableCOD: { type: Boolean, default: true },
-    spotlight: {
-      isActive: { type: Boolean, default: true },
-      productId: { type: String, default: '' },
-      badgeText: { type: String, default: 'NEW ARRIVAL ✨' },
-      headingPrefix: { type: String, default: 'Introducing Our' },
-      productTitle: { type: String, default: 'Pure Forest Honey' },
-      shortDescription: {
-        type: String,
-        default:
-          'Raw, unprocessed and 100% natural honey directly from trusted farm beekeepers in Western Ghats, Kanyakumari.',
-      },
-      productImage: {
-        type: String,
-        default: '/images/beeshub-pure-forest-honey-spotlight.webp',
-      },
-      benefits: {
-        type: [
-          {
-            icon: { type: String, default: 'natural' },
-            text: { type: String, default: '100% Natural' },
-          },
-        ],
-        default: [
-          { icon: 'natural', text: '100% Natural' },
-          { icon: 'additives', text: 'No Additives' },
-          { icon: 'farm', text: 'Farm Sourced' },
-        ],
-      },
-      ctaLabel: { type: String, default: 'Shop New Product' },
-      ctaLink: { type: String, default: '' },
-      startDate: { type: Date },
-      endDate: { type: Date },
-    },
+    spotlight: SpotlightItemSchema,
+    spotlights: [SpotlightItemSchema],
   },
   { timestamps: true }
 );

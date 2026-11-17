@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
@@ -12,8 +12,8 @@ import {
   ShieldCheck,
   CheckCircle2,
   ShoppingBag,
-  Sun,
-  Truck,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 export interface SpotlightBenefit {
@@ -42,20 +42,47 @@ export interface SpotlightData {
 }
 
 interface NewProductSpotlightProps {
-  data?: SpotlightData | null;
+  data?: SpotlightData | SpotlightData[] | null;
+  items?: SpotlightData[];
   onSelectProduct?: (productId: string) => void;
 }
 
 /**
- * Premium New Product Spotlight Banner for BeesHub Farmland.
+ * Premium Multi-Product Spotlight Carousel Banner for BeesHub Farmland.
  * Sits immediately below the navigation header and above the hero section.
- * Production-ready, mobile-first, accessible, and optimized for Core Web Vitals (LCP/CLS) and SEO.
+ * Supports single product or multi-product auto-rotation with touch swipe,
+ * keyboard accessibility, and Schema.org structured data.
  */
 export default function NewProductSpotlight({
   data,
+  items,
   onSelectProduct,
 }: NewProductSpotlightProps) {
-  if (!data) return null;
+  // Normalize items array
+  let productList: SpotlightData[] = [];
+  if (Array.isArray(items) && items.length > 0) {
+    productList = items;
+  } else if (Array.isArray(data) && data.length > 0) {
+    productList = data;
+  } else if (data && !Array.isArray(data)) {
+    productList = [data];
+  }
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  // Auto-advance slider if multiple products are featured
+  useEffect(() => {
+    if (productList.length <= 1 || isPaused) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % productList.length);
+    }, 5500);
+    return () => clearInterval(timer);
+  }, [productList.length, isPaused]);
+
+  if (productList.length === 0) return null;
+
+  const currentItem = productList[currentIndex] || productList[0];
 
   const {
     productId = '',
@@ -75,7 +102,7 @@ export default function NewProductSpotlight({
     mrp = 499,
     discount = 20,
     inStock = true,
-  } = data;
+  } = currentItem;
 
   // Track spotlight impression in PostHog
   useEffect(() => {
@@ -86,12 +113,12 @@ export default function NewProductSpotlight({
           product_name: productTitle,
           price,
           in_stock: inStock,
+          item_index: currentIndex,
+          total_spotlights: productList.length,
         });
       }
-    } catch (err) {
-      // Ignore analytics errors
-    }
-  }, [productId, productTitle, price, inStock]);
+    } catch (err) {}
+  }, [productId, productTitle, price, inStock, currentIndex, productList.length]);
 
   const handleCtaClick = (e: React.MouseEvent) => {
     try {
@@ -103,14 +130,20 @@ export default function NewProductSpotlight({
           target_url: ctaLink,
         });
       }
-    } catch (err) {
-      // Ignore analytics errors
-    }
+    } catch (err) {}
 
     if (onSelectProduct && productId) {
       e.preventDefault();
       onSelectProduct(productId);
     }
+  };
+
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + productList.length) % productList.length);
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % productList.length);
   };
 
   const renderBenefitIcon = (iconType: string) => {
@@ -138,7 +171,9 @@ export default function NewProductSpotlight({
   return (
     <aside
       aria-label="New Product Spotlight Announcement"
-      className="w-full bg-[#FFFCFB] border-b border-[#F0E6DD]/90 py-4 sm:py-6 px-4 sm:px-6 lg:px-8 relative z-20"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      className="w-full bg-[#FFFCFB] border-b border-[#F0E6DD]/90 py-4 sm:py-6 px-4 sm:px-6 lg:px-8 relative z-20 select-none"
     >
       {/* Schema.org Microdata for High Search Engine & AI Discoverability */}
       <script
@@ -146,34 +181,42 @@ export default function NewProductSpotlight({
         dangerouslySetInnerHTML={{
           __html: JSON.stringify({
             '@context': 'https://schema.org',
-            '@type': 'Product',
-            '@id': `https://beeshubfarmland.com/product/${productId}#spotlight-product`,
-            name: productTitle,
-            description: shortDescription,
-            image: `https://beeshubfarmland.com${productImage}`,
-            brand: {
-              '@type': 'Brand',
-              name: 'BeesHub Farmland',
-            },
-            offers: {
-              '@type': 'Offer',
-              price: price,
-              priceCurrency: 'INR',
-              availability: inStock
-                ? 'https://schema.org/InStock'
-                : 'https://schema.org/OutOfStock',
-              url: `https://beeshubfarmland.com/product/${productId}`,
-              seller: {
-                '@type': 'Organization',
-                name: 'BEES HUB FARMLAND PRIVATE LIMITED',
-                telephone: '+919578784431',
+            '@type': 'ItemList',
+            name: 'New Product Spotlight — BeesHub Farmland',
+            itemListElement: productList.map((item, idx) => ({
+              '@type': 'ListItem',
+              position: idx + 1,
+              item: {
+                '@type': 'Product',
+                '@id': `https://beeshubfarmland.com/product/${item.productId || idx}#spotlight`,
+                name: item.productTitle || item.productName,
+                description: item.shortDescription,
+                image: `https://beeshubfarmland.com${item.productImage}`,
+                brand: {
+                  '@type': 'Brand',
+                  name: 'BeesHub Farmland',
+                },
+                offers: {
+                  '@type': 'Offer',
+                  price: item.price || 399,
+                  priceCurrency: 'INR',
+                  availability: item.inStock !== false
+                    ? 'https://schema.org/InStock'
+                    : 'https://schema.org/OutOfStock',
+                  url: `https://beeshubfarmland.com/product/${item.productId}`,
+                  seller: {
+                    '@type': 'Organization',
+                    name: 'BEES HUB FARMLAND PRIVATE LIMITED',
+                    telephone: '+919578784431',
+                  },
+                },
               },
-            },
+            })),
           }),
         }}
       />
 
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto relative">
         <div className="relative overflow-hidden rounded-3xl border border-[#F2E5D5] bg-gradient-to-br from-[#FFF9F4] via-[#FFFAF5] to-[#FDF4E7] shadow-lg shadow-[#163B5C]/[0.03] transition-all hover:shadow-xl hover:shadow-[#163B5C]/[0.06] hover:border-[#ED3500]/30 group">
           
           {/* Subtle Ambient Organic Background Accents */}
@@ -186,19 +229,48 @@ export default function NewProductSpotlight({
             aria-hidden="true"
           />
 
-          <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 items-center gap-6 sm:gap-8 p-5 sm:p-7 lg:p-9">
-            
+          {/* Multi-Product Navigation Arrows (Shown when more than 1 spotlight exists) */}
+          {productList.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={handlePrev}
+                aria-label="Previous new product spotlight"
+                className="absolute left-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-white/90 hover:bg-[#ED3500] text-[#163B5C] hover:text-white shadow-md border border-[#F2E5D5] transition-all opacity-0 group-hover:opacity-100 sm:opacity-75 focus:opacity-100"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                aria-label="Next new product spotlight"
+                className="absolute right-3 top-1/2 -translate-y-1/2 z-30 p-2.5 rounded-full bg-white/90 hover:bg-[#ED3500] text-[#163B5C] hover:text-white shadow-md border border-[#F2E5D5] transition-all opacity-0 group-hover:opacity-100 sm:opacity-75 focus:opacity-100"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </>
+          )}
+
+          <div
+            key={productId || currentIndex}
+            className="relative z-10 grid grid-cols-1 lg:grid-cols-12 items-center gap-6 sm:gap-8 p-5 sm:p-7 lg:p-9 animate-fadeIn"
+          >
             {/* ========================================================
                 ZONE A: Product Introduction (Heading, Copy, Price, CTA)
                 ======================================================== */}
             <div className="lg:col-span-5 space-y-3.5 sm:space-y-4 text-center sm:text-left">
               
-              {/* Badge */}
-              <div className="flex items-center justify-center sm:justify-start">
+              {/* Badge + Counter */}
+              <div className="flex items-center justify-center sm:justify-start gap-2">
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#194D33] text-white text-[11px] sm:text-xs font-black tracking-wider uppercase shadow-xs">
                   <Sparkles className="w-3.5 h-3.5 text-[#FBBF24]" aria-hidden="true" />
                   <span>{badgeText}</span>
                 </span>
+                {productList.length > 1 && (
+                  <span className="px-2.5 py-0.5 rounded-full bg-white/80 border border-[#F2E5D5] text-[10px] font-bold text-[#64748B]">
+                    {currentIndex + 1} of {productList.length}
+                  </span>
+                )}
               </div>
 
               {/* Title Header */}
@@ -287,7 +359,7 @@ export default function NewProductSpotlight({
             </div>
 
             {/* ========================================================
-                ZONE C: Product Photography (Commercial Jar & Honeycomb)
+                ZONE C: Product Photography (Commercial Jar & Composition)
                 ======================================================== */}
             <div className="lg:col-span-4 flex items-center justify-center relative">
               <Link
@@ -296,10 +368,9 @@ export default function NewProductSpotlight({
                 className="relative block w-full max-w-sm sm:max-w-md aspect-[16/10] sm:aspect-[16/11] rounded-2xl overflow-hidden group/img focus:outline-none focus:ring-3 focus:ring-[#ED3500]/40 transition-transform duration-500 hover:scale-[1.02]"
                 title={`View ${productTitle} packaging details`}
               >
-                {/* Real Commercial Product Photography */}
                 <Image
                   src={productImage}
-                  alt={`BeesHub Farmland ${productTitle} 500g glass jar with natural golden honeycomb and wooden honey dipper`}
+                  alt={`BeesHub Farmland ${productTitle}`}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 380px"
                   className="object-cover object-center rounded-2xl shadow-md transition-transform duration-700 group-hover/img:scale-105"
@@ -307,7 +378,6 @@ export default function NewProductSpotlight({
                   fetchPriority="high"
                 />
 
-                {/* Subtle shine overlay */}
                 <div
                   className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent opacity-0 group-hover/img:opacity-100 transition-opacity rounded-2xl pointer-events-none"
                   aria-hidden="true"
@@ -316,6 +386,25 @@ export default function NewProductSpotlight({
             </div>
 
           </div>
+
+          {/* Pagination Dots (When multiple spotlights exist) */}
+          {productList.length > 1 && (
+            <div className="flex items-center justify-center gap-1.5 pb-3">
+              {productList.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setCurrentIndex(idx)}
+                  aria-label={`Go to spotlight slide ${idx + 1}`}
+                  className={`h-1.5 rounded-full transition-all ${
+                    idx === currentIndex
+                      ? 'w-6 bg-[#ED3500]'
+                      : 'w-1.5 bg-[#ED3500]/30 hover:bg-[#ED3500]/60'
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
         </div>
       </div>
     </aside>

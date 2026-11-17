@@ -207,17 +207,21 @@ export default function CustomerStore() {
     }
   };
 
-  // New Product Spotlight State
-  const [spotlightData, setSpotlightData] = useState<SpotlightData | null>(null);
+  // New Product Spotlight State (Supports multiple new products)
+  const [spotlightItems, setSpotlightItems] = useState<SpotlightData[]>([]);
 
   const fetchSpotlight = async () => {
     try {
       const res = await fetch('/api/spotlight');
       const data = await res.json();
-      if (data.success && data.active && data.data) {
-        setSpotlightData(data.data);
+      if (data.success && data.active) {
+        if (Array.isArray(data.data) && data.data.length > 0) {
+          setSpotlightItems(data.data);
+        } else if (data.item) {
+          setSpotlightItems([data.item]);
+        }
       } else {
-        setSpotlightData(null);
+        setSpotlightItems([]);
       }
     } catch (err) {
       console.error('Failed to fetch spotlight:', err);
@@ -846,9 +850,9 @@ ${productUrl}
         </div>
       </header>
 
-      {/* 2. Premium New Product Spotlight Banner */}
+      {/* 2. Premium New Product Spotlight Banner (Supports Multiple Products) */}
       <NewProductSpotlight
-        data={spotlightData}
+        items={spotlightItems}
         onSelectProduct={handleSelectSpotlightProduct}
       />
 
