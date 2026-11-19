@@ -3,7 +3,7 @@ import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
 import Settings from '@/models/Settings';
-import { createRazorpayOrder, getRazorpayKeys } from '@/lib/razorpay';
+import { createRazorpayOrder, getRazorpayKeys, RazorpayConfigError } from '@/lib/razorpay';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 
 export async function POST(request: NextRequest) {
@@ -196,7 +196,22 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     console.error('Error in /api/orders/razorpay/create:', error);
-    await captureServerException(request, error, 'razorpay-order-create');
+    const isConfigError = error instanceof RazorpayConfigError;
+    await captureServerException(request, error, 'razorpay-order-create', {
+      route: '/api/orders/razorpay/create',
+      razorpay_http_status: isConfigError ? error.httpStatus : undefined,
+    });
+
+    if (isConfigError) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: 'Online payment is temporarily unavailable. Please choose Cash on Delivery or try again later.',
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, message: error.message || 'Failed to initiate online payment order.' },
       { status: 500 }

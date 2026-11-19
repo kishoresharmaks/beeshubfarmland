@@ -44,11 +44,12 @@ export async function captureServerEvent(
 export async function captureServerException(
   request: Request,
   error: unknown,
-  fallbackDistinctId: string
+  fallbackDistinctId: string,
+  properties?: Record<string, unknown>
 ) {
   const client = createPostHogClient();
   if (!client) return;
 
-  client.captureException(error, getPostHogDistinctId(request, fallbackDistinctId));
+  client.captureException(error, getPostHogDistinctId(request, fallbackDistinctId), properties);
   await client.shutdown();
 }
