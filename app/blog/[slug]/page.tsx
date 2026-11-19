@@ -6,6 +6,7 @@ import connectToDatabase from '@/lib/db';
 import BlogPost from '@/models/BlogPost';
 import Product from '@/models/Product';
 import ShareButtons from './ShareButtons';
+import MarkdownRenderer from '@/components/blog/MarkdownRenderer';
 import {
   Calendar,
   Clock,
@@ -255,49 +256,8 @@ export default async function BlogPostPage({ params }: PageProps) {
         <ShareButtons title={post.title} slug={post.slug} />
 
         {/* Article Body Content */}
-        <article className="prose prose-slate max-w-none text-sm sm:text-base leading-relaxed text-[#163B5C] space-y-5">
-          {post.content.split('\n\n').map((paragraph: string, idx: number) => {
-            const trimmed = paragraph.trim();
-            if (!trimmed) return null;
-
-            // Heading 2 check
-            if (trimmed.startsWith('## ')) {
-              return (
-                <h2
-                  key={idx}
-                  className="text-xl sm:text-2xl font-black text-[#163B5C] pt-4 pb-1 border-b border-[#E8EDF2]"
-                >
-                  {trimmed.replace(/^##\s+/, '')}
-                </h2>
-              );
-            }
-            // Heading 3 check
-            if (trimmed.startsWith('### ')) {
-              return (
-                <h3 key={idx} className="text-lg sm:text-xl font-extrabold text-[#163B5C] pt-3">
-                  {trimmed.replace(/^###\s+/, '')}
-                </h3>
-              );
-            }
-            // Bullet list check
-            if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
-              const items = trimmed.split('\n').map((li) => li.replace(/^[-*]\s+/, ''));
-              return (
-                <ul key={idx} className="list-disc pl-5 space-y-1.5 my-3 text-slate-700">
-                  {items.map((item, i) => (
-                    <li key={i}>{item}</li>
-                  ))}
-                </ul>
-              );
-            }
-
-            // Normal paragraph
-            return (
-              <p key={idx} className="text-slate-700 leading-relaxed">
-                {trimmed}
-              </p>
-            );
-          })}
+        <article className="prose prose-slate max-w-none text-slate-700 space-y-4">
+          <MarkdownRenderer content={post.content} />
         </article>
 
         {/* Tags */}

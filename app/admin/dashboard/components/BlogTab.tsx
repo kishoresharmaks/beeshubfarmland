@@ -22,6 +22,7 @@ import {
   Check,
   Package,
 } from 'lucide-react';
+import MarkdownRenderer from '@/components/blog/MarkdownRenderer';
 
 interface BlogPostItem {
   _id: string;
@@ -793,9 +794,9 @@ export default function BlogTab() {
                     className="w-full px-3.5 py-3 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] font-mono leading-relaxed focus:outline-none focus:border-[#ED3500]"
                   />
                 ) : (
-                  <div className="p-4 bg-slate-50 border border-[#E8EDF2] rounded-xl min-h-[220px] max-h-[350px] overflow-y-auto prose prose-slate text-xs">
+                  <div className="p-4 bg-slate-50 border border-[#E8EDF2] rounded-xl min-h-[220px] max-h-[380px] overflow-y-auto prose prose-slate text-xs">
                     {formData.content ? (
-                      <div className="whitespace-pre-wrap leading-relaxed">{formData.content}</div>
+                      <MarkdownRenderer content={formData.content} />
                     ) : (
                       <span className="text-slate-400 italic">No content written yet...</span>
                     )}
