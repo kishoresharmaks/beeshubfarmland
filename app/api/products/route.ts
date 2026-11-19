@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -50,10 +51,27 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  if (!isAuthenticatedAdmin(request)) return unauthenticatedResponse();
+
+  let body: any;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { success: false, message: 'Request body must be valid JSON' },
+      { status: 400 }
+    );
+  }
+  if (!body || typeof body !== 'object') {
+    return NextResponse.json(
+      { success: false, message: 'Request body must be a JSON object' },
+      { status: 400 }
+    );
+  }
+
   try {
     await connectToDatabase();
-    const body = await request.json();
 
     const { name, description, image, mrp, price, quantity, gst, category, variants } = body;
 
