@@ -1897,8 +1897,20 @@ ${productUrl}
             {/* Scrollable Form Body Container */}
             <div className="p-6 sm:p-8 pt-6 overflow-y-auto flex-1 space-y-6 scrollbar-thin">
               {formError && (
-                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium">
-                  {formError}
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex flex-col gap-2">
+                  <span>{formError}</span>
+                  {checkoutForm.paymentMethod !== 'COD' && formError.toLowerCase().includes('cash on delivery') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCheckoutForm((prev) => ({ ...prev, paymentMethod: 'COD' }));
+                        setFormError(null);
+                      }}
+                      className="self-start px-3 py-1.5 rounded-lg bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-xs transition-colors shadow-2xs"
+                    >
+                      Switch to Cash on Delivery (COD)
+                    </button>
+                  )}
                 </div>
               )}
 
