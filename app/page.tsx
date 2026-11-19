@@ -4,8 +4,11 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Script from 'next/script';
 import NewProductSpotlight, { SpotlightData } from '@/components/NewProductSpotlight';
+import WholesaleEnquiryModal from '@/components/wholesale/WholesaleEnquiryModal';
 import {
   ShoppingBag,
+  Briefcase,
+  Building2,
   Search,
   CheckCircle2,
   X,
@@ -151,11 +154,17 @@ export default function CustomerStore() {
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [formError, setFormError] = useState('');
 
-  // Payment Gateway Settings State
+  // Wholesale B2B Modal State
+  const [isWholesaleModalOpen, setIsWholesaleModalOpen] = useState(false);
+
+  // Payment Gateway & Platform Settings State
   const [paymentSettings, setPaymentSettings] = useState({
     enableOnlinePayment: true,
     enableUPI: true,
     enableCOD: true,
+    fssaiNumber: '22424000000000',
+    gstin: '33AAAAA0000A1Z5',
+    enableWholesale: true,
   });
 
   // Hero Banners State
@@ -189,6 +198,9 @@ export default function CustomerStore() {
           enableOnlinePayment: isOnlineEnabled,
           enableUPI: isOnlineEnabled,
           enableCOD: data.data.enableCOD ?? true,
+          fssaiNumber: data.data.fssaiNumber || '22424000000000',
+          gstin: data.data.gstin || '33AAAAA0000A1Z5',
+          enableWholesale: data.data.enableWholesale ?? true,
         };
         setPaymentSettings(settings);
 
@@ -862,29 +874,94 @@ ${productUrl}
           <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
             {/* Main Hero Copy */}
             <div className="space-y-4 text-center sm:text-left max-w-2xl flex-1">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#163B5C]/5 border border-[#163B5C]/10 text-xs font-bold text-[#163B5C]">
+                <Leaf className="w-3.5 h-3.5 text-[#10B981]" />
+                <span>Direct From Kanyakumari Farmlands • Retail & Wholesale B2B</span>
+              </div>
+
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#163B5C] tracking-tight leading-tight">
-                Pure & Fresh Organic Produce, <span className="text-[#ED3500] underline decoration-wavy decoration-[#ED3500]/30 underline-offset-8">Delivered Direct To You</span>
+                Pure Harvest for Your Home, <span className="text-[#ED3500] underline decoration-wavy decoration-[#ED3500]/30 underline-offset-8">Bulk Supply for Your Business</span>
               </h1>
 
               <p className="text-[#64748B] text-sm sm:text-base leading-relaxed">
-                Experience handpicked pure honey, organic spices, and farm produce directly from <strong>BeesHub Farmland Pvt Ltd</strong>.
+                Experience 100% raw single-origin honey, organic spices, and natural produce directly from <strong>BeesHub Farmland Pvt Ltd</strong> — available for doorstep retail delivery and commercial bulk supply.
               </p>
 
+              {/* Dual-Track Action Buttons */}
               <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
                 <button
                   onClick={() => {
-                    window.scrollTo({ top: 550, behavior: 'smooth' });
+                    const el = document.getElementById('catalog-section');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      window.scrollTo({ top: 600, behavior: 'smooth' });
+                    }
                   }}
-                  className="px-6 py-3.5 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#ED3500]/25 transition-all flex items-center gap-2"
+                  className="px-6 py-3.5 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#ED3500]/25 transition-all flex items-center justify-center gap-2 group cursor-pointer"
                 >
-                  <ShoppingBag className="w-4 h-4" /> Shop Fresh Products
+                  <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <span>Shop Retail Products</span>
                 </button>
+
+                {paymentSettings.enableWholesale !== false && (
+                  <button
+                    onClick={() => {
+                      setIsWholesaleModalOpen(true);
+                      try {
+                        if (typeof window !== 'undefined' && (window as any).posthog) {
+                          (window as any).posthog.capture('wholesale_modal_opened', { source: 'hero_cta' });
+                        }
+                      } catch (e) {}
+                    }}
+                    className="px-6 py-3.5 rounded-2xl bg-[#163B5C] hover:bg-[#0E273E] text-white font-extrabold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 border border-amber-400/30 group cursor-pointer"
+                  >
+                    <Briefcase className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                    <span>Wholesale & B2B Supply</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase">
+                      Bulk Desk
+                    </span>
+                  </button>
+                )}
+
                 <button
                   onClick={() => setIsTrackModalOpen(true)}
-                  className="px-6 py-3.5 rounded-2xl bg-white hover:bg-[#FFFCFB] border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center gap-2"
+                  className="px-5 py-3.5 rounded-2xl bg-white hover:bg-[#FFFCFB] border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Truck className="w-4 h-4 text-[#ED3500]" /> Track My Order
+                  <Truck className="w-4 h-4 text-[#ED3500]" />
+                  <span>Track Order</span>
                 </button>
+              </div>
+
+              {/* Statutory Compliance Badges */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2">
+                {paymentSettings.fssaiNumber && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E8EDF2] shadow-xs text-xs">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="text-left">
+                      <span className="font-extrabold text-[#163B5C] block text-[11px] leading-tight">
+                        FSSAI Lic. Certified
+                      </span>
+                      <span className="text-[10px] text-[#64748B] block font-mono">
+                        #{paymentSettings.fssaiNumber}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {paymentSettings.gstin && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E8EDF2] shadow-xs text-xs">
+                    <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+                    <div className="text-left">
+                      <span className="font-extrabold text-[#163B5C] block text-[11px] leading-tight">
+                        GST Registered Entity
+                      </span>
+                      <span className="text-[10px] text-[#64748B] block font-mono">
+                        B2B Input Tax Credit
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -999,14 +1076,24 @@ ${productUrl}
           </div>
 
           {/* Feature Cards Horizontal Bar */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full pt-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full pt-2">
             <div className="p-4 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-[#ED3500]/10 text-[#ED3500] flex items-center justify-center font-bold shrink-0">
                 <Leaf className="w-5 h-5" />
               </div>
               <div>
                 <h4 className="font-extrabold text-xs sm:text-sm text-[#163B5C]">100% Organic</h4>
-                <p className="text-[11px] text-[#64748B]">Zero Chemicals & Pure</p>
+                <p className="text-[11px] text-[#64748B]">Zero Chemicals & Raw</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-[#163B5C]">Retail & Wholesale</h4>
+                <p className="text-[11px] text-[#64748B]">Single Jars to Metric Tons</p>
               </div>
             </div>
 
@@ -1026,7 +1113,7 @@ ${productUrl}
               </div>
               <div>
                 <h4 className="font-extrabold text-xs sm:text-sm text-[#163B5C]">Instant UPI & COD</h4>
-                <p className="text-[11px] text-[#64748B]">GPay, PhonePe & Paytm</p>
+                <p className="text-[11px] text-[#64748B]">Cards, NetBanking & COD</p>
               </div>
             </div>
           </div>
@@ -1034,7 +1121,7 @@ ${productUrl}
       </section>
 
       {/* Main Product Catalog Section */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-8">
+      <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-8">
         {/* Dynamic Admin Categories & Sorting Bar */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
           {/* Dynamic Categories */}
@@ -1496,6 +1583,19 @@ ${productUrl}
           </div>
         </div>
       )}
+
+      {/* B2B Wholesale & Bulk Supply Enquiry Modal */}
+      <WholesaleEnquiryModal
+        isOpen={isWholesaleModalOpen}
+        onClose={() => setIsWholesaleModalOpen(false)}
+        products={products.map((p) => ({
+          _id: p._id,
+          name: p.name,
+          category: p.category,
+          price: p.price,
+        }))}
+        storePhone="919876543210"
+      />
 
       {/* Product Detail Modal */}
       {selectedProduct && (

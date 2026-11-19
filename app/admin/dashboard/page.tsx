@@ -35,11 +35,13 @@ import {
   Lock,
   ShieldCheck,
   Sparkles,
+  Briefcase,
 } from 'lucide-react';
 import POSCounter from './components/pos/POSCounter';
 import SubscriptionTab from '@/components/licensing/SubscriptionTab';
 import GracePeriodBanner from '@/components/licensing/GracePeriodBanner';
 import LicenseActivationModal from '@/components/licensing/LicenseActivationModal';
+import WholesaleLeadsTab from './components/WholesaleLeadsTab';
 import { IClientLicenseState } from '@/lib/licensing/licenseTypes';
 
 interface BannerItem {
@@ -126,7 +128,7 @@ export default function AdminDashboard() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos' | 'subscription'
+    'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos' | 'subscription' | 'wholesale'
   >('products');
   const [licenseState, setLicenseState] = useState<IClientLicenseState | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -220,11 +222,27 @@ export default function AdminDashboard() {
   const [isSubmittingBanner, setIsSubmittingBanner] = useState(false);
   const [bannerError, setBannerError] = useState('');
 
+  // Wholesale Leads Counter State
+  const [newLeadsCount, setNewLeadsCount] = useState(0);
+
+  const fetchNewLeadsCount = async () => {
+    try {
+      const res = await fetch('/api/admin/wholesale?status=NEW&limit=1');
+      const data = await res.json();
+      if (data.success && typeof data.newLeadsCount === 'number') {
+        setNewLeadsCount(data.newLeadsCount);
+      }
+    } catch (e) {}
+  };
+
   // Settings State
   const [paymentSettings, setPaymentSettings] = useState({
     enableOnlinePayment: true,
     enableUPI: true,
     enableCOD: true,
+    fssaiNumber: '22424000000000',
+    gstin: '33AAAAA0000A1Z5',
+    enableWholesale: true,
   });
   const [loadingSettings, setLoadingSettings] = useState(true);
   const [isSubmittingSettings, setIsSubmittingSettings] = useState(false);
@@ -376,6 +394,9 @@ export default function AdminDashboard() {
           enableOnlinePayment: data.data.enableOnlinePayment ?? data.data.enableUPI ?? true,
           enableUPI: data.data.enableUPI ?? true,
           enableCOD: data.data.enableCOD ?? true,
+          fssaiNumber: data.data.fssaiNumber || '22424000000000',
+          gstin: data.data.gstin || '33AAAAA0000A1Z5',
+          enableWholesale: data.data.enableWholesale ?? true,
         });
 
         if (data.data.spotlights && Array.isArray(data.data.spotlights) && data.data.spotlights.length > 0) {
@@ -731,6 +752,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           fetchBanners();
           fetchSettings();
           fetchLicenseStatus();
+          fetchNewLeadsCount();
         } else {
           router.replace('/admin/login');
         }
@@ -748,6 +770,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
     if (activeTab === 'settings') {
       fetchSettings();
     }
+    fetchNewLeadsCount();
   }, [activeTab]);
 
   // Handle Product Image Upload & Canvas Compression
@@ -1306,6 +1329,21 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               }`}
             >
               <ShoppingBag className="w-4 h-4" /> Orders ({orders.length})
+            </button>
+            <button
+              onClick={() => setActiveTab('wholesale')}
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
+                activeTab === 'wholesale'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
+                  : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
+              }`}
+            >
+              <Briefcase className="w-4 h-4 text-amber-500" /> Wholesale Leads
+              {newLeadsCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-[#ED3500] text-white text-[10px] font-black">
+                  {newLeadsCount}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setActiveTab('banners')}
@@ -2202,6 +2240,87 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                   </label>
                 </div>
 
+                {/* B2B Wholesale Toggle Card */}
+                <div className="p-5 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 flex items-center justify-center font-black">
+                      <Briefcase className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-extrabold text-[#163B5C]">B2B Wholesale & Bulk Supply Desk</h3>
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            paymentSettings.enableWholesale !== false
+                              ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
+                              : 'bg-rose-100 text-rose-700 border border-rose-200'
+                          }`}
+                        >
+                          {paymentSettings.enableWholesale !== false ? 'Active' : 'Disabled'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-0.5">
+                        Enables the B2B Wholesale button on the storefront hero and allows commercial quotation requests.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={paymentSettings.enableWholesale !== false}
+                      onChange={(e) =>
+                        setPaymentSettings({ ...paymentSettings, enableWholesale: e.target.checked })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-12 h-7 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-[#ED3500]"></div>
+                  </label>
+                </div>
+
+                {/* Statutory Compliance Credentials (FSSAI & GSTIN) */}
+                <div className="p-5 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] space-y-4">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-600" />
+                    <h3 className="font-extrabold text-[#163B5C] text-sm">
+                      Statutory Credentials & Compliance Badges
+                    </h3>
+                  </div>
+                  <p className="text-xs text-[#64748B]">
+                    These official license numbers display prominently in trust badges on the storefront hero.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <label className="block text-xs font-bold text-[#163B5C] mb-1">
+                        FSSAI License Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 22424000000000"
+                        value={paymentSettings.fssaiNumber || ''}
+                        onChange={(e) =>
+                          setPaymentSettings({ ...paymentSettings, fssaiNumber: e.target.value })
+                        }
+                        className="w-full px-3.5 py-2.5 text-xs bg-white border border-[#E8EDF2] rounded-xl text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-[#163B5C] mb-1">
+                        GSTIN Registration Number
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. 33AAAAA0000A1Z5"
+                        value={paymentSettings.gstin || ''}
+                        onChange={(e) =>
+                          setPaymentSettings({ ...paymentSettings, gstin: e.target.value.toUpperCase() })
+                        }
+                        className="w-full px-3.5 py-2.5 text-xs bg-white border border-[#E8EDF2] rounded-xl text-[#163B5C] focus:outline-none focus:border-[#ED3500] uppercase"
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <button
                   type="submit"
                   disabled={isSubmittingSettings}
@@ -2210,7 +2329,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                   {isSubmittingSettings ? (
                     <RefreshCw className="w-5 h-5 animate-spin" />
                   ) : (
-                    'Save Payment Settings'
+                    'Save Settings & Credentials'
                   )}
                 </button>
               </form>
@@ -2552,6 +2671,10 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
         )}
 
         {/* Subscription & Licensing Management View */}
+        {activeTab === 'wholesale' && (
+          <WholesaleLeadsTab onLeadsUpdated={fetchNewLeadsCount} />
+        )}
+
         {activeTab === 'subscription' && (
           <SubscriptionTab
             initialLicense={licenseState}

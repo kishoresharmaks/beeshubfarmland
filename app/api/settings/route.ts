@@ -7,12 +7,29 @@ export async function GET() {
     await connectToDatabase();
     let settings = await Settings.findOne({ key: 'global' }).lean();
     if (!settings) {
-      const created = await Settings.create({ key: 'global', enableOnlinePayment: true, enableUPI: true, enableCOD: true });
+      const created = await Settings.create({
+        key: 'global',
+        enableOnlinePayment: true,
+        enableUPI: true,
+        enableCOD: true,
+        fssaiNumber: '22424000000000',
+        gstin: '33AAAAA0000A1Z5',
+        enableWholesale: true,
+      });
       settings = created.toObject();
     } else {
       // Backward-compatibility fallback
       if (settings.enableOnlinePayment === undefined) {
         settings.enableOnlinePayment = settings.enableUPI ?? true;
+      }
+      if (settings.fssaiNumber === undefined) {
+        settings.fssaiNumber = '22424000000000';
+      }
+      if (settings.gstin === undefined) {
+        settings.gstin = '33AAAAA0000A1Z5';
+      }
+      if (settings.enableWholesale === undefined) {
+        settings.enableWholesale = true;
       }
     }
     return NextResponse.json(
@@ -35,7 +52,7 @@ export async function POST(request: Request) {
   try {
     await connectToDatabase();
     const body = await request.json();
-    const { enableOnlinePayment, enableUPI, enableCOD, spotlight, spotlights } = body;
+    const { enableOnlinePayment, enableUPI, enableCOD, fssaiNumber, gstin, enableWholesale, spotlight, spotlights } = body;
 
     const updateFields: any = {};
     if (typeof enableOnlinePayment === 'boolean') {
@@ -46,6 +63,9 @@ export async function POST(request: Request) {
       updateFields.enableUPI = enableUPI;
     }
     if (typeof enableCOD === 'boolean') updateFields.enableCOD = enableCOD;
+    if (typeof fssaiNumber === 'string') updateFields.fssaiNumber = fssaiNumber.trim();
+    if (typeof gstin === 'string') updateFields.gstin = gstin.trim().toUpperCase();
+    if (typeof enableWholesale === 'boolean') updateFields.enableWholesale = enableWholesale;
     if (Array.isArray(spotlights)) {
       updateFields.spotlights = spotlights;
       if (spotlights.length > 0) {

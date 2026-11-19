@@ -25,6 +25,9 @@ export interface ISettings extends Document {
   enableOnlinePayment?: boolean;
   enableUPI: boolean;
   enableCOD: boolean;
+  fssaiNumber?: string;
+  gstin?: string;
+  enableWholesale?: boolean;
   spotlight?: ISpotlightConfig;
   spotlights?: ISpotlightConfig[];
   createdAt: Date;
@@ -71,6 +74,9 @@ const SettingsSchema: Schema = new Schema(
     enableOnlinePayment: { type: Boolean, default: true },
     enableUPI: { type: Boolean, default: true },
     enableCOD: { type: Boolean, default: true },
+    fssaiNumber: { type: String, default: '22424000000000' },
+    gstin: { type: String, default: '33AAAAA0000A1Z5' },
+    enableWholesale: { type: Boolean, default: true },
     spotlight: SpotlightItemSchema,
     spotlights: [SpotlightItemSchema],
   },
