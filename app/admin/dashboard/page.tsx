@@ -36,12 +36,14 @@ import {
   ShieldCheck,
   Sparkles,
   Briefcase,
+  BookOpen,
 } from 'lucide-react';
 import POSCounter from './components/pos/POSCounter';
 import SubscriptionTab from '@/components/licensing/SubscriptionTab';
 import GracePeriodBanner from '@/components/licensing/GracePeriodBanner';
 import LicenseActivationModal from '@/components/licensing/LicenseActivationModal';
 import WholesaleLeadsTab from './components/WholesaleLeadsTab';
+import BlogTab from './components/BlogTab';
 import { IClientLicenseState } from '@/lib/licensing/licenseTypes';
 
 interface BannerItem {
@@ -128,7 +130,7 @@ export default function AdminDashboard() {
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeTab, setActiveTab] = useState<
-    'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos' | 'subscription' | 'wholesale'
+    'products' | 'categories' | 'orders' | 'banners' | 'settings' | 'pos' | 'subscription' | 'wholesale' | 'blog'
   >('products');
   const [licenseState, setLicenseState] = useState<IClientLicenseState | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1344,6 +1346,16 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                   {newLeadsCount}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setActiveTab('blog')}
+              className={`px-3 py-2 sm:pb-4 text-xs sm:text-sm font-extrabold flex items-center gap-2 border-b-2 whitespace-nowrap transition-all ${
+                activeTab === 'blog'
+                  ? 'border-[#ED3500] text-[#ED3500] bg-[#FFF8F5] sm:bg-transparent rounded-t-xl sm:rounded-none'
+                  : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
+              }`}
+            >
+              <BookOpen className="w-4 h-4 text-[#ED3500]" /> Blog Stories
             </button>
             <button
               onClick={() => setActiveTab('banners')}
@@ -2674,6 +2686,8 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
         {activeTab === 'wholesale' && (
           <WholesaleLeadsTab onLeadsUpdated={fetchNewLeadsCount} />
         )}
+
+        {activeTab === 'blog' && <BlogTab />}
 
         {activeTab === 'subscription' && (
           <SubscriptionTab

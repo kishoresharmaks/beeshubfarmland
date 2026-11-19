@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
+import BlogPost from '@/models/BlogPost';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 3600; // Revalidate every hour
@@ -14,6 +15,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/blog`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.9,
     },
   ];
 
@@ -29,9 +36,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     }));
 
-    return [...routes, ...productUrls];
+    // Fetch published blog posts
+    const blogPosts = await BlogPost.find({ status: 'published' }, 'slug updatedAt').lean();
+    const blogUrls: MetadataRoute.Sitemap = blogPosts.map((post: any) => ({
+      url: `${baseUrl}/blog/${post.slug}`,
+      lastModified: post.updatedAt ? new Date(post.updatedAt) : new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.7,
+    }));
+
+    return [...routes, ...productUrls, ...blogUrls];
   } catch (error) {
-    console.error('Error fetching products for sitemap:', error);
+    console.error('Error fetching data for sitemap:', error);
     return routes;
   }
 }

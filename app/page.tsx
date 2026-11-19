@@ -38,6 +38,7 @@ import {
   Instagram,
   Youtube,
   Share2,
+  BookOpen,
 } from 'lucide-react';
 
 declare global {
@@ -821,11 +822,21 @@ ${productUrl}
           </div>
 
           {/* Header Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Blog Stories Link */}
+            <Link
+              href="/blog"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-semibold text-xs transition-all bg-white hover:bg-slate-50"
+              title="Farm Stories & Blog"
+            >
+              <BookOpen className="w-4 h-4 text-[#ED3500]" />
+              <span className="hidden sm:inline">Stories</span>
+            </Link>
+
             {/* Track Order Button */}
             <button
               onClick={() => setIsTrackModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-semibold text-xs transition-all bg-white"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-full border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-semibold text-xs transition-all bg-white hover:bg-slate-50"
             >
               <Truck className="w-4 h-4 text-[#ED3500]" />
               <span className="hidden sm:inline">Track Order</span>
@@ -2288,6 +2299,17 @@ ${productUrl}
                 >
                   <Youtube className="w-4 h-4" />
                 </a>
+              </div>
+
+              {/* Journal / Blog Quick Link */}
+              <div className="pt-2">
+                <Link
+                  href="/blog"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-[#ED3500] hover:text-[#D02E00] transition-colors"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Read Farmland Journal & Stories →</span>
+                </Link>
               </div>
             </div>
 
