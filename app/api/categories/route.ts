@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Category from '@/models/Category';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET() {
   try {
@@ -17,6 +18,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    // F-02: Require administrator authentication
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const { name } = await request.json();
 

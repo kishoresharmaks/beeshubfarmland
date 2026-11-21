@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { processAndSaveImage } from '@/lib/imageStorage';
 
 export async function GET(
   request: Request,
@@ -30,6 +32,11 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    // F-02: Require administrator authentication
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const { id } = params;
 
@@ -59,12 +66,22 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // F-02: Require administrator authentication
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const { id } = params;
     const body = await request.json();
 
     if (body.mrp && body.price) {
       body.discount = Math.round(((body.mrp - body.price) / body.mrp) * 100);
+    }
+
+    // F-06: Optimize image payloads if base64 provided
+    if (body.image) {
+      body.image = await processAndSaveImage(body.image, 'prod');
     }
 
     const updatedProduct = await Product.findByIdAndUpdate(id, body, {

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import connectToDatabase from '@/lib/db';
 import BlogPost from '@/models/BlogPost';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,11 +16,8 @@ function generateSlug(text: string): string {
 
 export async function GET(request: Request) {
   try {
-    const cookieStore = cookies();
-    const adminToken = cookieStore.get('admin_token')?.value;
-
-    if (adminToken !== 'logged_in_admin_session_key') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
     }
 
     await connectToDatabase();
@@ -95,11 +92,8 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = cookies();
-    const adminToken = cookieStore.get('admin_token')?.value;
-
-    if (adminToken !== 'logged_in_admin_session_key') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
     }
 
     const body = await request.json();

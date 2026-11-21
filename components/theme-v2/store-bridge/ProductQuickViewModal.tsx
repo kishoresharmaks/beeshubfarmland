@@ -1,0 +1,191 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import {
+  X,
+  ShoppingBag,
+  Plus,
+  Minus,
+  CheckCircle2,
+  ShieldCheck,
+  Leaf,
+  Sparkles,
+} from 'lucide-react';
+import { useStore, ProductVariant } from '@/context/StoreContext';
+
+/**
+ * Product QuickView Modal
+ * Shows detailed product specifications, variant selector, live stock indicators, and instant add-to-cart.
+ */
+export default function ProductQuickViewModal() {
+  const { quickViewProduct, setQuickViewProduct, addToCart } = useStore();
+
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(undefined);
+  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    if (quickViewProduct?.variants && quickViewProduct.variants.length > 0) {
+      setSelectedVariant(quickViewProduct.variants[0]);
+    } else {
+      setSelectedVariant(undefined);
+    }
+    setQuantity(1);
+  }, [quickViewProduct]);
+
+  if (!quickViewProduct) return null;
+
+  const activePrice = selectedVariant ? selectedVariant.price : quickViewProduct.price;
+  const activeMrp = selectedVariant ? selectedVariant.mrp : quickViewProduct.mrp;
+  const activeStock = selectedVariant ? selectedVariant.quantity : quickViewProduct.quantity;
+
+  const handleAddToCart = () => {
+    addToCart(quickViewProduct, quantity, selectedVariant);
+    setQuickViewProduct(null);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      role="dialog"
+      aria-modal="true"
+    >
+      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-[#E8EDF2] max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
+        {/* Header */}
+        <div className="px-6 py-4 border-b border-[#E8EDF2] flex items-center justify-between bg-[#FFFCFB]">
+          <span className="text-xs font-semibold text-[#163B5C]">
+            Product details
+          </span>
+          <button
+            onClick={() => setQuickViewProduct(null)}
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition-colors"
+            aria-label="Close modal"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 overflow-y-auto space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+            {/* Image Box */}
+            <div className="relative aspect-square rounded-2xl overflow-hidden bg-[#FFFCFB] border border-[#E8EDF2] p-2 flex items-center justify-center">
+              {quickViewProduct.image ? (
+                <Image
+                  src={quickViewProduct.image}
+                  alt={quickViewProduct.name}
+                  fill
+                  className="object-contain p-4"
+                />
+              ) : (
+                <Leaf className="w-16 h-16 text-slate-300" />
+              )}
+            </div>
+
+            {/* Content Details */}
+            <div className="space-y-4">
+              <div>
+                <span className="text-[11px] font-medium text-[#64748B]">
+                  {quickViewProduct.category || 'Farm Produce'}
+                </span>
+                <h3 className="font-heading font-bold text-xl sm:text-2xl text-[#163B5C] mt-1 leading-tight">
+                  {quickViewProduct.name}
+                </h3>
+              </div>
+
+              {/* Price Row */}
+              <div className="flex items-baseline gap-3">
+                <span className="font-heading font-bold text-2xl text-[#163B5C]">
+                  ₹{activePrice.toLocaleString('en-IN')}
+                </span>
+                {activeMrp && activeMrp > activePrice && (
+                  <span className="text-sm text-[#64748B] line-through">
+                    ₹{activeMrp.toLocaleString('en-IN')}
+                  </span>
+                )}
+                {quickViewProduct.gst > 0 && (
+                  <span className="text-xs text-[#64748B]">
+                    (+{quickViewProduct.gst}% GST)
+                  </span>
+                )}
+              </div>
+
+              {/* Description */}
+              <p className="text-xs text-[#64748B] leading-relaxed">
+                {quickViewProduct.description}
+              </p>
+
+              {/* Variants */}
+              {quickViewProduct.variants && quickViewProduct.variants.length > 0 && (
+                <div className="space-y-2">
+                  <label className="block text-xs font-extrabold text-[#163B5C]">
+                    Select Packaging Size / Variant:
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {quickViewProduct.variants.map((v, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setSelectedVariant(v)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                          selectedVariant?.name === v.name
+                            ? 'bg-[#163B5C] text-white border-[#163B5C] shadow-xs'
+                            : 'bg-[#FFFCFB] text-[#64748B] border-[#E8EDF2] hover:border-slate-300'
+                        }`}
+                      >
+                        {v.name} (₹{v.price})
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Stock Indicator */}
+              <div className="text-xs">
+                {activeStock > 0 ? (
+                  <span className="text-[#10B981] font-bold flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4" /> In Stock & Freshly Packaged
+                  </span>
+                ) : (
+                  <span className="text-rose-600 font-bold">
+                    Currently Out of Stock
+                  </span>
+                )}
+              </div>
+
+              {/* Add to Cart Controls */}
+              <div className="pt-2 flex items-center gap-3">
+                <div className="flex items-center border border-[#E8EDF2] rounded-xl bg-white overflow-hidden shadow-2xs">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-10 text-center text-xs font-black text-[#163B5C]">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity(Math.min(activeStock || 99, quantity + 1))}
+                    className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
+                <button
+                  onClick={handleAddToCart}
+                  disabled={activeStock <= 0}
+                  className="flex-1 py-3.5 px-6 rounded-full bg-[#ED3500] hover:bg-[#D02E00] text-white font-semibold text-xs shadow-md shadow-[#ED3500]/25 transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300"
+                >
+                  <ShoppingBag className="w-4 h-4" />
+                  <span>Add to Cart</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

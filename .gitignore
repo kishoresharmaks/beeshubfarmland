@@ -36,3 +36,6 @@ next-env.d.ts
 /licensing-server
 licensing-server/
 .env.local
+
+# local agent skills
+.agents/

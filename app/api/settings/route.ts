@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Settings from '@/models/Settings';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function GET() {
   try {
@@ -9,6 +10,7 @@ export async function GET() {
     if (!settings) {
       const created = await Settings.create({
         key: 'global',
+        activeTheme: 'v2',
         enableOnlinePayment: true,
         enableUPI: true,
         enableCOD: true,
@@ -31,6 +33,9 @@ export async function GET() {
       if (settings.enableWholesale === undefined) {
         settings.enableWholesale = true;
       }
+      if (!settings.activeTheme) {
+        settings.activeTheme = 'v2';
+      }
     }
     return NextResponse.json(
       { success: true, data: settings },
@@ -50,11 +55,17 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
     await connectToDatabase();
     const body = await request.json();
-    const { enableOnlinePayment, enableUPI, enableCOD, fssaiNumber, gstin, enableWholesale, spotlight, spotlights } = body;
+    const { activeTheme, enableOnlinePayment, enableUPI, enableCOD, fssaiNumber, gstin, enableWholesale, spotlight, spotlights } = body;
 
     const updateFields: any = {};
+    if (activeTheme === 'v1' || activeTheme === 'v2') {
+      updateFields.activeTheme = activeTheme;
+    }
     if (typeof enableOnlinePayment === 'boolean') {
       updateFields.enableOnlinePayment = enableOnlinePayment;
       updateFields.enableUPI = enableOnlinePayment;

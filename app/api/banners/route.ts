@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Banner from '@/models/Banner';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { processAndSaveImage } from '@/lib/imageStorage';
 
 export async function GET() {
   try {
@@ -28,6 +30,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const body = await request.json();
     const { title, image, link } = body;
@@ -39,7 +45,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const banner = await Banner.create({ title, image, link: link || '' });
+    const savedImage = await processAndSaveImage(image, 'banner');
+    const banner = await Banner.create({ title, image: savedImage, link: link || '' });
     return NextResponse.json({ success: true, data: banner }, { status: 201 });
   } catch (error: any) {
     return NextResponse.json(

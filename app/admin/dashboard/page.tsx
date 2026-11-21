@@ -239,6 +239,7 @@ export default function AdminDashboard() {
 
   // Settings State
   const [paymentSettings, setPaymentSettings] = useState({
+    activeTheme: 'v2' as 'v1' | 'v2',
     enableOnlinePayment: true,
     enableUPI: true,
     enableCOD: true,
@@ -393,6 +394,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (data.success && data.data) {
         setPaymentSettings({
+          activeTheme: data.data.activeTheme || 'v2',
           enableOnlinePayment: data.data.enableOnlinePayment ?? data.data.enableUPI ?? true,
           enableUPI: data.data.enableUPI ?? true,
           enableCOD: data.data.enableCOD ?? true,
@@ -2172,6 +2174,96 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
               )}
 
               <form onSubmit={handleSaveSettings} className="space-y-6">
+                {/* Active Storefront Theme Selection */}
+                <div className="p-6 rounded-3xl border-2 border-amber-300/60 bg-gradient-to-br from-amber-50/50 via-white to-amber-100/20 shadow-sm space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/20">
+                        <Layers className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-extrabold text-base text-[#163B5C]">Active Storefront Theme</h3>
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-400 text-[#163B5C]">
+                            Live on Store
+                          </span>
+                        </div>
+                        <p className="text-xs text-[#64748B] mt-0.5">
+                          Control which frontend theme customers see when visiting your website homepage.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                    {/* Theme V2 Card */}
+                    <div
+                      onClick={() => setPaymentSettings({ ...paymentSettings, activeTheme: 'v2' })}
+                      className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                        paymentSettings.activeTheme === 'v2'
+                          ? 'border-[#ED3500] bg-white shadow-md shadow-[#ED3500]/10 ring-2 ring-[#ED3500]/20'
+                          : 'border-[#E8EDF2] bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span className="text-xs font-black uppercase tracking-wider text-[#163B5C]">
+                            Theme V2 (Modern B2B Landing & Store)
+                          </span>
+                        </div>
+                        {paymentSettings.activeTheme === 'v2' && (
+                          <div className="w-6 h-6 rounded-full bg-[#ED3500] text-white flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-2.5 leading-relaxed">
+                        High-converting B2B wholesale landing page with hero banner slider, 6 trust badges, showcase mosaic, logo wall, problem cards, 7 benefits, quote modal & slide-over cart.
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 font-bold text-[10px] border border-emerald-200">
+                          Recommended
+                        </span>
+                        <span className="text-[11px] text-[#64748B]">B2B Leads + Retail Checkout</span>
+                      </div>
+                    </div>
+
+                    {/* Theme V1 Card */}
+                    <div
+                      onClick={() => setPaymentSettings({ ...paymentSettings, activeTheme: 'v1' })}
+                      className={`relative p-5 rounded-2xl border-2 cursor-pointer transition-all ${
+                        paymentSettings.activeTheme === 'v1'
+                          ? 'border-[#ED3500] bg-white shadow-md shadow-[#ED3500]/10 ring-2 ring-[#ED3500]/20'
+                          : 'border-[#E8EDF2] bg-white hover:border-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-3 h-3 rounded-full bg-slate-400"></span>
+                          <span className="text-xs font-black uppercase tracking-wider text-[#163B5C]">
+                            Theme V1 (Classic Retail Store)
+                          </span>
+                        </div>
+                        {paymentSettings.activeTheme === 'v1' && (
+                          <div className="w-6 h-6 rounded-full bg-[#ED3500] text-white flex items-center justify-center">
+                            <Check className="w-3.5 h-3.5 stroke-[3]" />
+                          </div>
+                        )}
+                      </div>
+                      <p className="text-xs text-[#64748B] mt-2.5 leading-relaxed">
+                        Direct retail store layout with full-width product catalog, instant category filtering, price sorting, and standard cart modals.
+                      </p>
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 font-bold text-[10px] border border-slate-200">
+                          Classic
+                        </span>
+                        <span className="text-[11px] text-[#64748B]">Retail Focus</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Online Payment (Razorpay) Toggle Card */}
                 <div className="p-5 rounded-2xl border border-[#E8EDF2] bg-[#FFFCFB] flex items-center justify-between gap-4">
                   <div className="flex items-center gap-4">

@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Banner from '@/models/Banner';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { processAndSaveImage } from '@/lib/imageStorage';
 
 export async function PUT(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const body = await request.json();
+
+    if (body.image) {
+      body.image = await processAndSaveImage(body.image, 'banner');
+    }
 
     const updatedBanner = await Banner.findByIdAndUpdate(params.id, body, {
       new: true,
@@ -39,6 +49,10 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const deletedBanner = await Banner.findByIdAndDelete(params.id);
     if (!deletedBanner) {

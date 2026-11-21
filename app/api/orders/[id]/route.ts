@@ -2,12 +2,16 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Order from '@/models/Order';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
     await connectToDatabase();
     const { id } = params;
     const body = await request.json();

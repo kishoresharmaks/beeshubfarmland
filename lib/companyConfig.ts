@@ -36,7 +36,7 @@ export const getCompanyConfig = (): CompanyConfig => ({
         process.env.NEXT_PUBLIC_COMPANY_CERTIFICATIONS ||
         'GMP & ORGANIC CERTIFIED COMPANY | ISO 9001:2015 & ISO 22000:2018 COMPANY',
     phone: process.env.NEXT_PUBLIC_COMPANY_PHONE || '9578784431',
-    email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || 'Admin@admin@beeshubfarmland.com.online',
+    email: process.env.NEXT_PUBLIC_COMPANY_EMAIL || 'admin@beeshubfarmland.com',
     gstin: process.env.NEXT_PUBLIC_COMPANY_GSTIN || '33AAOCB0453D1Z3',
     state: process.env.NEXT_PUBLIC_COMPANY_STATE || '33-Tamil Nadu',
     bankName: process.env.NEXT_PUBLIC_COMPANY_BANK_NAME || 'Axis Bank, Nagercoil [Tamil Nadu]',

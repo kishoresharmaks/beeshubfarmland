@@ -4,9 +4,13 @@ import Order from '@/models/Order';
 import Product from '@/models/Product';
 import { fulfillOrderAtomically } from '@/lib/inventory';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
     await connectToDatabase();
     const orders = await Order.find({}).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, count: orders.length, data: orders });

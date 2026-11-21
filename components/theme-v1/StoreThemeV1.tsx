@@ -1,0 +1,2425 @@
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Script from 'next/script';
+import NewProductSpotlight, { SpotlightData } from '@/components/NewProductSpotlight';
+import WholesaleEnquiryModal from '@/components/wholesale/WholesaleEnquiryModal';
+import {
+  ShoppingBag,
+  Briefcase,
+  Building2,
+  Search,
+  CheckCircle2,
+  X,
+  Plus,
+  Minus,
+  Trash2,
+  ArrowRight,
+  ShieldCheck,
+  Truck,
+  RefreshCw,
+  Eye,
+  SlidersHorizontal,
+  Leaf,
+  CreditCard,
+  QrCode,
+  Smartphone,
+  Copy,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  PackageCheck,
+  Phone,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Facebook,
+  Instagram,
+  Youtube,
+  Share2,
+  BookOpen,
+} from 'lucide-react';
+
+declare global {
+  interface Window {
+    Razorpay: any;
+  }
+}
+
+interface ProductVariant {
+  _id?: string;
+  name: string;
+  mrp: number;
+  price: number;
+  quantity: number;
+  discount?: number;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  description: string;
+  image: string;
+  mrp: number;
+  price: number;
+  discount: number;
+  quantity: number;
+  gst: number;
+  category: string;
+  variants?: ProductVariant[];
+  createdAt?: string;
+}
+
+interface CategoryItem {
+  _id: string;
+  name: string;
+}
+
+interface BannerItem {
+  _id: string;
+  title: string;
+  image: string;
+  link?: string;
+}
+
+interface CartItem {
+  product: Product;
+  selectedVariant?: ProductVariant;
+  quantity: number;
+}
+
+interface TrackedOrder {
+  _id: string;
+  orderId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  shippingAddress: string;
+  pincode: string;
+  items: Array<{ name: string; price: number; quantity: number; gst: number; image?: string }>;
+  subtotal: number;
+  totalGst: number;
+  totalAmount: number;
+  paymentMethod: 'COD' | 'UPI' | 'RAZORPAY';
+  paymentStatus: 'Pending' | 'Paid' | 'Failed';
+  transactionId?: string;
+  razorpayPaymentId?: string;
+  inventoryConflict?: boolean;
+  status: 'Pending' | 'Processing' | 'Completed' | 'Cancelled';
+  createdAt: string;
+}
+
+export default function StoreThemeV1() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [sortBy, setSortBy] = useState('newest');
+
+  // Customer Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 8;
+
+  // Modals & Drawers State
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [highlightedProductId, setHighlightedProductId] = useState<string | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState<any | null>(null);
+
+  // Order Tracking Modal State
+  const [isTrackModalOpen, setIsTrackModalOpen] = useState(false);
+  const [trackQuery, setTrackQuery] = useState('');
+  const [trackedOrders, setTrackedOrders] = useState<TrackedOrder[]>([]);
+  const [isSearchingOrders, setIsSearchingOrders] = useState(false);
+  const [trackSearched, setTrackSearched] = useState(false);
+
+  // Customer Checkout Form
+  const [checkoutForm, setCheckoutForm] = useState({
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
+    shippingAddress: '',
+    pincode: '',
+    paymentMethod: 'RAZORPAY' as 'COD' | 'RAZORPAY' | 'UPI',
+    transactionId: '',
+  });
+
+  const [merchantUpiId, setMerchantUpiId] = useState(
+    process.env.NEXT_PUBLIC_MERCHANT_UPI_ID || 'beeshubfarmland@upi'
+  );
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [submittingOrder, setSubmittingOrder] = useState(false);
+  const [formError, setFormError] = useState('');
+
+  // Wholesale B2B Modal State
+  const [isWholesaleModalOpen, setIsWholesaleModalOpen] = useState(false);
+
+  // Payment Gateway & Platform Settings State
+  const [paymentSettings, setPaymentSettings] = useState({
+    enableOnlinePayment: true,
+    enableUPI: true,
+    enableCOD: true,
+    fssaiNumber: '22424000000000',
+    gstin: '33AAAAA0000A1Z5',
+    enableWholesale: true,
+  });
+
+  // Hero Banners State
+  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [loadingBanners, setLoadingBanners] = useState(true);
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+
+  const fetchBanners = async () => {
+    try {
+      setLoadingBanners(true);
+      const res = await fetch('/api/banners');
+      const data = await res.json();
+      if (data.success) {
+        setBanners(data.data);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingBanners(false);
+    }
+  };
+
+  const fetchPaymentSettings = async () => {
+    try {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+      if (data.success && data.data) {
+        const isOnlineEnabled =
+          data.data.enableOnlinePayment ?? data.data.enableUPI ?? true;
+        const settings = {
+          enableOnlinePayment: isOnlineEnabled,
+          enableUPI: isOnlineEnabled,
+          enableCOD: data.data.enableCOD ?? true,
+          fssaiNumber: data.data.fssaiNumber || '22424000000000',
+          gstin: data.data.gstin || '33AAAAA0000A1Z5',
+          enableWholesale: data.data.enableWholesale ?? true,
+        };
+        setPaymentSettings(settings);
+
+        setCheckoutForm((prev) => {
+          if (!settings.enableOnlinePayment && (prev.paymentMethod === 'RAZORPAY' || prev.paymentMethod === 'UPI') && settings.enableCOD) {
+            return { ...prev, paymentMethod: 'COD' };
+          }
+          if (!settings.enableCOD && prev.paymentMethod === 'COD' && settings.enableOnlinePayment) {
+            return { ...prev, paymentMethod: 'RAZORPAY' };
+          }
+          return prev;
+        });
+      }
+    } catch (err) {
+      console.error('Failed to fetch payment settings:', err);
+    }
+  };
+
+  // New Product Spotlight State (Supports multiple new products)
+  const [spotlightItems, setSpotlightItems] = useState<SpotlightData[]>([]);
+
+  const fetchSpotlight = async () => {
+    try {
+      const res = await fetch('/api/spotlight');
+      const data = await res.json();
+      if (data.success && data.active) {
+        if (Array.isArray(data.data) && data.data.length > 0) {
+          setSpotlightItems(data.data);
+        } else if (data.item) {
+          setSpotlightItems([data.item]);
+        }
+      } else {
+        setSpotlightItems([]);
+      }
+    } catch (err) {
+      console.error('Failed to fetch spotlight:', err);
+    }
+  };
+
+  const handleSelectSpotlightProduct = (productId: string) => {
+    if (!productId) return;
+    const targetProduct = products.find((p) => p._id === productId);
+    if (targetProduct) {
+      setSelectedProduct(targetProduct);
+      setHighlightedProductId(targetProduct._id);
+      try {
+        if (typeof window !== 'undefined' && (window as any).posthog) {
+          (window as any).posthog.capture('product_spotlight_product_view', {
+            product_id: targetProduct._id,
+            product_name: targetProduct.name,
+            price: targetProduct.price,
+          });
+        }
+      } catch (e) {}
+      // Smooth scroll to product details
+      const el = document.getElementById(`product-${targetProduct._id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    } else {
+      window.location.href = `/product/${productId}`;
+    }
+  };
+
+  useEffect(() => {
+    fetchBanners();
+    fetchPaymentSettings();
+    fetchSpotlight();
+  }, []);
+
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev + 1) % banners.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [banners.length]);
+
+  // 1. Restore Session State from localStorage on Mount
+  useEffect(() => {
+    try {
+      const savedCart = localStorage.getItem('beeshub_cart');
+      if (savedCart) {
+        const parsed = JSON.parse(savedCart);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCart(parsed);
+        }
+      }
+
+      const savedForm = localStorage.getItem('beeshub_checkout_form');
+      if (savedForm) {
+        setCheckoutForm((prev) => ({ ...prev, ...JSON.parse(savedForm) }));
+      }
+
+      const wasCheckoutOpen = localStorage.getItem('beeshub_checkout_open');
+      if (wasCheckoutOpen === 'true') {
+        setIsCheckoutOpen(true);
+      }
+    } catch (err) {
+      console.error('Error restoring session state:', err);
+    }
+  }, []);
+
+  // 2. Persist Cart to localStorage
+  useEffect(() => {
+    try {
+      if (cart.length > 0) {
+        localStorage.setItem('beeshub_cart', JSON.stringify(cart));
+      } else {
+        localStorage.removeItem('beeshub_cart');
+      }
+    } catch (err) { }
+  }, [cart]);
+
+  // 3. Persist Checkout Form & Modal state
+  useEffect(() => {
+    try {
+      localStorage.setItem('beeshub_checkout_form', JSON.stringify(checkoutForm));
+      localStorage.setItem('beeshub_checkout_open', isCheckoutOpen ? 'true' : 'false');
+    } catch (err) { }
+  }, [checkoutForm, isCheckoutOpen]);
+
+  // Fetch Dynamic Categories
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/categories');
+      const data = await res.json();
+      if (data.success) {
+        setCategories(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  // Fetch Dynamic Products
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const url = new URL('/api/products', window.location.origin);
+      if (searchQuery) url.searchParams.append('search', searchQuery);
+      if (selectedCategory !== 'All') url.searchParams.append('category', selectedCategory);
+
+      const res = await fetch(url.toString());
+      const data = await res.json();
+      if (data.success) {
+        setProducts(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+    fetchProducts();
+  }, [searchQuery, selectedCategory]);
+
+  // Handle URL product link auto-open and highlight
+  useEffect(() => {
+    if (typeof window === 'undefined' || products.length === 0) return;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    let targetId = urlParams.get('product');
+
+    if (!targetId && window.location.hash.startsWith('#product-')) {
+      targetId = window.location.hash.replace('#product-', '');
+    }
+
+    if (targetId) {
+      const foundProduct = products.find((p) => p._id === targetId);
+      if (foundProduct) {
+        setSelectedProduct(foundProduct);
+        setHighlightedProductId(foundProduct._id);
+
+        setTimeout(() => {
+          const elem = document.getElementById(`product-${targetId}`);
+          if (elem) {
+            elem.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 350);
+      }
+    }
+  }, [products]);
+
+  // Handle Customer Order Tracking Search
+  const handleSearchTracking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!trackQuery.trim()) return;
+
+    try {
+      setIsSearchingOrders(true);
+      setTrackSearched(true);
+      const res = await fetch(`/api/orders/track?query=${encodeURIComponent(trackQuery.trim())}`);
+      const data = await res.json();
+      if (data.success) {
+        setTrackedOrders(data.data);
+      } else {
+        setTrackedOrders([]);
+      }
+    } catch (err) {
+      console.error('Error tracking order:', err);
+    } finally {
+      setIsSearchingOrders(false);
+    }
+  };
+
+  // Selected Variant State per Product
+  const [selectedVariants, setSelectedVariants] = useState<{ [productId: string]: ProductVariant }>({});
+
+  const handleSelectVariant = (productId: string, variant: ProductVariant) => {
+    setSelectedVariants((prev) => ({ ...prev, [productId]: variant }));
+  };
+
+  // Toast Message State
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage('');
+    }, 3000);
+  };
+
+  // Cart Management with Variant Support
+  const addToCart = (product: Product, quantityToAdd = 1, customVariant?: ProductVariant) => {
+    const activeVariant =
+      customVariant ||
+      selectedVariants[product._id] ||
+      (product.variants && product.variants.length > 0 ? product.variants[0] : undefined);
+
+    const activeStock = activeVariant ? activeVariant.quantity : product.quantity;
+
+    setCart((prevCart) => {
+      const existingIndex = prevCart.findIndex(
+        (item) =>
+          item.product._id === product._id &&
+          ((!item.selectedVariant && !activeVariant) ||
+            item.selectedVariant?.name === activeVariant?.name)
+      );
+
+      if (existingIndex > -1) {
+        const newQty = prevCart[existingIndex].quantity + quantityToAdd;
+        if (newQty > activeStock) {
+          alert(`Sorry, only ${activeStock} items available for ${activeVariant ? activeVariant.name : 'this product'}.`);
+          return prevCart;
+        }
+        const updated = [...prevCart];
+        updated[existingIndex] = { ...updated[existingIndex], quantity: newQty };
+        return updated;
+      } else {
+        if (quantityToAdd > activeStock) {
+          alert(`Sorry, only ${activeStock} items available in stock.`);
+          return prevCart;
+        }
+        return [...prevCart, { product, selectedVariant: activeVariant, quantity: quantityToAdd }];
+      }
+    });
+
+    const label = activeVariant ? `${product.name} (${activeVariant.name})` : product.name;
+    showToast(`Added "${label}" to cart! 🛒`);
+  };
+
+  const updateCartQty = (productId: string, variantName: string | undefined, newQty: number) => {
+    if (newQty <= 0) {
+      removeFromCart(productId, variantName);
+      return;
+    }
+    setCart((prevCart) =>
+      prevCart.map((item) => {
+        if (item.product._id === productId && item.selectedVariant?.name === variantName) {
+          const maxStock = item.selectedVariant ? item.selectedVariant.quantity : item.product.quantity;
+          if (newQty > maxStock) {
+            alert(`Only ${maxStock} units available.`);
+            return item;
+          }
+          return { ...item, quantity: newQty };
+        }
+        return item;
+      })
+    );
+  };
+
+  const removeFromCart = (productId: string, variantName?: string) => {
+    setCart((prevCart) =>
+      prevCart.filter(
+        (item) => !(item.product._id === productId && item.selectedVariant?.name === variantName)
+      )
+    );
+  };
+
+  // Calculations
+  const cartSubtotal = cart.reduce(
+    (sum, item) =>
+      sum + (item.selectedVariant ? item.selectedVariant.price : item.product.price) * item.quantity,
+    0
+  );
+  const cartGstTotal = cart.reduce(
+    (sum, item) => {
+      const unitPrice = item.selectedVariant ? item.selectedVariant.price : item.product.price;
+      const gstRate = item.product.gst !== undefined ? item.product.gst : 0;
+      return sum + ((unitPrice * item.quantity) * gstRate) / 100;
+    },
+    0
+  );
+  const cartGrandTotal = Math.round(cartSubtotal + cartGstTotal);
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Sorting & Pagination
+  const sortedProducts = [...products].sort((a, b) => {
+    if (sortBy === 'price-low') return a.price - b.price;
+    if (sortBy === 'price-high') return b.price - a.price;
+    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+  });
+
+  const totalPages = Math.ceil(sortedProducts.length / itemsPerPage) || 1;
+  const paginatedProducts = sortedProducts.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Copy UPI ID helper
+  const handleCopyUpi = () => {
+    navigator.clipboard.writeText(merchantUpiId);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2000);
+  };
+
+  // UPI Intent URL
+  const upiIntentUrl = `upi://pay?pa=${encodeURIComponent(merchantUpiId)}&pn=${encodeURIComponent('BEES HUB FARMLAND PRIVATE LIMITED')}&am=${cartGrandTotal}&cu=INR&tn=${encodeURIComponent('BeesHub Farmland Order')}`;
+  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(upiIntentUrl)}`;
+
+  // Handle Order Submit
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (
+      !checkoutForm.customerName ||
+      !checkoutForm.customerPhone ||
+      !checkoutForm.customerEmail ||
+      !checkoutForm.shippingAddress ||
+      !checkoutForm.pincode
+    ) {
+      setFormError('Please fill in all required customer details.');
+      return;
+    }
+
+    const isOnlineAvailable = paymentSettings.enableOnlinePayment ?? paymentSettings.enableUPI ?? true;
+
+    if (!isOnlineAvailable && !paymentSettings.enableCOD) {
+      setFormError('Checkout is currently disabled as all payment options are disabled by store administration.');
+      return;
+    }
+
+    if ((checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') && !isOnlineAvailable) {
+      setFormError('Online payment option is currently disabled by store administration. Please choose Cash on Delivery.');
+      return;
+    }
+
+    if (checkoutForm.paymentMethod === 'COD' && !paymentSettings.enableCOD) {
+      setFormError('Cash on Delivery payment option is currently disabled by store administration. Please choose Online Payment.');
+      return;
+    }
+
+    try {
+      setSubmittingOrder(true);
+      const itemsPayload = cart.map((item) => ({
+        productId: item.product._id,
+        name: item.selectedVariant ? `${item.product.name} (${item.selectedVariant.name})` : item.product.name,
+        variantName: item.selectedVariant ? item.selectedVariant.name : '',
+        price: item.selectedVariant ? item.selectedVariant.price : item.product.price,
+        quantity: item.quantity,
+        gst: item.product.gst !== undefined ? item.product.gst : 0,
+        image: item.product.image,
+      }));
+
+      // ==========================================
+      // Branch 1: Online Payment via Razorpay
+      // ==========================================
+      if (checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') {
+        const createRes = await fetch('/api/orders/razorpay/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customerName: checkoutForm.customerName,
+            customerPhone: checkoutForm.customerPhone,
+            customerEmail: checkoutForm.customerEmail,
+            shippingAddress: checkoutForm.shippingAddress,
+            pincode: checkoutForm.pincode,
+            items: itemsPayload,
+          }),
+        });
+
+        const createData = await createRes.json();
+        if (!createData.success) {
+          setFormError(createData.message || 'Failed to initiate online payment.');
+          setSubmittingOrder(false);
+          return;
+        }
+
+        if (typeof window === 'undefined' || !window.Razorpay) {
+          setFormError('Razorpay checkout SDK is still loading. Please try again in a few seconds.');
+          setSubmittingOrder(false);
+          return;
+        }
+
+        const options = {
+          key: createData.keyId,
+          amount: createData.amountInPaise,
+          currency: createData.currency || 'INR',
+          name: 'BEES HUB FARMLAND PRIVATE LIMITED',
+          description: `Order ${createData.orderId}`,
+          order_id: createData.razorpayOrderId,
+          prefill: {
+            name: checkoutForm.customerName,
+            email: checkoutForm.customerEmail,
+            contact: checkoutForm.customerPhone,
+          },
+          theme: {
+            color: '#ED3500',
+          },
+          modal: {
+            ondismiss: () => {
+              setSubmittingOrder(false);
+              setFormError('Payment was not completed. You can try again or switch to Cash on Delivery.');
+            },
+          },
+          handler: async (response: any) => {
+            try {
+              setSubmittingOrder(true);
+              const verifyRes = await fetch('/api/orders/razorpay/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: createData.orderId,
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                }),
+              });
+
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                setOrderSuccess(verifyData.data);
+                setCart([]);
+                setIsCheckoutOpen(false);
+                setIsCartOpen(false);
+
+                try {
+                  localStorage.removeItem('beeshub_cart');
+                  localStorage.removeItem('beeshub_checkout_form');
+                  localStorage.removeItem('beeshub_checkout_open');
+                } catch (e) { }
+
+                fetchProducts();
+              } else {
+                setFormError(verifyData.message || 'Payment verification failed.');
+              }
+            } catch (err: any) {
+              setFormError(err.message || 'Error communicating with payment verification server.');
+            } finally {
+              setSubmittingOrder(false);
+            }
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+        return;
+      }
+
+      // ==========================================
+      // Branch 2: Cash on Delivery (COD)
+      // ==========================================
+      const payload = {
+        ...checkoutForm,
+        paymentMethod: 'COD',
+        items: itemsPayload,
+      };
+
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setOrderSuccess(data.data);
+        setCart([]);
+        setIsCheckoutOpen(false);
+        setIsCartOpen(false);
+
+        try {
+          localStorage.removeItem('beeshub_cart');
+          localStorage.removeItem('beeshub_checkout_form');
+          localStorage.removeItem('beeshub_checkout_open');
+        } catch (e) { }
+
+        fetchProducts();
+      } else {
+        setFormError(data.message || 'Failed to place order.');
+      }
+    } catch (err: any) {
+      setFormError(err.message || 'Network error occurred while submitting order.');
+    } finally {
+      if (checkoutForm.paymentMethod === 'COD') {
+        setSubmittingOrder(false);
+      }
+    }
+  };
+
+  const getWhatsAppSupportLink = (order: any) => {
+    if (!order) return 'https://wa.me/919578784431';
+    const itemsList = order.items
+      ? order.items.map((it: any) => `• ${it.name} x ${it.quantity} (₹${(it.price * it.quantity).toLocaleString('en-IN')})`).join('\n')
+      : '';
+
+    const text = `Hello BeesHub Farmland Team 👋,
+
+I need support regarding my order:
+
+🆔 *Order ID:* ${order.orderId || ''}
+👤 *Name:* ${order.customerName || ''}
+${order.customerPhone ? `📞 *Phone:* ${order.customerPhone}\n` : ''}${order.shippingAddress ? `📍 *Address:* ${order.shippingAddress} - ${order.pincode || ''}\n` : ''}
+🛒 *Items Ordered:*
+${itemsList}
+
+💰 *Total Amount:* ₹${order.totalAmount ? order.totalAmount.toLocaleString('en-IN') : 0}
+💳 *Payment Mode:* ${order.paymentMethod === 'RAZORPAY' ? 'Online Payment (Razorpay)' : order.paymentMethod === 'UPI' ? 'Online UPI' : 'Cash on Delivery'} (${order.paymentStatus || 'Pending'})
+${order.razorpayPaymentId ? `💳 *Payment ID:* ${order.razorpayPaymentId}\n` : ''}${order.transactionId ? `🔢 *UTR / Ref:* ${order.transactionId}\n` : ''}${order.status ? `📦 *Status:* ${order.status}\n` : ''}
+Please assist me with this order. Thank you!`;
+
+    return `https://wa.me/919578784431?text=${encodeURIComponent(text)}`;
+  };
+
+  const getWhatsAppProductShareLink = (product: Product, variant?: ProductVariant) => {
+    const selectedVar = variant || (product.variants && product.variants.length > 0 ? product.variants[0] : undefined);
+    const price = selectedVar ? selectedVar.price : product.price;
+    const mrp = selectedVar ? selectedVar.mrp : product.mrp;
+    const variantName = selectedVar ? ` (${selectedVar.name})` : '';
+    const discount = selectedVar
+      ? selectedVar.mrp > selectedVar.price
+        ? Math.round(((selectedVar.mrp - selectedVar.price) / selectedVar.mrp) * 100)
+        : 0
+      : product.discount;
+
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://beeshubfarmland.com';
+    const productUrl = `${baseUrl}/product/${product._id}`;
+
+    const text = `🌿 *${product.name}${variantName}*
+
+💰 *Price:* ₹${price.toLocaleString('en-IN')}${mrp > price ? ` (MRP: ~₹${mrp.toLocaleString('en-IN')}~ - ${discount}% OFF)` : ''}
+🏷️ *Category:* ${product.category || 'Pure Organic Produce'}
+✨ *Highlight:* 100% Pure & Fresh Organic Harvest directly from BeesHub Farmland.
+
+🛒 *View Product & Order Online:*
+${productUrl}
+
+— *BEES HUB FARMLAND PRIVATE LIMITED*`;
+
+    return `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+  };
+
+  const dynamicCategoryList = ['All', ...categories.map((c) => c.name)];
+
+  return (
+    <div className="min-h-screen flex flex-col justify-between bg-[#FFFCFB] text-[#163B5C]">
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+      {/* Real E-Commerce Store Header Nav */}
+      <header className="sticky top-0 z-40 bg-[#FFFFFF]/95 backdrop-blur-md border-b border-[#E8EDF2] transition-all">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+          {/* Brand Logo */}
+          <Link href="/" className="flex items-center gap-3 group">
+            <img
+              src="/logo.jpg"
+              alt="BEES HUB FARMLAND PRIVATE LIMITED Logo"
+              className="w-10 h-10 object-contain rounded-xl shadow-xs border border-[#E8EDF2] group-hover:scale-105 transition-transform"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+            <div>
+              <span className="font-extrabold text-xl sm:text-2xl tracking-tight text-[#163B5C]">
+                BeesHub <span className="text-[#ED3500]">Farmland</span>
+              </span>
+              <span className="block text-[10px] uppercase tracking-widest text-[#64748B] font-bold -mt-1">
+                Pvt Ltd
+              </span>
+            </div>
+          </Link>
+
+          {/* Search Bar */}
+          <div className="flex-1 max-w-lg hidden md:block relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+            <input
+              type="text"
+              placeholder="Search products in store..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-full text-sm focus:outline-none focus:border-[#ED3500] focus:ring-2 focus:ring-[#ED3500]/10 transition-all text-[#163B5C] placeholder-[#64748B]"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#64748B] hover:text-[#163B5C]"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Header Actions */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            {/* Blog Stories Link */}
+            <Link
+              href="/blog"
+              className="flex items-center gap-1.5 px-3 sm:px-4 py-2.5 rounded-full border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-semibold text-xs transition-all bg-white hover:bg-slate-50"
+              title="Farm Stories & Blog"
+            >
+              <BookOpen className="w-4 h-4 text-[#ED3500]" />
+              <span className="hidden sm:inline">Stories</span>
+            </Link>
+
+            {/* Track Order Button */}
+            <button
+              onClick={() => setIsTrackModalOpen(true)}
+              className="flex items-center gap-2 px-3 sm:px-4 py-2.5 rounded-full border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-semibold text-xs transition-all bg-white hover:bg-slate-50"
+            >
+              <Truck className="w-4 h-4 text-[#ED3500]" />
+              <span className="hidden sm:inline">Track Order</span>
+            </button>
+
+            {/* Cart Button */}
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="relative flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-sm shadow-md shadow-[#ED3500]/20 transition-all"
+            >
+              <ShoppingBag className="w-5 h-5" />
+              <span>Cart</span>
+              {cartItemCount > 0 && (
+                <span className="w-5 h-5 rounded-full bg-white text-[#ED3500] text-xs font-black flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Search input */}
+        <div className="md:hidden px-4 pb-3">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#64748B]" />
+            <input
+              type="text"
+              placeholder="Search products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-2 bg-[#FFFCFB] border border-[#E8EDF2] rounded-full text-sm focus:outline-none focus:border-[#ED3500]"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* 2. Premium New Product Spotlight Banner (Supports Multiple Products) */}
+      <NewProductSpotlight
+        items={spotlightItems}
+        onSelectProduct={handleSelectSpotlightProduct}
+      />
+
+      {/* Modern E-Commerce Hero Showcase Banner with Dynamic Admin Banners */}
+      <section className="bg-gradient-to-br from-[#FFF5F2] via-[#FFFCFB] to-[#FFF8F5] border-b border-[#E8EDF2] py-10 sm:py-14 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
+            {/* Main Hero Copy */}
+            <div className="space-y-4 text-center sm:text-left max-w-2xl flex-1">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#163B5C]/5 border border-[#163B5C]/10 text-xs font-bold text-[#163B5C]">
+                <Leaf className="w-3.5 h-3.5 text-[#10B981]" />
+                <span>Direct From Kanyakumari Farmlands • Retail & Wholesale B2B</span>
+              </div>
+
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-[#163B5C] tracking-tight leading-tight">
+                Pure Harvest for Your Home, <span className="text-[#ED3500] underline decoration-wavy decoration-[#ED3500]/30 underline-offset-8">Bulk Supply for Your Business</span>
+              </h1>
+
+              <p className="text-[#64748B] text-sm sm:text-base leading-relaxed">
+                Experience 100% raw single-origin honey, organic spices, and natural produce directly from <strong>BeesHub Farmland Pvt Ltd</strong> — available for doorstep retail delivery and commercial bulk supply.
+              </p>
+
+              {/* Dual-Track Action Buttons */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 pt-2">
+                <button
+                  onClick={() => {
+                    const el = document.getElementById('catalog-section');
+                    if (el) {
+                      el.scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                      window.scrollTo({ top: 600, behavior: 'smooth' });
+                    }
+                  }}
+                  className="px-6 py-3.5 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider shadow-lg shadow-[#ED3500]/25 transition-all flex items-center justify-center gap-2 group cursor-pointer"
+                >
+                  <ShoppingBag className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                  <span>Shop Retail Products</span>
+                </button>
+
+                {paymentSettings.enableWholesale !== false && (
+                  <button
+                    onClick={() => {
+                      setIsWholesaleModalOpen(true);
+                      try {
+                        if (typeof window !== 'undefined' && (window as any).posthog) {
+                          (window as any).posthog.capture('wholesale_modal_opened', { source: 'hero_cta' });
+                        }
+                      } catch (e) {}
+                    }}
+                    className="px-6 py-3.5 rounded-2xl bg-[#163B5C] hover:bg-[#0E273E] text-white font-extrabold text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 border border-amber-400/30 group cursor-pointer"
+                  >
+                    <Briefcase className="w-4 h-4 text-amber-400 group-hover:scale-110 transition-transform" />
+                    <span>Wholesale & B2B Supply</span>
+                    <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black uppercase">
+                      Bulk Desk
+                    </span>
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setIsTrackModalOpen(true)}
+                  className="px-5 py-3.5 rounded-2xl bg-white hover:bg-[#FFFCFB] border border-[#E8EDF2] hover:border-[#163B5C]/30 text-[#163B5C] font-bold text-xs uppercase tracking-wider transition-all shadow-xs flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Truck className="w-4 h-4 text-[#ED3500]" />
+                  <span>Track Order</span>
+                </button>
+              </div>
+
+              {/* Statutory Compliance Badges */}
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-2">
+                {paymentSettings.fssaiNumber && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E8EDF2] shadow-xs text-xs">
+                    <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <div className="text-left">
+                      <span className="font-extrabold text-[#163B5C] block text-[11px] leading-tight">
+                        FSSAI Lic. Certified
+                      </span>
+                      <span className="text-[10px] text-[#64748B] block font-mono">
+                        #{paymentSettings.fssaiNumber}
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {paymentSettings.gstin && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white border border-[#E8EDF2] shadow-xs text-xs">
+                    <Building2 className="w-4 h-4 text-blue-600 shrink-0" />
+                    <div className="text-left">
+                      <span className="font-extrabold text-[#163B5C] block text-[11px] leading-tight">
+                        GST Registered Entity
+                      </span>
+                      <span className="text-[10px] text-[#64748B] block font-mono">
+                        B2B Input Tax Credit
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right Side: Dynamic Admin Uploaded Banner Showcase / Carousel */}
+            <div className="w-full lg:w-1/2 max-w-lg shrink-0">
+              {loadingBanners ? (
+                <div className="aspect-[4/3] rounded-3xl bg-[#FFF8F5] border border-[#E8EDF2] flex flex-col items-center justify-center space-y-2 animate-pulse">
+                  <RefreshCw className="w-8 h-8 text-[#ED3500] animate-spin" />
+                  <span className="text-xs text-[#64748B] font-semibold">Loading Fresh Farm Showcase...</span>
+                </div>
+              ) : banners.length > 0 ? (
+                <div className="relative group rounded-3xl overflow-hidden shadow-xl border border-[#E8EDF2] aspect-[4/3] bg-white">
+                  {banners[currentBannerIndex]?.link ? (
+                    <a href={banners[currentBannerIndex].link} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={banners[currentBannerIndex].image}
+                        alt={banners[currentBannerIndex].title}
+                        className="w-full h-full object-cover transition-opacity duration-500"
+                        loading="lazy"
+                      />
+                    </a>
+                  ) : (
+                    <img
+                      src={banners[currentBannerIndex].image}
+                      alt={banners[currentBannerIndex].title}
+                      className="w-full h-full object-cover transition-opacity duration-500"
+                      loading="lazy"
+                    />
+                  )}
+
+                  {/* Banner Overlay Caption */}
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-5 text-white flex items-end justify-between">
+                    <div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#ED3500] text-[10px] font-black uppercase tracking-wider mb-1 inline-block">
+                        Featured Harvest
+                      </span>
+                      <h4 className="font-extrabold text-sm sm:text-base line-clamp-1">
+                        {banners[currentBannerIndex].title}
+                      </h4>
+                    </div>
+
+                    {banners.length > 1 && (
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {banners.map((_, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => setCurrentBannerIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              idx === currentBannerIndex ? 'w-5 bg-[#ED3500]' : 'bg-white/60 hover:bg-white'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Carousel Prev / Next Controls */}
+                  {banners.length > 1 && (
+                    <>
+                      <button
+                        onClick={() =>
+                          setCurrentBannerIndex((prev) => (prev === 0 ? banners.length - 1 : prev - 1))
+                        }
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-[#163B5C] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() =>
+                          setCurrentBannerIndex((prev) => (prev + 1) % banners.length)
+                        }
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/80 hover:bg-white text-[#163B5C] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                      >
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
+                </div>
+              ) : (
+                /* Fallback Showcase Card when no custom banners uploaded */
+                <div className="relative rounded-3xl overflow-hidden shadow-xl border border-[#E8EDF2] aspect-[4/3] bg-gradient-to-br from-[#FFF8F5] to-[#FFF0EC] p-6 flex flex-col justify-between">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src="/logo.jpg"
+                      alt="BEES HUB FARMLAND Logo"
+                      className="w-12 h-12 object-contain rounded-2xl shadow-sm border border-[#E8EDF2]"
+                    />
+                    <div>
+                      <span className="px-2.5 py-0.5 rounded-full bg-[#10B981]/10 text-[#10B981] font-bold text-[10px] uppercase tracking-wider">
+                        Authentic Produce
+                      </span>
+                      <h4 className="font-extrabold text-sm text-[#163B5C]">BEES HUB FARMLAND</h4>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 py-4">
+                    <h3 className="text-xl font-black text-[#163B5C] leading-snug">
+                      100% Pure & Certified Farm Harvest
+                    </h3>
+                    <p className="text-xs text-[#64748B]">
+                      Handpicked honey, natural spices & essential produce directly from Kanyakumari farmlands.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-[#E8EDF2]/60 text-xs text-[#163B5C] font-bold">
+                    <span>🌾 Zero Chemicals</span>
+                    <span>🚀 Express Dispatch</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Feature Cards Horizontal Bar */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full pt-2">
+            <div className="p-4 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#ED3500]/10 text-[#ED3500] flex items-center justify-center font-bold shrink-0">
+                <Leaf className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-[#163B5C]">100% Organic</h4>
+                <p className="text-[11px] text-[#64748B]">Zero Chemicals & Raw</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 flex items-center justify-center font-bold shrink-0">
+                <Briefcase className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-[#163B5C]">Retail & Wholesale</h4>
+                <p className="text-[11px] text-[#64748B]">Single Jars to Metric Tons</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#10B981]/10 text-[#10B981] flex items-center justify-center font-bold shrink-0">
+                <Truck className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-[#163B5C]">Direct Shipping</h4>
+                <p className="text-[11px] text-[#64748B]">Kanyakumari Farmlands</p>
+              </div>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-[#E8EDF2] shadow-sm hover:shadow-md transition-shadow flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-600 flex items-center justify-center font-bold shrink-0">
+                <QrCode className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-extrabold text-xs sm:text-sm text-[#163B5C]">Instant UPI & COD</h4>
+                <p className="text-[11px] text-[#64748B]">Cards, NetBanking & COD</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Product Catalog Section */}
+      <main id="catalog-section" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full space-y-8">
+        {/* Dynamic Admin Categories & Sorting Bar */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
+          {/* Dynamic Categories */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto scrollbar-none">
+            {dynamicCategoryList.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${selectedCategory === cat
+                  ? 'bg-[#ED3500] text-white shadow-md shadow-[#ED3500]/20'
+                  : 'bg-white border border-[#E8EDF2] text-[#64748B] hover:text-[#163B5C] hover:border-[#163B5C]/20'
+                  }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Results count & Sort dropdown */}
+          <div className="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto text-sm text-[#64748B]">
+            <span>
+              Showing <strong className="text-[#163B5C]">{paginatedProducts.length}</strong> of{' '}
+              <strong className="text-[#163B5C]">{sortedProducts.length}</strong> items
+            </span>
+            <div className="flex items-center gap-2">
+              <SlidersHorizontal className="w-4 h-4 text-[#64748B]" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-white border border-[#E8EDF2] rounded-lg px-3 py-1.5 text-xs font-medium text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+              >
+                <option value="newest">Featured</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Customized Premium Product Cards Grid (Optimized for Mobile & Desktop) */}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-80 rounded-2xl bg-white border border-[#E8EDF2] animate-pulse p-4 space-y-4"
+              >
+                <div className="h-44 bg-[#E8EDF2] rounded-xl"></div>
+                <div className="h-4 bg-[#E8EDF2] rounded w-3/4"></div>
+                <div className="h-4 bg-[#E8EDF2] rounded w-1/2"></div>
+              </div>
+            ))}
+          </div>
+        ) : sortedProducts.length === 0 ? (
+          <div className="py-20 text-center bg-white rounded-3xl border border-[#E8EDF2] max-w-lg mx-auto p-8 space-y-4">
+            <div className="w-16 h-16 rounded-full bg-[#FFF8F5] text-[#ED3500] flex items-center justify-center mx-auto">
+              <ShoppingBag className="w-8 h-8" />
+            </div>
+            <h3 className="text-xl font-bold text-[#163B5C]">No products available</h3>
+            <p className="text-sm text-[#64748B]">
+              No products have been added yet or match your filter.
+            </p>
+            {searchQuery || selectedCategory !== 'All' ? (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setSelectedCategory('All');
+                }}
+                className="px-5 py-2.5 rounded-full bg-[#ED3500] text-white font-medium text-xs hover:bg-[#D02E00] transition-colors"
+              >
+                Reset Filters
+              </button>
+            ) : null}
+          </div>
+        ) : (
+          <div className="space-y-8">
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {paginatedProducts.map((product) => {
+                const activeVariant =
+                  selectedVariants[product._id] ||
+                  (product.variants && product.variants.length > 0 ? product.variants[0] : undefined);
+
+                const displayPrice = activeVariant ? activeVariant.price : product.price;
+                const displayMrp = activeVariant ? activeVariant.mrp : product.mrp;
+                const displayDiscount = activeVariant
+                  ? activeVariant.mrp > activeVariant.price
+                    ? Math.round(((activeVariant.mrp - activeVariant.price) / activeVariant.mrp) * 100)
+                    : 0
+                  : product.discount;
+
+                const activeStock = activeVariant ? activeVariant.quantity : product.quantity;
+                const isOutOfStock = activeStock <= 0;
+                const gstRate = product.gst !== undefined ? product.gst : 0;
+
+                const isHighlighted = highlightedProductId === product._id;
+
+                return (
+                  <div
+                    key={product._id}
+                    id={`product-${product._id}`}
+                    className={`group bg-white rounded-2xl border overflow-hidden transition-all duration-500 flex flex-col justify-between ${
+                      isHighlighted
+                        ? 'border-[#ED3500] ring-4 ring-[#ED3500]/40 shadow-2xl scale-[1.02] bg-[#FFF8F5]'
+                        : 'border-[#E8EDF2] hover:shadow-xl hover:border-[#ED3500]/40'
+                    }`}
+                  >
+                    <div>
+                      {/* Image Container */}
+                      <div className="relative aspect-square bg-[#FFF8F5] overflow-hidden">
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          onError={(e) => {
+                            (e.target as HTMLElement).setAttribute(
+                              'src',
+                              'https://images.unsplash.com/photo-1610030469983-98e550d6193c?auto=format&fit=crop&w=800&q=80'
+                            );
+                          }}
+                        />
+                        {/* Top Badges & WhatsApp Quick Share */}
+                        <div className="absolute top-2 left-2 right-2 flex items-start justify-between pointer-events-none">
+                          <div className="flex flex-col gap-1 pointer-events-auto">
+                            {isHighlighted && (
+                              <span className="px-2 py-0.5 rounded-md bg-[#10B981] text-white text-[9px] sm:text-[10px] font-black uppercase tracking-wide shadow-sm animate-pulse">
+                                ✨ Shared Item
+                              </span>
+                            )}
+                            {displayDiscount > 0 && (
+                              <span className="px-2 py-0.5 rounded-md bg-[#ED3500] text-white text-[10px] sm:text-xs font-extrabold uppercase tracking-wide shadow-sm">
+                                {displayDiscount}% OFF
+                              </span>
+                            )}
+                            <span className="px-2 py-0.5 rounded-md bg-white/90 backdrop-blur-xs text-[#163B5C] text-[9px] sm:text-[10px] font-bold flex items-center gap-1 shadow-xs">
+                              <CheckCircle2 className="w-3 h-3 text-[#10B981]" /> Verified
+                            </span>
+                          </div>
+                          <a
+                            href={getWhatsAppProductShareLink(product, activeVariant)}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="pointer-events-auto p-1.5 rounded-full bg-white/90 hover:bg-[#10B981] text-[#10B981] hover:text-white shadow-md backdrop-blur-xs transition-all flex items-center justify-center"
+                            title={`Share ${product.name} on WhatsApp`}
+                            aria-label={`Share ${product.name} on WhatsApp`}
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+
+                        {/* Quick View Button Overlay */}
+                        <button
+                          onClick={() => setSelectedProduct(product)}
+                          className="absolute bottom-2 right-2 p-2 rounded-full bg-white/90 hover:bg-[#ED3500] hover:text-white text-[#163B5C] transition-all shadow-md backdrop-blur-xs hidden sm:flex items-center justify-center opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0"
+                          title="Quick View Details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Product Info */}
+                      <div className="p-3 sm:p-5 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-[#64748B] line-clamp-1">
+                            {product.category || 'General'}
+                          </span>
+                          <span className="text-[10px] font-semibold text-[#64748B]">
+                            {gstRate === 0 ? '0% GST' : `${gstRate}% GST`}
+                          </span>
+                        </div>
+
+                        <h3
+                          onClick={() => setSelectedProduct(product)}
+                          className="font-bold text-xs sm:text-base text-[#163B5C] line-clamp-2 hover:text-[#ED3500] cursor-pointer transition-colors leading-snug"
+                        >
+                          {product.name}
+                        </h3>
+
+                        {/* Product Variant Selector Buttons */}
+                        {product.variants && product.variants.length > 0 && (
+                          <div className="pt-1 space-y-1">
+                            <span className="text-[10px] font-bold text-[#64748B] uppercase block">
+                              Option / Weight:
+                            </span>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {product.variants.map((v) => {
+                                const isSelected = activeVariant?.name === v.name;
+                                return (
+                                  <button
+                                    key={v.name}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleSelectVariant(product._id, v);
+                                    }}
+                                    className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border transition-all ${
+                                      isSelected
+                                        ? 'bg-[#ED3500] text-white border-[#ED3500] shadow-xs'
+                                        : 'bg-white text-[#163B5C] border-[#E8EDF2] hover:border-[#ED3500]/50'
+                                    }`}
+                                  >
+                                    {v.name}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Stock status */}
+                        <div className="text-[10px] sm:text-xs pt-0.5">
+                          {isOutOfStock ? (
+                            <span className="text-rose-600 font-bold">Out of Stock</span>
+                          ) : (
+                            <span className="text-[#10B981] font-semibold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#10B981]"></span>
+                              In Stock ({activeStock})
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Price Breakdown */}
+                        <div className="pt-1 flex items-baseline gap-2">
+                          <span className="text-base sm:text-xl font-black text-[#ED3500]">
+                            ₹{displayPrice.toLocaleString('en-IN')}
+                          </span>
+                          {displayMrp > displayPrice && (
+                            <span className="text-[10px] sm:text-xs text-[#64748B] line-through font-medium">
+                              ₹{displayMrp.toLocaleString('en-IN')}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Add to Cart & WhatsApp Share CTA Button */}
+                    <div className="p-3 sm:p-5 pt-0 flex items-center gap-2">
+                      <button
+                        disabled={isOutOfStock}
+                        onClick={() => addToCart(product, 1, activeVariant)}
+                        className={`flex-1 py-2 sm:py-2.5 px-3 rounded-xl font-bold text-[11px] sm:text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all ${isOutOfStock
+                          ? 'bg-[#E8EDF2] text-[#64748B] cursor-not-allowed'
+                          : 'bg-[#ED3500] hover:bg-[#D02E00] text-white shadow-md hover:shadow-lg shadow-[#ED3500]/20 active:scale-95'
+                          }`}
+                      >
+                        <ShoppingBag className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        {isOutOfStock ? 'Sold Out' : `Add ${activeVariant ? `(${activeVariant.name})` : 'to Bag'}`}
+                      </button>
+                      <a
+                        href={getWhatsAppProductShareLink(product, activeVariant)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 sm:p-2.5 rounded-xl bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-200 transition-all flex items-center justify-center shrink-0 shadow-2xs"
+                        title={`Share ${product.name} on WhatsApp`}
+                        aria-label={`Share ${product.name} on WhatsApp`}
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Storefront Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-6 border-t border-[#E8EDF2] text-xs text-[#64748B]">
+                <span>
+                  Page <strong className="text-[#163B5C]">{currentPage}</strong> of{' '}
+                  <strong className="text-[#163B5C]">{totalPages}</strong>
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={currentPage === 1}
+                    onClick={() => {
+                      setCurrentPage((p) => Math.max(p - 1, 1));
+                      window.scrollTo({ top: 300, behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 rounded-xl border border-[#E8EDF2] bg-white font-bold text-[#163B5C] disabled:opacity-40 hover:bg-[#FFF8F5] hover:border-[#ED3500]/30 transition-all flex items-center gap-1 shadow-xs"
+                  >
+                    <ChevronLeft className="w-4 h-4 text-[#ED3500]" /> Previous
+                  </button>
+                  <button
+                    disabled={currentPage === totalPages}
+                    onClick={() => {
+                      setCurrentPage((p) => Math.min(p + 1, totalPages));
+                      window.scrollTo({ top: 300, behavior: 'smooth' });
+                    }}
+                    className="px-4 py-2 rounded-xl border border-[#E8EDF2] bg-white font-bold text-[#163B5C] disabled:opacity-40 hover:bg-[#FFF8F5] hover:border-[#ED3500]/30 transition-all flex items-center gap-1 shadow-xs"
+                  >
+                    Next <ChevronRight className="w-4 h-4 text-[#ED3500]" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+
+      {/* Customer Order Tracking Modal */}
+      {isTrackModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-[#E8EDF2] shadow-2xl p-6 sm:p-8 relative">
+            <button
+              onClick={() => {
+                setIsTrackModalOpen(false);
+                setTrackedOrders([]);
+                setTrackSearched(false);
+                setTrackQuery('');
+              }}
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-[#E8EDF2] text-[#64748B]"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="space-y-6">
+              <div>
+                <div className="flex items-center gap-2 text-[#ED3500]">
+                  <Truck className="w-6 h-6" />
+                  <h3 className="text-2xl font-extrabold text-[#163B5C]">Track Your Order</h3>
+                </div>
+                <p className="text-xs text-[#64748B] mt-1">
+                  Enter your registered Phone Number, Email Address, or Order Number (e.g. ORD-1001) to check live status.
+                </p>
+              </div>
+
+              {/* Tracking Search Form */}
+              <form onSubmit={handleSearchTracking} className="flex gap-2">
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. +91 95787 84431 or ORD-1001"
+                  value={trackQuery}
+                  onChange={(e) => setTrackQuery(e.target.value)}
+                  className="flex-1 px-4 py-3 rounded-2xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                />
+                <button
+                  type="submit"
+                  disabled={isSearchingOrders}
+                  className="px-6 py-3 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-xs uppercase tracking-wider shadow-md shadow-[#ED3500]/20 flex items-center gap-2 shrink-0"
+                >
+                  {isSearchingOrders ? (
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Search className="w-4 h-4" /> Track
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Tracked Results List */}
+              {isSearchingOrders ? (
+                <div className="py-12 text-center">
+                  <RefreshCw className="w-8 h-8 text-[#ED3500] animate-spin mx-auto" />
+                  <p className="text-xs text-[#64748B] mt-2">Searching orders...</p>
+                </div>
+              ) : trackSearched && trackedOrders.length === 0 ? (
+                <div className="py-12 text-center bg-[#FFFCFB] rounded-2xl border border-[#E8EDF2] p-6 space-y-2">
+                  <PackageCheck className="w-10 h-10 text-[#64748B] mx-auto opacity-40" />
+                  <h4 className="font-bold text-[#163B5C]">No matching orders found</h4>
+                  <p className="text-xs text-[#64748B]">
+                    Please check the phone number, email address, or order number entered.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4 max-h-96 overflow-y-auto pr-1">
+                  {trackedOrders.map((ord) => (
+                    <div
+                      key={ord._id}
+                      className="p-5 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] space-y-4 hover:border-[#ED3500]/30 transition-all"
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E8EDF2] pb-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-black text-base text-[#163B5C]">
+                              {ord.orderId}
+                            </span>
+                            <span
+                              className={`px-3 py-0.5 rounded-full text-xs font-extrabold ${ord.status === 'Completed'
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : ord.status === 'Processing'
+                                  ? 'bg-blue-100 text-blue-700'
+                                  : ord.status === 'Cancelled'
+                                    ? 'bg-rose-100 text-rose-700'
+                                    : 'bg-amber-100 text-amber-700 animate-pulse'
+                                }`}
+                            >
+                              {ord.status}
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-[#64748B]">
+                            Ordered on {new Date(ord.createdAt).toLocaleString('en-IN')}
+                          </span>
+                        </div>
+
+                        <div className="text-right">
+                          <span className="text-xs font-extrabold text-purple-700 block">
+                            {ord.paymentMethod === 'RAZORPAY'
+                              ? 'Online (Razorpay)'
+                              : ord.paymentMethod === 'UPI'
+                              ? 'Online UPI'
+                              : 'Cash on Delivery'}{' '}
+                            ({ord.paymentStatus || 'Pending'})
+                          </span>
+                          <span className="text-sm font-black text-[#ED3500]">
+                            Total: ₹{ord.totalAmount.toLocaleString('en-IN')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Items */}
+                      <div className="space-y-1.5 text-xs text-[#64748B]">
+                        <span className="font-bold text-[#163B5C] block text-[11px] uppercase tracking-wider">
+                          Items Ordered ({ord.items.length}):
+                        </span>
+                        {ord.items.map((it, i) => (
+                          <div key={i} className="flex justify-between">
+                            <span>
+                              {it.name} × {it.quantity}
+                            </span>
+                            <span className="font-semibold text-[#163B5C]">
+                              ₹{(it.price * it.quantity).toLocaleString('en-IN')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Estimated Delivery Banner */}
+                      <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5">
+                          <Truck className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                          Estimated Delivery:
+                        </span>
+                        <strong className="text-amber-900 font-bold">Within 3 to 4 business days</strong>
+                      </div>
+
+                      {/* Shipping details */}
+                      <div className="p-3 rounded-xl bg-white border border-[#E8EDF2] text-xs text-[#64748B] space-y-1">
+                        <p>
+                          <strong className="text-[#163B5C]">Deliver To:</strong> {ord.customerName} ({ord.customerPhone})
+                        </p>
+                        <p className="line-clamp-1">{ord.shippingAddress} - {ord.pincode}</p>
+                      </div>
+
+                      {/* WhatsApp Support with Loaded Order Details */}
+                      <a
+                        href={getWhatsAppSupportLink(ord)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full py-2.5 px-4 rounded-xl bg-[#10B981]/10 hover:bg-[#10B981] text-[#10B981] hover:text-white font-bold text-xs border border-[#10B981]/30 transition-all flex items-center justify-center gap-2"
+                      >
+                        <MessageCircle className="w-4 h-4" /> Need Order Support? Chat on WhatsApp
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* B2B Wholesale & Bulk Supply Enquiry Modal */}
+      <WholesaleEnquiryModal
+        isOpen={isWholesaleModalOpen}
+        onClose={() => setIsWholesaleModalOpen(false)}
+        products={products.map((p) => ({
+          _id: p._id,
+          name: p.name,
+          category: p.category,
+          price: p.price,
+        }))}
+        storePhone="919876543210"
+      />
+
+      {/* Product Detail Modal */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-[#E8EDF2] shadow-2xl relative">
+            <button
+              onClick={() => setSelectedProduct(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-[#FFFCFB] hover:bg-[#E8EDF2] text-[#163B5C] transition-colors z-10"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="grid grid-cols-1 md:grid-cols-2">
+              {/* Product Image */}
+              <div className="bg-[#FFF8F5] p-6 flex items-center justify-center relative">
+                <img
+                  src={selectedProduct.image}
+                  alt={selectedProduct.name}
+                  className="w-full max-h-80 object-cover rounded-2xl shadow-md"
+                />
+              </div>
+
+              {/* Product Info */}
+              <div className="p-6 md:p-8 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-1 rounded-full bg-[#ED3500]/10 text-[#ED3500] text-xs font-bold uppercase tracking-wider">
+                      {selectedProduct.category}
+                    </span>
+                    <span className="text-xs text-[#10B981] font-semibold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> BeesHub Farmland
+                    </span>
+                  </div>
+
+                  <h2 className="text-2xl font-bold text-[#163B5C] leading-snug">
+                    {selectedProduct.name}
+                  </h2>
+
+                  <p className="text-sm text-[#64748B] leading-relaxed">
+                    {selectedProduct.description}
+                  </p>
+
+                  {/* Variant Selection in Quick View Modal */}
+                  {selectedProduct.variants && selectedProduct.variants.length > 0 && (
+                    <div className="space-y-1.5 pt-2">
+                      <span className="text-xs font-bold text-[#163B5C] uppercase tracking-wider block">
+                        Select Weight / Size Variant:
+                      </span>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {selectedProduct.variants.map((v) => {
+                          const activeVar = selectedVariants[selectedProduct._id] || selectedProduct.variants![0];
+                          const isSelected = activeVar.name === v.name;
+                          return (
+                            <button
+                              key={v.name}
+                              type="button"
+                              onClick={() => handleSelectVariant(selectedProduct._id, v)}
+                              className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
+                                isSelected
+                                  ? 'bg-[#ED3500] text-white border-[#ED3500] shadow-sm'
+                                  : 'bg-white text-[#163B5C] border-[#E8EDF2] hover:border-[#ED3500]/50'
+                              }`}
+                            >
+                              {v.name} — ₹{v.price}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Pricing Breakdown */}
+                  <div className="p-4 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] space-y-2">
+                    <div className="flex items-baseline gap-3">
+                      <span className="text-3xl font-black text-[#ED3500]">
+                        ₹{selectedProduct.price.toLocaleString('en-IN')}
+                      </span>
+                      {selectedProduct.mrp > selectedProduct.price && (
+                        <span className="text-sm text-[#64748B] line-through">
+                          MRP ₹{selectedProduct.mrp.toLocaleString('en-IN')}
+                        </span>
+                      )}
+                      {selectedProduct.discount > 0 && (
+                        <span className="px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981] text-xs font-extrabold">
+                          Save {selectedProduct.discount}%
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-[#64748B]">
+                      {selectedProduct.gst === 0 ? (
+                        <strong className="text-[#10B981]">0% GST (Exempted Item)</strong>
+                      ) : (
+                        <>
+                          Inclusive of <strong>{selectedProduct.gst}% GST</strong> (₹
+                          {Math.round(
+                            (selectedProduct.price * selectedProduct.gst) / 100
+                          )}{' '}
+                          tax)
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-4">
+                  <div className="flex items-center gap-3">
+                    <button
+                      disabled={selectedProduct.quantity <= 0}
+                      onClick={() => {
+                        addToCart(selectedProduct, 1, selectedVariants[selectedProduct._id]);
+                        setSelectedProduct(null);
+                      }}
+                      className="flex-1 py-3.5 px-6 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#ED3500]/25 transition-all"
+                    >
+                      <ShoppingBag className="w-5 h-5" />
+                      {selectedProduct.quantity > 0 ? 'Add to Shopping Bag' : 'Out of Stock'}
+                    </button>
+                    <a
+                      href={getWhatsAppProductShareLink(selectedProduct, selectedVariants[selectedProduct._id])}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-3.5 px-4 rounded-2xl bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white font-bold text-xs border border-emerald-200 transition-all flex items-center justify-center gap-2 shrink-0 shadow-sm"
+                      title="Share product details on WhatsApp"
+                      aria-label="Share product details on WhatsApp"
+                    >
+                      <MessageCircle className="w-5 h-5 text-emerald-600 group-hover:text-white" />
+                      <span className="hidden sm:inline font-bold">Share on WhatsApp</span>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cart Drawer */}
+      {isCartOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/50 backdrop-blur-xs animate-fadeIn">
+          <div className="w-full max-w-md bg-white h-full flex flex-col justify-between shadow-2xl border-l border-[#E8EDF2]">
+            {/* Header */}
+            <div className="p-6 border-b border-[#E8EDF2] flex items-center justify-between bg-[#FFFCFB]">
+              <div className="flex items-center gap-3">
+                <ShoppingBag className="w-6 h-6 text-[#ED3500]" />
+                <h3 className="font-bold text-lg text-[#163B5C]">Your Shopping Bag</h3>
+                <span className="px-2.5 py-0.5 rounded-full bg-[#ED3500] text-white text-xs font-extrabold">
+                  {cartItemCount}
+                </span>
+              </div>
+              <button
+                onClick={() => setIsCartOpen(false)}
+                className="p-2 rounded-full hover:bg-[#E8EDF2] text-[#64748B]"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Cart Items List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {cart.length === 0 ? (
+                <div className="py-20 text-center space-y-3">
+                  <ShoppingBag className="w-12 h-12 text-[#64748B] mx-auto opacity-40" />
+                  <p className="font-bold text-lg text-[#163B5C]">Your bag is empty</p>
+                  <p className="text-xs text-[#64748B]">Add items to start shopping</p>
+                </div>
+              ) : (
+                cart.map((item) => {
+                  const itemPrice = item.selectedVariant ? item.selectedVariant.price : item.product.price;
+                  const itemKey = `${item.product._id}_${item.selectedVariant?.name || 'base'}`;
+                  return (
+                    <div
+                      key={itemKey}
+                      className="flex gap-4 p-4 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] relative"
+                    >
+                      <img
+                        src={item.product.image}
+                        alt={item.product.name}
+                        className="w-20 h-20 object-cover rounded-xl bg-[#FFF8F5]"
+                      />
+                      <div className="flex-1 space-y-1">
+                        <h4 className="font-bold text-sm text-[#163B5C] line-clamp-1">
+                          {item.product.name}
+                        </h4>
+                        {item.selectedVariant && (
+                          <span className="inline-block px-2 py-0.5 rounded bg-purple-50 text-purple-700 font-bold text-[10px] border border-purple-200">
+                            Option: {item.selectedVariant.name}
+                          </span>
+                        )}
+                        <p className="text-xs text-[#64748B]">
+                          GST: {item.product.gst !== undefined ? item.product.gst : 0}%
+                        </p>
+                        <div className="text-sm font-extrabold text-[#ED3500]">
+                          ₹{itemPrice.toLocaleString('en-IN')}{' '}
+                          <span className="text-[11px] font-normal text-[#64748B]">
+                            × {item.quantity}
+                          </span>
+                        </div>
+
+                        {/* Qty Stepper */}
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={() => updateCartQty(item.product._id, item.selectedVariant?.name, item.quantity - 1)}
+                            className="w-6 h-6 rounded-md bg-white border border-[#E8EDF2] flex items-center justify-center hover:bg-[#E8EDF2]"
+                          >
+                            <Minus className="w-3 h-3" />
+                          </button>
+                          <span className="text-xs font-bold px-2">{item.quantity}</span>
+                          <button
+                            onClick={() => updateCartQty(item.product._id, item.selectedVariant?.name, item.quantity + 1)}
+                            className="w-6 h-6 rounded-md bg-white border border-[#E8EDF2] flex items-center justify-center hover:bg-[#E8EDF2]"
+                          >
+                            <Plus className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => removeFromCart(item.product._id, item.selectedVariant?.name)}
+                        className="text-[#64748B] hover:text-rose-600 p-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer Breakdown & Checkout Trigger */}
+            {cart.length > 0 && (
+              <div className="p-6 border-t border-[#E8EDF2] bg-[#FFFCFB] space-y-4">
+                <div className="space-y-1.5 text-xs text-[#64748B]">
+                  <div className="flex justify-between">
+                    <span>Items Subtotal</span>
+                    <span className="font-semibold text-[#163B5C]">
+                      ₹{cartSubtotal.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total GST</span>
+                    <span className="font-semibold text-[#163B5C]">
+                      {cartGstTotal === 0 ? '₹0 (0% GST Exempted)' : `₹${Math.round(cartGstTotal).toLocaleString('en-IN')}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between pt-2 border-t border-[#E8EDF2] text-sm text-[#163B5C]">
+                    <span className="font-bold">Grand Total</span>
+                    <span className="font-black text-[#ED3500] text-lg">
+                      ₹{cartGrandTotal.toLocaleString('en-IN')}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setIsCheckoutOpen(true);
+                    setIsCartOpen(false);
+                  }}
+                  className="w-full py-3.5 px-6 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-sm uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#ED3500]/25 transition-all"
+                >
+                  Proceed to Checkout <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Customer Checkout Modal with Unified UPI Gateway & COD */}
+      {isCheckoutOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-xl w-full max-h-[90vh] border border-[#E8EDF2] shadow-2xl flex flex-col relative overflow-hidden">
+            {/* Clean Sticky Header with Pinned Close Button */}
+            <div className="p-6 sm:p-8 pb-4 border-b border-[#E8EDF2]/70 flex items-start justify-between shrink-0 bg-white z-10">
+              <div>
+                <h3 className="text-2xl font-bold text-[#163B5C]">Checkout & Payment</h3>
+                <p className="text-xs text-[#64748B] mt-1">
+                  Enter delivery address and choose Online UPI or Cash on Delivery.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsCheckoutOpen(false)}
+                className="p-2 rounded-full hover:bg-[#FFF8F5] text-[#64748B] hover:text-[#ED3500] transition-colors shrink-0 -mr-2 -mt-2"
+                title="Close Modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Scrollable Form Body Container */}
+            <div className="p-6 sm:p-8 pt-6 overflow-y-auto flex-1 space-y-6 scrollbar-thin">
+              {formError && (
+                <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-medium flex flex-col gap-2">
+                  <span>{formError}</span>
+                  {checkoutForm.paymentMethod !== 'COD' && formError.toLowerCase().includes('cash on delivery') && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCheckoutForm((prev) => ({ ...prev, paymentMethod: 'COD' }));
+                        setFormError(null);
+                      }}
+                      className="self-start px-3 py-1.5 rounded-lg bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-xs transition-colors shadow-2xs"
+                    >
+                      Switch to Cash on Delivery (COD)
+                    </button>
+                  )}
+                </div>
+              )}
+
+              <form onSubmit={handlePlaceOrder} className="space-y-5">
+                {/* Contact & Shipping Details */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#163B5C]">
+                    1. Shipping Information
+                  </h4>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#163B5C]">
+                      Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Ananya Sharma"
+                      value={checkoutForm.customerName}
+                      onChange={(e) =>
+                        setCheckoutForm({ ...checkoutForm, customerName: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#163B5C]">
+                        Phone Number *
+                      </label>
+                      <input
+                        type="tel"
+                        required
+                        placeholder="+91 9876543210"
+                        value={checkoutForm.customerPhone}
+                        onChange={(e) =>
+                          setCheckoutForm({ ...checkoutForm, customerPhone: e.target.value })
+                        }
+                        className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#163B5C]">
+                        Email Address *
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="ananya@example.com"
+                        value={checkoutForm.customerEmail}
+                        onChange={(e) =>
+                          setCheckoutForm({ ...checkoutForm, customerEmail: e.target.value })
+                        }
+                        className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#163B5C]">
+                      Full Shipping Address *
+                    </label>
+                    <textarea
+                      required
+                      rows={2}
+                      placeholder="House No., Street name, Landmark, City, State"
+                      value={checkoutForm.shippingAddress}
+                      onChange={(e) =>
+                        setCheckoutForm({ ...checkoutForm, shippingAddress: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#163B5C]">
+                      Pincode *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="560001"
+                      value={checkoutForm.pincode}
+                      onChange={(e) =>
+                        setCheckoutForm({ ...checkoutForm, pincode: e.target.value })
+                      }
+                      className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
+                    />
+                  </div>
+                </div>
+
+                {/* Payment Option Selection */}
+                <div className="space-y-3 pt-2 border-t border-[#E8EDF2]">
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#163B5C]">
+                    2. Select Payment Method
+                  </h4>
+
+                  {!paymentSettings.enableOnlinePayment && !paymentSettings.enableUPI && !paymentSettings.enableCOD ? (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-bold space-y-1">
+                      <p>⚠️ Payment Gateway Notice</p>
+                      <p className="font-normal text-[11px]">
+                        Payment processing options are temporarily paused for maintenance. Please check back shortly or contact our WhatsApp support team.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {/* Razorpay Online Payment Option */}
+                      {(paymentSettings.enableOnlinePayment || paymentSettings.enableUPI) && (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'RAZORPAY' })}
+                          className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI'
+                            ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
+                            : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <CreditCard className="w-6 h-6 text-[#ED3500]" />
+                            <span
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI'
+                                ? 'border-[#ED3500] bg-[#ED3500]'
+                                : 'border-[#64748B]'
+                                }`}
+                            >
+                              {(checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="font-bold text-sm text-[#163B5C] block">
+                              Pay Online
+                            </span>
+                            <span className="text-[11px] text-[#64748B]">UPI, Cards, NetBanking</span>
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Cash on Delivery Option */}
+                      {paymentSettings.enableCOD && (
+                        <button
+                          type="button"
+                          onClick={() => setCheckoutForm({ ...checkoutForm, paymentMethod: 'COD' })}
+                          className={`p-4 rounded-2xl border flex flex-col items-start gap-2 transition-all ${checkoutForm.paymentMethod === 'COD'
+                            ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20'
+                            : 'border-[#E8EDF2] bg-white hover:border-[#163B5C]/20'
+                            }`}
+                        >
+                          <div className="flex items-center justify-between w-full">
+                            <Truck className="w-6 h-6 text-[#10B981]" />
+                            <span
+                              className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${checkoutForm.paymentMethod === 'COD'
+                                ? 'border-[#ED3500] bg-[#ED3500]'
+                                : 'border-[#64748B]'
+                                }`}
+                            >
+                              {checkoutForm.paymentMethod === 'COD' && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="text-left">
+                            <span className="font-bold text-sm text-[#163B5C] block">
+                              Cash on Delivery
+                            </span>
+                            <span className="text-[11px] text-[#64748B]">Pay when delivered</span>
+                          </div>
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Razorpay Online Payment Info Panel */}
+                  {(checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') && (
+                    <div className="p-4 rounded-2xl bg-gradient-to-br from-orange-50/70 via-white to-blue-50/50 border border-orange-200/80 space-y-3 animate-fadeIn">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-xs text-[#163B5C] uppercase tracking-wider flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-[#ED3500]" /> Razorpay Secure Gateway
+                        </span>
+                        <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-extrabold flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+                          Instant Pay
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        Pay safely using your preferred method: <strong>Google Pay, PhonePe, Paytm, Any UPI App, Credit / Debit Cards, or Net Banking</strong>. Your order will be confirmed immediately after successful payment.
+                      </p>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-orange-100/80 text-[11px] text-slate-500">
+                        <span className="flex items-center gap-1 text-[#163B5C] font-semibold">
+                          <ShieldCheck className="w-3.5 h-3.5 text-[#10B981]" /> 256-bit Encrypted Checkout
+                        </span>
+                        <span className="font-bold text-[#ED3500]">Zero Extra Gateway Fees</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Summary Box */}
+                <div className="p-4 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] space-y-2 text-xs text-[#64748B]">
+                  <div className="flex justify-between">
+                    <span>Items Subtotal:</span>
+                    <span className="font-bold text-[#163B5C]">₹{cartSubtotal.toLocaleString('en-IN')}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Total GST Tax:</span>
+                    <span className="font-bold text-[#163B5C]">
+                      {cartGstTotal === 0 ? '₹0 (0% GST Exempted)' : `₹${Math.round(cartGstTotal).toLocaleString('en-IN')}`}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center pt-2 border-t border-[#E8EDF2] text-sm">
+                    <div>
+                      <span className="text-xs text-[#64748B] block font-semibold">Total Payable Amount</span>
+                      <span className="text-2xl font-black text-[#ED3500]">
+                        ₹{cartGrandTotal.toLocaleString('en-IN')}
+                      </span>
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full font-bold text-xs ${checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI'
+                        ? 'bg-orange-100 text-[#ED3500]'
+                        : 'bg-[#10B981]/10 text-[#10B981]'
+                        }`}
+                    >
+                      {checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI' ? 'Online Payment' : 'Cash on Delivery'}
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submittingOrder}
+                  className="w-full py-3.5 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-bold text-sm uppercase tracking-wider shadow-lg shadow-[#ED3500]/25 transition-all flex items-center justify-center gap-2"
+                >
+                  {submittingOrder ? (
+                    <RefreshCw className="w-5 h-5 animate-spin" />
+                  ) : (checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI' ? (
+                    'Proceed to Pay Online'
+                  ) : (
+                    'Confirm Cash on Delivery Order'
+                  ))}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Order Success Overlay */}
+      {orderSuccess && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 text-center border border-[#E8EDF2] shadow-2xl space-y-6">
+            <div className="w-20 h-20 rounded-full bg-[#10B981]/10 text-[#10B981] flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+
+            <div className="space-y-2">
+              <span className="px-3 py-1 rounded-full bg-[#ED3500]/10 text-[#ED3500] text-xs font-bold tracking-widest uppercase">
+                Order Confirmed
+              </span>
+              <h3 className="text-2xl font-black text-[#163B5C]">Thank You!</h3>
+              <p className="text-xs text-[#64748B]">
+                Your order ID is <strong className="text-[#163B5C]">{orderSuccess.orderId}</strong>
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] text-left text-xs space-y-2 text-[#64748B]">
+              <div className="flex justify-between">
+                <span>Customer:</span>
+                <strong className="text-[#163B5C]">{orderSuccess.customerName}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>Payment Mode:</span>
+                <strong className="text-purple-700 font-bold">
+                  {orderSuccess.paymentMethod === 'RAZORPAY'
+                    ? 'Online Payment (Razorpay)'
+                    : orderSuccess.paymentMethod === 'UPI'
+                    ? 'Online UPI'
+                    : 'Cash on Delivery (COD)'}{' '}
+                  ({orderSuccess.paymentStatus || 'Pending'})
+                </strong>
+              </div>
+              {orderSuccess.razorpayPaymentId && (
+                <div className="flex justify-between">
+                  <span>Razorpay Payment ID:</span>
+                  <code className="text-[#163B5C] font-mono text-[11px]">{orderSuccess.razorpayPaymentId}</code>
+                </div>
+              )}
+              {orderSuccess.paymentMethod === 'UPI' && orderSuccess.transactionId && (
+                <div className="flex justify-between">
+                  <span>UTR / Ref No:</span>
+                  <code className="text-[#163B5C] font-mono text-[11px]">{orderSuccess.transactionId}</code>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <strong className="text-[#163B5C]">₹{orderSuccess.subtotal?.toLocaleString('en-IN')}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span>GST Tax:</span>
+                <strong className="text-[#163B5C]">
+                  {orderSuccess.totalGst === 0 ? '₹0 (0% GST)' : `₹${orderSuccess.totalGst?.toLocaleString('en-IN')}`}
+                </strong>
+              </div>
+              <div className="flex justify-between border-t border-[#E8EDF2] pt-1">
+                <span>Total Amount:</span>
+                <strong className="text-[#ED3500] text-sm font-black">₹{orderSuccess.totalAmount?.toLocaleString('en-IN')}</strong>
+              </div>
+            </div>
+
+            {/* Delivery Estimate */}
+            <div className="p-3 rounded-2xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold flex items-center justify-center gap-2">
+              <Truck className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Estimated Delivery: <strong>Within 3 to 4 business days</strong></span>
+            </div>
+
+            <div className="space-y-2">
+              {/* WhatsApp Support Button with Loaded Order Details */}
+              <a
+                href={getWhatsAppSupportLink(orderSuccess)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3 rounded-2xl bg-[#10B981] hover:bg-[#0E9F6E] text-white font-bold text-xs uppercase tracking-wider transition-colors shadow-md shadow-[#10B981]/20 flex items-center justify-center gap-2"
+              >
+                <MessageCircle className="w-4 h-4" /> Need Support? Chat on WhatsApp
+              </a>
+
+              <button
+                onClick={() => setOrderSuccess(null)}
+                className="w-full py-3 rounded-2xl bg-[#163B5C] text-white font-bold text-xs uppercase tracking-wider hover:bg-[#163B5C]/90 transition-colors"
+              >
+                Back to Store
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Real E-Commerce Footer with Full Registered Address & Contact Details */}
+      <footer className="bg-[#FFFFFF] border-t border-[#E8EDF2] pt-12 pb-8 px-4 sm:px-6 lg:px-8 mt-16">
+        <div className="max-w-7xl mx-auto space-y-10">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Company Info */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src="/logo.jpg"
+                  alt="BEES HUB FARMLAND PRIVATE LIMITED Logo"
+                  className="w-10 h-10 object-contain rounded-xl shadow-xs border border-[#E8EDF2]"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+                <div>
+                  <h3 className="font-extrabold text-base text-[#163B5C]">
+                    BEES HUB FARMLAND PRIVATE LIMITED
+                  </h3>
+                  <span className="text-[10px] uppercase tracking-widest text-[#64748B] font-bold">
+                    Pure & Organic Goods
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-[#64748B] leading-relaxed">
+                Directly from authentic farmlands to your doorstep. Committed to freshness, pure quality produce, and GST-compliant fair trade.
+              </p>
+
+              {/* Social Media Links */}
+              <div className="flex items-center gap-3 pt-1">
+                <span className="text-xs font-bold text-[#163B5C]">Follow Us:</span>
+                <a
+                  href="https://www.facebook.com/Beeshubfarmland/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all shadow-xs"
+                  title="Follow BeesHub Farmland on Facebook"
+                  aria-label="Follow BeesHub Farmland on Facebook"
+                >
+                  <Facebook className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://www.instagram.com/beeshubfarmland"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-xl bg-pink-50 text-pink-600 border border-pink-200 flex items-center justify-center hover:bg-pink-600 hover:text-white transition-all shadow-xs"
+                  title="Follow BeesHub Farmland on Instagram"
+                  aria-label="Follow BeesHub Farmland on Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a
+                  href="https://www.youtube.com/@BeesHubFarmlandPvtLtd"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-8 h-8 rounded-xl bg-red-50 text-red-600 border border-red-200 flex items-center justify-center hover:bg-red-600 hover:text-white transition-all shadow-xs"
+                  title="Follow BeesHub Farmland on YouTube"
+                  aria-label="Follow BeesHub Farmland on YouTube"
+                >
+                  <Youtube className="w-4 h-4" />
+                </a>
+              </div>
+
+              {/* Journal / Blog Quick Link */}
+              <div className="pt-2">
+                <Link
+                  href="/blog"
+                  className="inline-flex items-center gap-2 text-xs font-bold text-[#ED3500] hover:text-[#D02E00] transition-colors"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Read Farmland Journal & Stories →</span>
+                </Link>
+              </div>
+            </div>
+
+            {/* Registered Address */}
+            <div className="space-y-3">
+              <h4 className="font-bold text-sm text-[#163B5C] uppercase tracking-wider flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#ED3500]" /> Registered Office Address
+              </h4>
+              <p className="text-xs text-[#64748B] leading-relaxed">
+                <strong className="text-[#163B5C] block font-semibold">BEES HUB FARMLAND PRIVATE LIMITED</strong>
+                2/26-1, Muhilanvilai, Monikettipottal, nagercoil,<br />
+                Kanyakumari District, <br />
+                Tamil Nadu - 629501<br />
+                <strong className="text-[#163B5C] font-semibold">GSTIN: 33AAOCB0453D1Z3</strong>
+              </p>
+            </div>
+
+            {/* WhatsApp Contact & Support */}
+            <div className="space-y-3">
+              <h4 className="font-bold text-sm text-[#163B5C] uppercase tracking-wider flex items-center gap-2">
+                <MessageCircle className="w-4 h-4 text-[#10B981]" /> Customer Support & Orders
+              </h4>
+              <div className="space-y-2">
+                <a
+                  href="https://wa.me/919578784431"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#10B981]/10 hover:bg-[#10B981]/20 text-[#10B981] font-bold text-xs border border-[#10B981]/20 transition-all"
+                >
+                  <MessageCircle className="w-4 h-4" /> WhatsApp Us: +91 95787 84431
+                </a>
+                <p className="text-[11px] text-[#64748B]">
+                  Online UPI Payment Gateway & Cash on Delivery Available Nationwide.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-8 border-t border-[#E8EDF2] flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[#64748B]">
+            <div>
+              <strong className="text-[#163B5C]">BEES HUB FARMLAND PRIVATE LIMITED</strong> © {new Date().getFullYear()}. All Rights Reserved.
+            </div>
+            <div className="flex items-center gap-4 flex-wrap">
+              <span className="font-semibold text-[#163B5C]">GSTIN: 33AAOCB0453D1Z3</span>
+              <span>•</span>
+              <a
+                href={`https://wa.me/917695946750?text=${encodeURIComponent('Hello! I came from the BeesHub Farmland website (beeshubfarmland.com) and would like to inquire about website development & IT services.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-[#ED3500] hover:border-[#ED3500]/30 transition-all font-medium flex items-center gap-1.5 bg-white px-3 py-1 rounded-lg border border-[#E8EDF2] shadow-2xs"
+                title="Contact Website Developer"
+              >
+                <span className="text-[#ED3500] font-bold">⚡ Designed & Developed with Excellence</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* Micro Toast Notification for Add to Cart */}
+      {toastMessage && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-[#163B5C] text-white px-5 py-3 rounded-full shadow-2xl border border-white/20 text-xs font-bold flex items-center gap-2.5 animate-bounce">
+          <CheckCircle2 className="w-4 h-4 text-[#10B981]" />
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Sticky Sliding Bottom View Cart Bar with Premium UI */}
+      {cartItemCount > 0 && !isCartOpen && !isCheckoutOpen && (
+        <div className="fixed bottom-4 inset-x-4 sm:inset-x-auto sm:right-6 sm:max-w-md z-40 animate-slideUp">
+          <div className="bg-[#163B5C]/95 backdrop-blur-md text-white p-3.5 sm:p-4 rounded-2xl shadow-2xl border border-white/10 flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="relative bg-[#ED3500] p-2.5 rounded-xl text-white shadow-md">
+                <ShoppingBag className="w-5 h-5" />
+                <span className="absolute -top-2 -right-2 bg-white text-[#ED3500] text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#163B5C]">
+                  {cartItemCount}
+                </span>
+              </div>
+              <div>
+                <span className="text-[11px] text-[#A0AEC0] uppercase font-bold tracking-wider block">
+                  {cartItemCount} {cartItemCount === 1 ? 'Item' : 'Items'} Selected
+                </span>
+                <span className="text-base font-black text-white">
+                  ₹{cartGrandTotal.toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+
+            <button
+              onClick={() => setIsCartOpen(true)}
+              className="px-5 py-2.5 rounded-xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-extrabold text-xs uppercase tracking-wider shadow-md shadow-[#ED3500]/30 transition-all flex items-center gap-1.5 shrink-0"
+            >
+              <span>View Cart & Checkout</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

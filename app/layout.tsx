@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { Outfit, Inter } from "next/font/google";
 import PostHogInit from "@/components/PostHogInit";
+import ImpactAnalytics from "@/components/ImpactAnalytics";
 import "./globals.css";
 
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
 });
 
 const inter = Inter({
@@ -15,18 +15,27 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BEES HUB FARMLAND PRIVATE LIMITED — Pure Honey & Organic Farm Produce",
+  title: {
+    default: "BEES HUB FARMLAND — Pure Forest Honey, Cold-Pressed Oils, Superfood Powders & Private Label",
+    template: "%s | BEES HUB FARMLAND",
+  },
   description:
-    "Buy 100% pure organic honey, natural spices, and farm produce directly from BEES HUB FARMLAND PRIVATE LIMITED, Kanyakumari. Fast nationwide delivery, GST-compliant billing, Instant UPI & COD.",
+    "Direct farmgate producer in Kanyakumari, Western Ghats. Certified pure wild forest honey, wood cold-pressed virgin oils, dehydrated fruit powders (Nendran Banana, Sweet Potato), jumbo makhana, private label bottling, and bespoke event gift hampers.",
   keywords: [
     "BEES HUB FARMLAND PRIVATE LIMITED",
     "BeesHub Farmland",
-    "Beeshub",
-    "Pure Organic Honey",
-    "Farm Fresh Honey Kanyakumari",
-    "Organic Spices Tamil Nadu",
-    "Natural Honey Online Store",
-    "Kanyakumari Farmlands",
+    "Pure Wild Forest Honey",
+    "Dehydrated Nendran Banana Powder",
+    "Red Banana Powder Chevvazhai",
+    "Sweet Potato Powder",
+    "Cold Pressed Virgin Coconut Oil",
+    "Cold Pressed Sesame Oil",
+    "Jumbo Fox Nut Makhana",
+    "Private Label Honey Packaging India",
+    "Contract Bottling Tamil Nadu",
+    "Wedding Return Gift Hampers",
+    "Corporate Wellness Gifts",
+    "Kanyakumari Western Ghats Farmgate",
   ],
   authors: [{ name: "BEES HUB FARMLAND PRIVATE LIMITED" }],
   creator: "BEES HUB FARMLAND PRIVATE LIMITED",
@@ -39,17 +48,17 @@ export const metadata: Metadata = {
     apple: "/logo.jpg",
   },
   openGraph: {
-    title: "BEES HUB FARMLAND PRIVATE LIMITED — Pure & Fresh Organic Produce",
+    title: "BEES HUB FARMLAND — Pure Honey, Cold-Pressed Oils & Superfoods",
     description:
-      "Handpicked pure honey, organic spices, and farm-fresh harvest delivered directly from Kanyakumari farmlands to your home.",
+      "Direct farmgate pure wild forest honey, wood cold-pressed virgin oils, dehydrated superfood powders, private label contract manufacturing, and artisanal event gift hampers from Kanyakumari.",
     url: "https://beeshubfarmland.com",
     siteName: "BEES HUB FARMLAND PRIVATE LIMITED",
     images: [
       {
-        url: "/logo.jpg",
-        width: 800,
-        height: 800,
-        alt: "BEES HUB FARMLAND PRIVATE LIMITED Official Logo",
+        url: "/images/beeshub-logo.png",
+        width: 1137,
+        height: 451,
+        alt: "BEES HUB FARMLAND Official Logo",
       },
     ],
     locale: "en_IN",
@@ -57,9 +66,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "BEES HUB FARMLAND PRIVATE LIMITED",
-    description: "Pure honey & organic farm produce delivered direct from farmlands.",
-    images: ["/logo.jpg"],
+    title: "BEES HUB FARMLAND — Pure Honey, Cold-Pressed Oils & Superfoods",
+    description: "Pure wild forest honey, wood cold-pressed oils, dehydrated powders, and private label services.",
+    images: ["/images/beeshub-logo.png"],
   },
   metadataBase: new URL("https://beeshubfarmland.com"),
   alternates: {
@@ -84,27 +93,35 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@graph": [
                 {
-                  "@type": ["Store", "Organization"],
+                  "@type": ["FoodManufacturingBusiness", "Store", "Organization"],
                   "@id": "https://beeshubfarmland.com/#organization",
                   "name": "BEES HUB FARMLAND PRIVATE LIMITED",
                   "legalName": "BEES HUB FARMLAND PRIVATE LIMITED",
-                  "alternateName": "BeesHub Farmland",
+                  "alternateName": ["BeesHub Farmland", "BeesHub"],
                   "url": "https://beeshubfarmland.com",
                   "logo": {
                     "@type": "ImageObject",
-                    "url": "https://beeshubfarmland.com/logo.jpg",
-                    "caption": "BEES HUB FARMLAND PRIVATE LIMITED Logo"
+                    "url": "https://beeshubfarmland.com/images/beeshub-logo.png",
+                    "caption": "BEES HUB FARMLAND Logo"
                   },
-                  "image": "https://beeshubfarmland.com/logo.jpg",
+                  "image": "https://beeshubfarmland.com/images/beeshub-logo.png",
                   "telephone": "+919578784431",
+                  "email": "admin@beeshubfarmland.com",
                   "priceRange": "₹₹",
+                  "taxID": "33AAOCB0453D1Z3",
+                  "vatID": "33AAOCB0453D1Z3",
                   "address": {
                     "@type": "PostalAddress",
-                    "streetAddress": "2/26-1, Muhilanvilai, Monikettipottal, nagercoil",
-                    "addressLocality": "Kanyakumari District",
+                    "streetAddress": "Door No: 2/26-1, Muhilanvilai, Monikettipottal-Post",
+                    "addressLocality": "Nagercoil, Kanyakumari District",
                     "addressRegion": "Tamil Nadu",
                     "postalCode": "629501",
                     "addressCountry": "IN"
+                  },
+                  "geo": {
+                    "@type": "GeoCoordinates",
+                    "latitude": 8.1833,
+                    "longitude": 77.4119
                   },
                   "areaServed": {
                     "@type": "Country",
@@ -114,6 +131,17 @@ export default function RootLayout({
                     "https://www.facebook.com/Beeshubfarmland/",
                     "https://www.instagram.com/beeshubfarmland",
                     "https://www.youtube.com/@BeesHubFarmlandPvtLtd"
+                  ],
+                  "knowsAbout": [
+                    "Apiculture",
+                    "Pure Wild Forest Honey",
+                    "Wood Cold-Pressed Virgin Oils",
+                    "Dehydrated Nendran Banana Powder",
+                    "Red Banana Powder",
+                    "Sweet Potato Powder",
+                    "Makhana Fox Nuts",
+                    "Private Label Bottling",
+                    "Wedding Return Gift Hampers"
                   ]
                 },
                 {
@@ -121,7 +149,7 @@ export default function RootLayout({
                   "@id": "https://beeshubfarmland.com/#website",
                   "url": "https://beeshubfarmland.com",
                   "name": "BeesHub Farmland",
-                  "description": "Pure honey, natural spices and organic farm produce delivered directly from Kanyakumari farmlands.",
+                  "description": "Pure wild forest honey, wood cold-pressed virgin oils, dehydrated fruit powders, and private label bottling from Kanyakumari.",
                   "publisher": {
                     "@id": "https://beeshubfarmland.com/#organization"
                   },
@@ -135,15 +163,10 @@ export default function RootLayout({
             })
           }}
         />
-        <script
-          type="text/javascript"
-          dangerouslySetInnerHTML={{
-            __html: `(function(i,m,p,a,c,t){c.ire_o=p;c[p]=c[p]||function(){(c[p].a=c[p].a||[]).push(arguments)};t=a.createElement(m);var z=a.getElementsByTagName(m)[0];t.async=1;t.src=i;z.parentNode.insertBefore(t,z)})('https://utt.impactcdn.com/P-A7805805-7b0f-4744-b530-9e416581216c1.js','script','impactStat',document,window);impactStat('transformLinks');impactStat('trackImpression');`,
-          }}
-        />
       </head>
       <body className="min-h-screen bg-[#FFFCFB] text-[#163B5C] antialiased flex flex-col justify-between">
         <PostHogInit />
+        <ImpactAnalytics />
         {children}
       </body>
     </html>

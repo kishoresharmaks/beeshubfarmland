@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Category from '@/models/Category';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export async function DELETE(
   request: Request,
   { params }: { params: { id: string } }
 ) {
   try {
+    // F-02: Require administrator authentication
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const { id } = params;
 
@@ -36,6 +42,11 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
+    // F-02: Require administrator authentication
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const { id } = params;
     const { name } = await request.json();

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { processAndSaveImage } from '@/lib/imageStorage';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -52,6 +54,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    // F-02: Require valid administrator authentication
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+
     await connectToDatabase();
     const body = await request.json();
 
@@ -80,10 +87,13 @@ export async function POST(request: Request) {
       discount: Number(v.mrp) > Number(v.price) ? Math.round(((Number(v.mrp) - Number(v.price)) / Number(v.mrp)) * 100) : 0,
     })) : [];
 
+    // F-06: Optimize image payloads - convert base64 data URIs to static URLs
+    const savedImageUrl = await processAndSaveImage(image, 'prod');
+
     const newProduct = await Product.create({
       name,
       description,
-      image,
+      image: savedImageUrl,
       mrp: numMrp,
       price: numPrice,
       discount,

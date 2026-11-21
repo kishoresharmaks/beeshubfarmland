@@ -36,6 +36,7 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const {
+      inquiryType = 'B2B',
       companyName,
       contactPerson,
       phone,
@@ -49,6 +50,8 @@ export async function POST(request: Request) {
       website_url, // Honeypot field
     } = body;
 
+    const isGeneralEnquiry = inquiryType === 'GENERAL';
+
     // Honeypot check: If bot filled website_url, silently discard and return success
     if (website_url && typeof website_url === 'string' && website_url.trim().length > 0) {
       return NextResponse.json({
@@ -58,16 +61,21 @@ export async function POST(request: Request) {
       });
     }
 
-    if (!companyName || !companyName.trim()) {
+    const effectiveCompanyName = companyName?.trim() || (isGeneralEnquiry ? contactPerson?.trim() || 'Individual' : '');
+    const effectiveContactPerson = contactPerson?.trim() || '';
+    const effectiveCity = city?.trim() || (isGeneralEnquiry ? 'Direct Inquiry' : '');
+    const effectivePincode = pincode?.trim() || (isGeneralEnquiry ? '000000' : '');
+
+    if (!effectiveCompanyName) {
       return NextResponse.json({ success: false, message: 'Company or Business name is required' }, { status: 400 });
     }
-    if (!contactPerson || !contactPerson.trim()) {
+    if (!effectiveContactPerson) {
       return NextResponse.json({ success: false, message: 'Contact person name is required' }, { status: 400 });
     }
-    if (!city || !city.trim()) {
+    if (!effectiveCity) {
       return NextResponse.json({ success: false, message: 'City is required' }, { status: 400 });
     }
-    if (!pincode || !pincode.trim()) {
+    if (!effectivePincode) {
       return NextResponse.json({ success: false, message: 'Pincode is required' }, { status: 400 });
     }
 
@@ -87,46 +95,57 @@ export async function POST(request: Request) {
       );
     }
 
-    // Validate Items
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'At least one product with quantity must be selected' },
-        { status: 400 }
-      );
+    // Validate Items (compulsory for B2B, optional for General Enquiry)
+    let validItems: any[] = [];
+    if (Array.isArray(items) && items.length > 0) {
+      validItems = items
+        .filter((item) => item && item.productName && Number(item.quantity) > 0)
+        .map((item) => ({
+          productId: item.productId || '',
+          productName: String(item.productName).trim(),
+          quantity: Math.max(1, Number(item.quantity)),
+          unit: ['KG', 'LITRE', 'CASES', 'PIECES'].includes(item.unit) ? item.unit : 'KG',
+          targetPrice: item.targetPrice ? Number(item.targetPrice) : undefined,
+        }));
     }
 
-    const validItems = items
-      .filter((item) => item && item.productName && Number(item.quantity) > 0)
-      .map((item) => ({
-        productId: item.productId || '',
-        productName: String(item.productName).trim(),
-        quantity: Math.max(1, Number(item.quantity)),
-        unit: ['KG', 'LITRE', 'CASES', 'PIECES'].includes(item.unit) ? item.unit : 'KG',
-        targetPrice: item.targetPrice ? Number(item.targetPrice) : undefined,
-      }));
-
     if (validItems.length === 0) {
-      return NextResponse.json(
-        { success: false, message: 'Please specify valid product name and quantity' },
-        { status: 400 }
-      );
+      if (isGeneralEnquiry) {
+        validItems = [
+          {
+            productId: '',
+            productName: 'General Enquiry / Customer Support',
+            quantity: 1,
+            unit: 'PIECES',
+          },
+        ];
+      } else {
+        return NextResponse.json(
+          { success: false, message: 'At least one product with quantity must be selected for B2B quotations' },
+          { status: 400 }
+        );
+      }
     }
 
     await connectToDatabase();
 
+    const leadNotes = isGeneralEnquiry && !String(notes || '').startsWith('[General Enquiry]')
+      ? `[General Enquiry] ${notes ? String(notes).trim() : ''}`.trim()
+      : notes ? String(notes).trim() : '';
+
     const newLead = await WholesaleLead.create({
-      companyName: companyName.trim(),
-      contactPerson: contactPerson.trim(),
+      companyName: effectiveCompanyName,
+      contactPerson: effectiveContactPerson,
       phone: sanitizedPhone,
       email: email ? String(email).trim().toLowerCase() : '',
       gstin: gstin ? String(gstin).trim().toUpperCase() : '',
-      city: city.trim(),
-      pincode: pincode.trim(),
+      city: effectiveCity,
+      pincode: effectivePincode,
       items: validItems,
       orderType: ['ONE_TIME', 'MONTHLY_RECURRING', 'CONTRACT_FARMING'].includes(orderType)
         ? orderType
         : 'ONE_TIME',
-      notes: notes ? String(notes).trim() : '',
+      notes: leadNotes,
       status: 'NEW',
       ipAddress: ip,
     });

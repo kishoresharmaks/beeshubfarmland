@@ -22,6 +22,7 @@ export interface ISpotlightConfig {
 
 export interface ISettings extends Document {
   key: string;
+  activeTheme?: 'v1' | 'v2';
   enableOnlinePayment?: boolean;
   enableUPI: boolean;
   enableCOD: boolean;
@@ -71,6 +72,7 @@ const SpotlightItemSchema = new Schema({
 const SettingsSchema: Schema = new Schema(
   {
     key: { type: String, required: true, unique: true, default: 'global' },
+    activeTheme: { type: String, enum: ['v1', 'v2'], default: 'v2' },
     enableOnlinePayment: { type: Boolean, default: true },
     enableUPI: { type: Boolean, default: true },
     enableCOD: { type: Boolean, default: true },

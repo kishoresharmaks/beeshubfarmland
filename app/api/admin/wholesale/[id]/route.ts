@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import connectToDatabase from '@/lib/db';
 import WholesaleLead from '@/models/WholesaleLead';
+import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
 export const dynamic = 'force-dynamic';
 
 export async function PATCH(request: Request, { params }: { params: { id: string } }) {
   try {
-    const cookieStore = cookies();
-    const adminToken = cookieStore.get('admin_token')?.value;
-
-    if (adminToken !== 'logged_in_admin_session_key') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
     }
 
     const { id } = params;
@@ -57,11 +54,8 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
 export async function DELETE(request: Request, { params }: { params: { id: string } }) {
   try {
-    const cookieStore = cookies();
-    const adminToken = cookieStore.get('admin_token')?.value;
-
-    if (adminToken !== 'logged_in_admin_session_key') {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
     }
 
     const { id } = params;

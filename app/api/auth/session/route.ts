@@ -1,17 +1,14 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
+import { isAuthenticatedAdmin } from '@/lib/authCheck';
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const cookieStore = cookies();
-    const token = cookieStore.get('admin_token')?.value;
-
-    if (token === 'logged_in_admin_session_key') {
+    if (isAuthenticatedAdmin(request)) {
       return NextResponse.json({ authenticated: true });
     }
 
     return NextResponse.json({ authenticated: false }, { status: 401 });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ authenticated: false }, { status: 500 });
   }
 }

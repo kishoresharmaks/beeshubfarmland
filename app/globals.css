@@ -3,15 +3,49 @@
 @import "tailwindcss/utilities";
 
 :root {
-  --background: #FFFCFB;
-  --foreground: #163B5C;
+  --color-primary:      #163B5C;
+  --color-cta:          #ED3500;
+  --color-cta-soft:     #FFF8F5;
+  --color-accent:       #10B981;
+  --color-accent-dark:  #059669;
+  --color-accent-soft:  #ECFDF5;
+  --color-accent-line:  #A7F3D0;
+  --color-ink:          #163B5C;
+  --color-ink-muted:    #64748B;
+  --color-line:         #E5E7EB;
+  --color-surface:      #FFFFFF;
+  --color-surface-alt:  #E8EDF2;
+  --color-link:         #2563EB;
+  --color-chat:         #25D366;
+
+  --background:         #FFFCFB;
+  --foreground:         #163B5C;
+
+  --font-heading:       var(--font-outfit), "Poppins", system-ui, sans-serif;
+  --font-body:          "Inter", system-ui, sans-serif;
+
+  --radius-sm:          8px;
+  --radius-md:          16px;
+  --radius-lg:          24px;
+  --radius-pill:        999px;
+
+  --shadow-card:        0 6px 20px rgba(31, 41, 51, 0.08);
+  --shadow-hover:       0 12px 28px rgba(31, 41, 51, 0.14);
+
+  --container:          1200px;
+  --gutter:             24px;
+  --section-y:          80px;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-outfit), 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: var(--font-body);
   overflow-x: hidden;
+}
+
+h1, h2, h3, h4, .font-heading {
+  font-family: var(--font-heading);
 }
 
 /* Custom Scrollbars */
@@ -20,20 +54,60 @@ body {
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #FFFCFB;
+  background: var(--background);
 }
 ::-webkit-scrollbar-thumb {
-  background: #E8EDF2;
+  background: var(--color-surface-alt);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #64748B;
+  background: var(--color-ink-muted);
+}
+
+/* Smooth Accordion */
+.accordion-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 250ms ease-in-out;
+}
+.accordion-content.open {
+  grid-template-rows: 1fr;
+}
+.accordion-inner {
+  overflow: hidden;
+}
+
+/* Marquee Animation */
+@keyframes marquee {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 35s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee {
+    animation: none;
+    transform: none;
+  }
 }
 
 @layer utilities {
   .glass-card {
-    background: rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.88);
     backdrop-filter: blur(12px);
-    border: 1px solid #E8EDF2;
+    border: 1px solid var(--color-line);
   }
 }
