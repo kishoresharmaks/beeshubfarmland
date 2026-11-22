@@ -18,6 +18,9 @@ import {
   Leaf,
   Sliders,
   Sparkles,
+  Droplet,
+  Hexagon,
+  PackageCheck,
 } from 'lucide-react';
 import { StoreProvider, useStore } from '@/context/StoreContext';
 import TopUtilityBar from '@/components/theme-v2/TopUtilityBar';
@@ -33,83 +36,133 @@ import OrderTrackingModal from '@/components/theme-v2/store-bridge/OrderTracking
 function PrivateLabelContent() {
   const { setIsQuoteModalOpen, openQuoteModal, companyConfig } = useStore();
 
-  const heroShowcaseCategories = [
+  const heroCategories = [
     {
       id: 'powders',
-      tabLabel: 'Superfood Powders',
-      name: 'Nendran & Red Banana Powder',
-      subCategory: 'Dehydrated Fruit Flours',
-      desc: 'Gluten-free resistant starch flours and nutrient-dense greens for infant nutrition, bakery formulations, and clean-label blends.',
-      image: '/images/products/banana-powder.png',
-      alt: 'Dehydrated Nendran Banana Powder private label packaging',
-      specs: [
-        { label: 'Packaging', value: 'Barrier Pouches & 25kg Liners' },
-        { label: 'Moisture', value: 'Strictly < 5% Moisture' },
-        { label: 'Pilot MOQ', value: '100 Packs / 50 kg' },
-      ],
-      productSelectValue: 'Nendran Banana Powder (Dehydrated)',
-      containerSelectValue: 'Standup Zipper Barrier Pouch (200g/500g)',
+      name: 'Superfood Powders',
+      icon: Leaf,
+      iconColor: 'text-[#10B981]',
+      defaultProductIndex: 0,
     },
     {
       id: 'oils',
-      tabLabel: 'Cold-Pressed Oils',
-      name: 'Wood-Pressed Virgin Coconut & Sesame Oils',
-      subCategory: 'Marachekku Stone Extraction',
-      desc: 'Single-estate expeller cold pressed without chemical refining, sulfur, or thermal degradation. High lauric acid and natural aroma.',
-      image: '/images/products/coconut-oil.png',
-      alt: 'Wood cold-pressed virgin coconut oil bottling',
-      specs: [
-        { label: 'Packaging', value: 'Amber Glass & Food-Grade Tins' },
-        { label: 'Processing', value: 'Centrifuged Zero-Heat' },
-        { label: 'Pilot MOQ', value: '100 Bottles / 50 Litres' },
-      ],
-      productSelectValue: 'Cold-Pressed Virgin Coconut Oil',
-      containerSelectValue: 'Cold-Pressed Oil Amber Bottle (500ml/1L)',
+      name: 'Cold-Pressed Oils',
+      icon: Droplet,
+      iconColor: 'text-[#0EA5E9]',
+      defaultProductIndex: 4,
     },
     {
       id: 'honey',
-      tabLabel: 'Raw Forest Honey',
-      name: 'Western Ghats Wild Raw Honey',
-      subCategory: 'Bio-Reserve Apiary Harvest',
-      desc: 'Unheated, unpasteurized honey with natural pollen enzymes intact. Certified zero C3/C4 sugar adulteration via NMR spectroscopy.',
-      image: '/images/beeshub-pure-forest-honey-spotlight.webp',
-      alt: 'Pure raw forest honey glass jar bottling',
-      specs: [
-        { label: 'Packaging', value: 'Hexagonal Jars & Food Drums' },
-        { label: 'Certification', value: 'NMR & C4 Tested · FSSAI' },
-        { label: 'Pilot MOQ', value: '100 Jars / 30 kg' },
-      ],
-      productSelectValue: 'Pure Wild Forest Honey',
-      containerSelectValue: 'Hexagonal Glass Jar with Seal (250g/500g)',
+      name: 'Raw Forest Honey',
+      icon: Hexagon,
+      iconColor: 'text-[#F59E0B]',
+      defaultProductIndex: 3,
     },
     {
-      id: 'wellness',
-      tabLabel: 'Capsules & Snacks',
-      name: 'Moringa Capsules & Popped Makhana',
-      subCategory: 'Nutraceutical White Label',
-      desc: 'Vegetable cellulose capsules, handcrafted botanical soaps, and Grade 5/6 popped fox nuts (makhana) ready for custom retail branding.',
-      image: '/images/products/moringa-capsules.jpg',
-      alt: 'Moringa leaf powder capsules and nutraceuticals',
-      specs: [
-        { label: 'Packaging', value: 'HDPE Safety Jars & Foil Pouches' },
-        { label: 'Standard', value: '100% Vegan · GMP Cleanroom' },
-        { label: 'Pilot MOQ', value: '150 Units / 25 kg' },
-      ],
-      productSelectValue: 'Moringai Leaf Powder & Capsules',
-      containerSelectValue: 'HDPE Capsule Bottle (60/120 Caps)',
+      id: 'snacks',
+      name: 'Capsules & Snacks',
+      icon: PackageCheck,
+      iconColor: 'text-[#10B981]',
+      defaultProductIndex: 5,
     },
   ];
 
-  const [activeHeroCategory, setActiveHeroCategory] = useState(0);
-  const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const heroProducts = [
+    {
+      id: 'red-banana',
+      categoryId: 'powders',
+      selectorLabel: 'Red Banana',
+      name: 'Red Banana Powder (Chevvazhai)',
+      tag: 'Infant & Bakery Grade Superfood',
+      subtitle: 'Nutrient-dense, gluten-free traditional South Indian red banana flour rich in potassium, natural antioxidants, and dietary fiber.',
+      heroImage: '/images/products/red-banana-powder.png',
+      thumbnail: '/images/products/red-banana-powder.png',
+      specs: ['Resistant Starch', 'Moisture < 5%', '80–100 Mesh', 'Baby-Food Grade'],
+      quoteValue: 'Red Banana Powder (Chevvazhai)',
+    },
+    {
+      id: 'nendran-banana',
+      categoryId: 'powders',
+      selectorLabel: 'Nendran Banana',
+      name: 'Nendran Raw Banana Powder',
+      tag: 'Prebiotic Resistant Starch',
+      subtitle: 'Sun-ripened Kanyakumari Nendran bananas, solar-dehydrated below 50°C. 100% natural, zero added sugar or starch.',
+      heroImage: '/images/products/banana-powder.png',
+      thumbnail: '/images/products/banana-powder.png',
+      specs: ['Prebiotic Fiber', 'Low GI', 'Zero Sugar', 'Solar Dehydrated'],
+      quoteValue: 'Nendran Banana Powder (Raw & Fine)',
+    },
+    {
+      id: 'dates-powder',
+      categoryId: 'powders',
+      selectorLabel: 'Dates Powder',
+      name: 'Natural Dehydrated Dates Powder',
+      tag: '100% Pure Fruit Sweetener',
+      subtitle: 'Handpicked natural dates, pitted and dehydrated into fine 80–100 mesh powder. A healthy unrefined alternative to white sugar.',
+      heroImage: '/images/products/dates-powder-natural.jpg',
+      thumbnail: '/images/products/dates-powder-natural.jpg',
+      specs: ['Zero Refined Sugar', 'High Fiber & Iron', 'Preservative Free', 'Infant Safe'],
+      quoteValue: 'Dates Powder Natural _Shyn&Dev - 250 Gm',
+    },
+    {
+      id: 'raw-honey',
+      categoryId: 'honey',
+      selectorLabel: 'Raw Honey',
+      name: 'Western Ghats Raw Forest Honey',
+      tag: 'NMR Tested Unheated Apiculture',
+      subtitle: 'Unheated, unpasteurized forest honey with natural pollen enzymes intact. Certified zero C3/C4 sugar adulteration.',
+      heroImage: '/images/beeshub-pure-forest-honey-spotlight.webp',
+      thumbnail: '/images/beeshub-pure-forest-honey-spotlight.webp',
+      specs: ['Zero C4 Sugars', 'Diastase > 8', 'FSSAI Certified', 'Raw & Unheated'],
+      quoteValue: 'Pure Wild Forest Honey',
+    },
+    {
+      id: 'cold-pressed-oil',
+      categoryId: 'oils',
+      selectorLabel: 'Cold-Pressed Oil',
+      name: 'Wood Cold-Pressed Virgin Coconut Oil',
+      tag: 'Traditional Marachekku Milling',
+      subtitle: 'Centrifuged zero-heat expeller extraction preserving natural lauric acid, antioxidants, and authentic fresh farm aroma.',
+      heroImage: '/images/products/coconut-oil.png',
+      thumbnail: '/images/products/coconut-oil.png',
+      specs: ['Expeller < 45°C', 'High Lauric Acid', 'Zero Mineral Oil', 'Single Press'],
+      quoteValue: 'Cold-Pressed Virgin Coconut Oil',
+    },
+    {
+      id: 'moringa-snacks',
+      categoryId: 'snacks',
+      selectorLabel: 'Moringa & Snacks',
+      name: 'Moringa Capsules & Popped Makhana',
+      tag: 'Plant Nutrition & Healthy Snacks',
+      subtitle: 'Vegetable cellulose capsules, handcrafted botanical herbal soaps, and Grade 6 jumbo popped fox nuts.',
+      heroImage: '/images/products/moringa-capsules.jpg',
+      thumbnail: '/images/products/makhana.jpg',
+      specs: ['Chlorophyll Rich', 'Jumbo Grade 6', 'Pure Cellulose', 'Zero Chemical Fillers'],
+      quoteValue: 'Moringai Leaf Powder & Capsules',
+    },
+  ];
 
-  useEffect(() => {
-    if (isHeroPaused) return;
-    const interval = setInterval(() => {
-      setActiveHeroCategory((prev) => (prev + 1) % heroShowcaseCategories.length);
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [isHeroPaused, heroShowcaseCategories.length]);
+  const [activeCategory, setActiveCategory] = useState(0);
+  const [activeProductIndex, setActiveProductIndex] = useState(0);
+
+  const handleSelectCategory = (catIdx: number) => {
+    setActiveCategory(catIdx);
+    const targetProductIdx = heroCategories[catIdx].defaultProductIndex;
+    if (targetProductIdx !== undefined && heroProducts[targetProductIdx]) {
+      setActiveProductIndex(targetProductIdx);
+    }
+  };
+
+  const handleSelectProduct = (prodIdx: number) => {
+    setActiveProductIndex(prodIdx);
+    const prod = heroProducts[prodIdx];
+    const catIdx = heroCategories.findIndex((c) => c.id === prod.categoryId);
+    if (catIdx !== -1) {
+      setActiveCategory(catIdx);
+    }
+  };
+
+  const currentProduct = heroProducts[activeProductIndex];
 
   const [selectedProduct, setSelectedProduct] = useState('Nendran Banana Powder (Dehydrated)');
   const [selectedContainer, setSelectedContainer] = useState('Standup Zipper Pouch (200g)');
@@ -119,11 +172,11 @@ function PrivateLabelContent() {
 
   const handleInquirySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    openQuoteModal(selectedProduct);
+    openQuoteModal(currentProduct.quoteValue);
   };
 
   const whatsappMessage = encodeURIComponent(
-    `Hello BeesHub Farmland Team,\n\nI am interested in your Private Label & Contract Manufacturing services.\nPreferred Product: ${selectedProduct}\nPackaging: ${selectedContainer}\nEstimated Batch: ${estimatedQty} units.\n\nPlease share catalog, MOQ, and sample dispatch details.`
+    `Hello BeesHub Farmland Team,\n\nI am interested in your Private Label & Contract Manufacturing services for ${currentProduct.name}.\nPackaging Format: Pouches, Glass Jars, Tins & Bottles.\nEstimated Batch: Starts from 100 units.\n\nPlease share catalog, MOQ, and sample dispatch details.`
   );
   const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${whatsappMessage}`;
 
@@ -324,61 +377,109 @@ function PrivateLabelContent() {
 
   return (
     <main className="flex-1">
-      {/* 1. Hero Section */}
-      <section className="w-full py-16 sm:py-24 bg-gradient-to-b from-[#FFF8F5] via-[#FFFCFB] to-white border-b border-[#E8EDF2]">
-        <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-12 items-center">
-            {/* Left Content */}
-            <div className="lg:col-span-7 space-y-6">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669] text-xs font-bold tracking-wide">
-                <ShieldCheck className="w-4 h-4 text-[#10B981]" />
-                <span>FSSAI & GMP Certified Contract Cleanroom</span>
+      {/* 1. Hero Section - Clean Editorial Private Label Showcase */}
+      <section className="w-full relative py-12 lg:py-16 bg-[#FFFCFB] border-b border-[#E9E5DF] min-h-[700px] lg:min-h-[760px] flex items-center">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 xl:gap-14 items-center">
+            {/* Left Column (~44% on desktop) */}
+            <div className="lg:col-span-5 xl:col-span-5 space-y-6">
+              {/* Certification Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669] text-xs font-semibold tracking-wide shadow-2xs">
+                <ShieldCheck className="w-4 h-4 text-[#10B981] shrink-0" />
+                <span>FSSAI &amp; GMP Certified Contract Manufacturer</span>
               </div>
 
+              {/* Main Heading */}
               <div className="space-y-3">
-                <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-[#163B5C] tracking-tight leading-tight">
-                  Turnkey Private Label & <br className="hidden sm:inline" />
-                  <span className="text-[#ED3500]">Custom Farm Packaging</span>
+                <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-[42px] xl:text-[46px] text-[#12334D] tracking-tight leading-[1.16]">
+                  <span className="block">Launch Your Own Brand with</span>
+                  <span className="block text-[#F0440A] mt-1 sm:mt-1.5">Our Private Label Solutions</span>
                 </h1>
-                <p className="text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl">
-                  Launch or scale your brand across Dehydrated Superfood Powders, Pure Raw Honey, Wood Cold-Pressed Oils, and Herbal Wellness products with BeesHub Farmland. Direct farmgate harvest, automated cleanroom packaging, custom barrier pouches, glass jars, tins, and complete FSSAI regulatory compliance under your own brand identity.
+                <p className="text-sm sm:text-[15px] xl:text-base text-[#64748B] leading-relaxed max-w-xl">
+                  Turn our farm-sourced superfoods, oils, honey and wellness products into your own brand. We handle sourcing, processing, packaging and regulatory compliance, while you grow your brand.
                 </p>
               </div>
 
-              {/* Trust Points */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
-                {[
-                  { title: '100% Farm Pure', desc: 'Zero fillers or additives' },
-                  { title: 'Low MOQ', desc: 'Starts from 100 units' },
-                  { title: 'Custom Packs', desc: 'Pouches, jars & tins' },
-                  { title: 'FSSAI Ready', desc: 'Complete batch COA' },
-                ].map((item, idx) => (
-                  <div key={idx} className="p-3 bg-white rounded-2xl border border-[#E8EDF2] shadow-2xs">
-                    <div className="font-heading font-bold text-xs sm:text-sm text-[#163B5C]">
-                      {item.title}
+              {/* Four Benefit Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                {/* 1 */}
+                <div className="p-3 sm:p-3.5 bg-white rounded-2xl border border-[#E9E5DF] shadow-2xs hover:border-[#10B981] transition-colors flex flex-col justify-between">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-[#10B981] mb-2">
+                    <Leaf className="w-5 h-5 text-[#10B981]" />
+                  </div>
+                  <div>
+                    <div className="font-heading font-bold text-xs sm:text-[13px] text-[#12334D] leading-tight">
+                      100% Farm Pure
                     </div>
-                    <div className="text-[11px] text-[#64748B] mt-0.5">
-                      {item.desc}
+                    <div className="text-[11px] text-[#64748B] mt-0.5 leading-tight">
+                      No fillers or additives
                     </div>
                   </div>
-                ))}
+                </div>
+
+                {/* 2 */}
+                <div className="p-3 sm:p-3.5 bg-white rounded-2xl border border-[#E9E5DF] shadow-2xs hover:border-[#F0440A] transition-colors flex flex-col justify-between">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-[#F0440A] mb-2">
+                    <Layers className="w-5 h-5 text-[#F0440A]" />
+                  </div>
+                  <div>
+                    <div className="font-heading font-bold text-xs sm:text-[13px] text-[#12334D] leading-tight">
+                      Low MOQ
+                    </div>
+                    <div className="text-[11px] text-[#64748B] mt-0.5 leading-tight">
+                      Starts from 100 units
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3 */}
+                <div className="p-3 sm:p-3.5 bg-white rounded-2xl border border-[#E9E5DF] shadow-2xs hover:border-[#F0440A] transition-colors flex flex-col justify-between">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-[#F0440A] mb-2">
+                    <Package className="w-5 h-5 text-[#F0440A]" />
+                  </div>
+                  <div>
+                    <div className="font-heading font-bold text-xs sm:text-[13px] text-[#12334D] leading-tight">
+                      Custom Packaging
+                    </div>
+                    <div className="text-[11px] text-[#64748B] mt-0.5 leading-tight">
+                      Pouches, jars, tins &amp; more
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4 */}
+                <div className="p-3 sm:p-3.5 bg-white rounded-2xl border border-[#E9E5DF] shadow-2xs hover:border-[#F0440A] transition-colors flex flex-col justify-between">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-[#F0440A] mb-2">
+                    <Award className="w-5 h-5 text-[#F0440A]" />
+                  </div>
+                  <div>
+                    <div className="font-heading font-bold text-xs sm:text-[13px] text-[#12334D] leading-tight">
+                      FSSAI Ready
+                    </div>
+                    <div className="text-[11px] text-[#64748B] mt-0.5 leading-tight">
+                      Complete batch COA
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-3 flex flex-wrap items-center gap-3">
+              <div className="pt-2 flex flex-wrap items-center gap-3 sm:gap-4">
                 <button
-                  onClick={() => openQuoteModal('Turnkey Private Label & Packaging')}
-                  className="px-7 py-3.5 rounded-full bg-[#ED3500] hover:bg-[#D02E00] text-white font-semibold text-xs sm:text-sm shadow-md shadow-[#ED3500]/25 transition-colors flex items-center gap-2"
+                  type="button"
+                  onClick={() => openQuoteModal(currentProduct.quoteValue)}
+                  className="px-7 py-3.5 rounded-full bg-[#F0440A] hover:bg-[#D43805] text-white font-semibold text-xs sm:text-sm shadow-md shadow-[#F0440A]/25 transition-all flex items-center gap-2 group"
                 >
-                  <Factory className="w-4 h-4" />
+                  <Package className="w-4 h-4" />
                   <span>Request Private Label Quote</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </button>
 
                 <a
                   href={whatsappUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-6 py-3.5 rounded-full bg-white hover:bg-slate-50 border border-[#E8EDF2] text-[#163B5C] font-semibold text-xs sm:text-sm transition-colors flex items-center gap-2"
+                  className="px-6 py-3.5 rounded-full bg-white hover:bg-slate-50 border border-[#E9E5DF] text-[#12334D] font-semibold text-xs sm:text-sm shadow-2xs transition-all flex items-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4 text-[#25D366]" />
                   <span>Chat with Commercial Desk</span>
@@ -386,123 +487,123 @@ function PrivateLabelContent() {
               </div>
             </div>
 
-            {/* Right Hero Multi-Product Showcase */}
-            <div
-              className="lg:col-span-5 relative"
-              onMouseEnter={() => setIsHeroPaused(true)}
-              onMouseLeave={() => setIsHeroPaused(false)}
-            >
-              {/* Category Pills */}
-              <div className="flex items-center gap-1.5 p-1 bg-white rounded-2xl border border-[#E8EDF2] shadow-2xs mb-3 overflow-x-auto no-scrollbar">
-                {heroShowcaseCategories.map((cat, idx) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => setActiveHeroCategory(idx)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-colors ${
-                      activeHeroCategory === idx
-                        ? 'bg-[#163B5C] text-white shadow-2xs'
-                        : 'text-[#64748B] hover:text-[#163B5C] hover:bg-slate-50'
-                    }`}
-                  >
-                    {cat.tabLabel}
-                  </button>
-                ))}
-              </div>
-
-              {/* Main Active Card */}
-              <div className="bg-white rounded-3xl border border-[#E8EDF2] shadow-card overflow-hidden">
-                {/* Visual Stage */}
-                <div className="relative h-[220px] sm:h-[250px] bg-[#F8FAFC] border-b border-[#E8EDF2] flex items-center justify-center p-4">
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={heroShowcaseCategories[activeHeroCategory].image}
-                      alt={heroShowcaseCategories[activeHeroCategory].alt}
-                      fill
-                      className="object-contain"
-                      priority
-                    />
-                  </div>
-
-                  <div className="absolute top-3 left-3">
-                    <span className="px-2.5 py-1 rounded-full bg-white/95 backdrop-blur-xs text-[11px] font-semibold text-[#163B5C] border border-[#E8EDF2] shadow-2xs">
-                      {heroShowcaseCategories[activeHeroCategory].subCategory}
-                    </span>
-                  </div>
-
-                  <div className="absolute top-3 right-3">
-                    <span className="px-2.5 py-1 rounded-full bg-[#ECFDF5] text-[11px] font-semibold text-[#059669] border border-[#A7F3D0]">
-                      Cleanroom Lot COA
-                    </span>
-                  </div>
+            {/* Right Column: Large Premium Product Showcase (~56% on desktop) */}
+            <div className="lg:col-span-7 xl:col-span-7">
+              <div className="bg-white rounded-[28px] sm:rounded-[32px] border border-[#E9E5DF] shadow-xl p-4 sm:p-6 lg:p-7 relative overflow-hidden">
+                {/* Category Tabs (4 Tabs in a row) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 sm:mb-5">
+                  {heroCategories.map((cat, idx) => {
+                    const Icon = cat.icon;
+                    const isActive = activeCategory === idx;
+                    return (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => handleSelectCategory(idx)}
+                        className={`px-3 py-2 sm:py-2.5 rounded-xl sm:rounded-2xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                          isActive
+                            ? 'bg-[#174C35] text-white shadow-sm ring-1 ring-[#174C35]'
+                            : 'bg-white border border-[#E9E5DF] text-[#12334D] hover:bg-slate-50 hover:border-slate-300'
+                        }`}
+                      >
+                        <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : cat.iconColor}`} />
+                        <span className="truncate">{cat.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* Content & Specs */}
-                <div className="p-5 space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="font-heading font-bold text-base sm:text-lg text-[#163B5C] leading-snug">
-                      {heroShowcaseCategories[activeHeroCategory].name}
-                    </h3>
-                    <p className="text-xs text-[#64748B] leading-relaxed line-clamp-2">
-                      {heroShowcaseCategories[activeHeroCategory].desc}
-                    </p>
-                  </div>
-
-                  {/* Micro Specs */}
-                  <div className="grid grid-cols-3 gap-2 pt-1 border-t border-[#F1F5F9]">
-                    {heroShowcaseCategories[activeHeroCategory].specs.map((spec, sIdx) => (
-                      <div key={sIdx} className="space-y-0.5">
-                        <div className="text-[10px] font-medium text-[#94A3B8]">
-                          {spec.label}
-                        </div>
-                        <div className="text-[11px] font-semibold text-[#163B5C] leading-tight">
-                          {spec.value}
-                        </div>
+                {/* Featured Product Clean Editorial Stage */}
+                <div className="w-full rounded-2xl sm:rounded-3xl bg-[#FFFDFB] border border-[#E9E5DF] p-5 sm:p-6 lg:p-7 mb-4 sm:mb-5 shadow-2xs">
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    {/* Left: Product Editorial Metadata */}
+                    <div className="md:col-span-7 space-y-3">
+                      <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#ECFDF5] border border-[#A7F3D0] text-[#059669] text-[11px] font-semibold">
+                        <Leaf className="w-3 h-3 text-[#10B981]" />
+                        <span>{currentProduct.tag}</span>
                       </div>
-                    ))}
-                  </div>
 
-                  {/* Action Link to Configure */}
-                  <div className="pt-2 border-t border-[#F1F5F9]">
-                    <button
-                      onClick={() => {
-                        setSelectedProduct(heroShowcaseCategories[activeHeroCategory].productSelectValue);
-                        setSelectedContainer(heroShowcaseCategories[activeHeroCategory].containerSelectValue);
-                        openQuoteModal(heroShowcaseCategories[activeHeroCategory].productSelectValue);
-                      }}
-                      className="w-full py-2.5 rounded-xl bg-[#FFF8F5] hover:bg-[#FEE2E2] text-[#ED3500] font-semibold text-xs border border-[#FFD5C7] transition-colors flex items-center justify-center gap-1.5"
-                    >
-                      <Package className="w-3.5 h-3.5" />
-                      <span>Configure {heroShowcaseCategories[activeHeroCategory].tabLabel}</span>
-                    </button>
+                      <h3 className="font-heading font-bold text-xl sm:text-2xl text-[#12334D] leading-tight">
+                        {currentProduct.name}
+                      </h3>
+
+                      <p className="text-xs sm:text-[13px] text-[#64748B] leading-relaxed">
+                        {currentProduct.subtitle}
+                      </p>
+
+                      {/* Micro Quality Specs */}
+                      <div className="flex flex-wrap gap-1.5 pt-1 text-[11px] font-medium text-[#12334D]">
+                        {currentProduct.specs.map((spec, sIdx) => (
+                          <span
+                            key={sIdx}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-[#E9E5DF] shadow-2xs"
+                          >
+                            {spec}
+                          </span>
+                        ))}
+                      </div>
+
+                      <div className="pt-1.5">
+                        <button
+                          type="button"
+                          onClick={() => openQuoteModal(currentProduct.quoteValue)}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#F0440A] hover:underline"
+                        >
+                          <span>Request Private Label Quote for {currentProduct.selectorLabel}</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Right: Real Product Photography Stage (Properly Fitted, Object-Contain) */}
+                    <div className="md:col-span-5 flex items-center justify-center">
+                      <div className="relative w-44 h-44 sm:w-52 sm:h-52 p-3 rounded-2xl bg-white border border-[#E9E5DF] shadow-xs flex items-center justify-center group">
+                        <Image
+                          src={currentProduct.heroImage}
+                          alt={currentProduct.name}
+                          fill
+                          className="object-contain p-3 group-hover:scale-105 transition-transform duration-300"
+                          priority
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* 4 Interactive Thumbnail Previews Strip */}
-              <div className="grid grid-cols-4 gap-2 mt-3">
-                {heroShowcaseCategories.map((item, idx) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveHeroCategory(idx)}
-                    className={`relative p-1.5 rounded-2xl border text-left transition-colors flex flex-col items-center gap-1 ${
-                      activeHeroCategory === idx
-                        ? 'bg-white border-[#ED3500] ring-2 ring-[#ED3500]/20 shadow-2xs'
-                        : 'bg-white/80 border-[#E8EDF2] hover:border-slate-300'
-                    }`}
-                  >
-                    <div className="relative w-10 h-10 rounded-xl overflow-hidden bg-white border border-[#E8EDF2] shrink-0">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-contain p-1"
-                      />
-                    </div>
-                    <span className="text-[10px] font-medium text-[#163B5C] text-center line-clamp-1">
-                      {item.tabLabel}
-                    </span>
-                  </button>
-                ))}
+                {/* Product Thumbnail Navigation (6 Selector Cards) */}
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 sm:gap-2.5">
+                  {heroProducts.map((prod, idx) => {
+                    const isSelected = activeProductIndex === idx;
+                    return (
+                      <button
+                        key={prod.id}
+                        type="button"
+                        onClick={() => handleSelectProduct(idx)}
+                        className={`p-2 sm:p-2.5 rounded-2xl text-center transition-all flex flex-col items-center justify-between group ${
+                          isSelected
+                            ? 'border-2 border-[#F0440A] bg-orange-50/40 shadow-2xs scale-[1.02]'
+                            : 'border border-[#E9E5DF] bg-white hover:border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="relative w-12 h-10 sm:w-14 sm:h-12 mb-1 flex items-center justify-center">
+                          <Image
+                            src={prod.thumbnail}
+                            alt={prod.selectorLabel}
+                            fill
+                            className="object-contain p-0.5"
+                          />
+                        </div>
+                        <span
+                          className={`text-[11px] sm:text-xs leading-tight transition-colors line-clamp-1 ${
+                            isSelected ? 'font-bold text-[#F0440A]' : 'font-medium text-[#12334D] group-hover:text-[#F0440A]'
+                          }`}
+                        >
+                          {prod.selectorLabel}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

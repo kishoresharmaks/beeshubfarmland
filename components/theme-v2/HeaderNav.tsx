@@ -224,7 +224,14 @@ export default function HeaderNav() {
 
           {/* Desktop Navigation Links with Proper Spacing & Padding */}
           <nav className="hidden lg:flex items-center gap-2.5 lg:gap-3.5 xl:gap-5 2xl:gap-7 text-[13px] xl:text-[13.5px] font-semibold text-[#163B5C] whitespace-nowrap">
-            <Link href="/" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
+            <Link
+              href="/"
+              className={`px-2.5 py-1.5 transition-colors ${
+                pathname === '/'
+                  ? 'text-[#F0440A] font-bold'
+                  : 'rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50'
+              }`}
+            >
               Home
             </Link>
 
@@ -317,11 +324,25 @@ export default function HeaderNav() {
               )}
             </div>
 
-            <Link href="/private-label" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
+            <Link
+              href="/private-label"
+              className={`px-2.5 py-1.5 transition-colors ${
+                pathname === '/private-label'
+                  ? 'text-[#F0440A] font-bold border-b-2 border-[#F0440A] rounded-none pb-0.5'
+                  : 'rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50'
+              }`}
+            >
               Private Label
             </Link>
 
-            <Link href="/gift" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
+            <Link
+              href="/gift"
+              className={`px-2.5 py-1.5 transition-colors ${
+                pathname === '/gift'
+                  ? 'text-[#F0440A] font-bold border-b-2 border-[#F0440A] rounded-none pb-0.5'
+                  : 'rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50'
+              }`}
+            >
               Gift Hampers
             </Link>
 
