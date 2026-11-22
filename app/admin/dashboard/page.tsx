@@ -1342,7 +1342,7 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                   : 'border-transparent text-[#64748B] hover:text-[#163B5C]'
               }`}
             >
-              <Briefcase className="w-4 h-4 text-amber-500" /> Wholesale Leads
+              <Briefcase className="w-4 h-4 text-amber-500" /> Enquiries & Leads
               {newLeadsCount > 0 && (
                 <span className="px-2 py-0.5 rounded-full bg-[#ED3500] text-white text-[10px] font-black">
                   {newLeadsCount}

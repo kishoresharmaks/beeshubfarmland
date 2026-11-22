@@ -101,6 +101,8 @@ export interface TrackedOrder {
   }>;
 }
 
+export type EnquiryCategory = 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL';
+
 interface StoreContextType {
   // Catalog Data
   products: Product[];
@@ -146,7 +148,9 @@ interface StoreContextType {
   setIsQuoteModalOpen: (open: boolean) => void;
   quoteModalInitialProduct: string | null;
   setQuoteModalInitialProduct: (productName: string | null) => void;
-  openQuoteModal: (productName?: string) => void;
+  quoteModalCategory: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null;
+  setQuoteModalCategory: (cat: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null) => void;
+  openQuoteModal: (productName?: string, category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL') => void;
   isTrackingModalOpen: boolean;
   setIsTrackingModalOpen: (open: boolean) => void;
   quickViewProduct: Product | null;
@@ -191,12 +195,18 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [quoteModalInitialProduct, setQuoteModalInitialProduct] = useState<string | null>(null);
+  const [quoteModalCategory, setQuoteModalCategory] = useState<'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null>(null);
 
-  const openQuoteModal = (productName?: string) => {
+  const openQuoteModal = (productName?: string, category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL') => {
     if (productName) {
       setQuoteModalInitialProduct(productName);
     } else {
       setQuoteModalInitialProduct(null);
+    }
+    if (category) {
+      setQuoteModalCategory(category);
+    } else {
+      setQuoteModalCategory(null);
     }
     setIsQuoteModalOpen(true);
   };
@@ -651,6 +661,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setIsQuoteModalOpen,
         quoteModalInitialProduct,
         setQuoteModalInitialProduct,
+        quoteModalCategory,
+        setQuoteModalCategory,
         openQuoteModal,
         isTrackingModalOpen,
         setIsTrackingModalOpen,

@@ -17,8 +17,11 @@ import {
   Loader2,
   HelpCircle,
   Package,
+  Tag,
+  Gift,
+  Check,
 } from 'lucide-react';
-import { useStore } from '@/context/StoreContext';
+import { useStore, EnquiryCategory } from '@/context/StoreContext';
 
 interface FormItem {
   productId: string;
@@ -47,12 +50,12 @@ const defaultCatalogFallback = [
 ];
 
 /**
- * Section R: Quote & Enquiry Modal
- * Prompts user first for:
- * 1. B2B / Wholesale Enquiry (Product compulsory via store dropdown)
- * 2. General Enquiry (Product optional, general message compulsory)
- * Focus trap, Esc to close, honeypot anti-spam, success screen.
- * Submits to POST /api/wholesale.
+ * Section R: Unified Enquiry & Quotation Modal
+ * Supports 4 distinct categories:
+ * 1. PRIVATE_LABEL: Turnkey private labeling, custom bottling, jar series
+ * 2. GIFT_HAMPER: Bespoke event, wedding return gifts, corporate hampers
+ * 3. WHOLESALE: Direct bulk farmgate raw honey, oils, superfood powders
+ * 4. GENERAL: Normal customer questions, retail support & apiary info
  */
 export default function QuoteModal() {
   const {
@@ -60,13 +63,15 @@ export default function QuoteModal() {
     setIsQuoteModalOpen,
     quoteModalInitialProduct,
     setQuoteModalInitialProduct,
+    quoteModalCategory,
+    setQuoteModalCategory,
     products,
     companyConfig,
     showToast,
   } = useStore();
 
-  // Mode: B2B Wholesale vs General Customer Enquiry
-  const [inquiryType, setInquiryType] = useState<'B2B' | 'GENERAL'>('B2B');
+  // Enquiry Category State: WHOLESALE | PRIVATE_LABEL | GIFT_HAMPER | GENERAL
+  const [enquiryCategory, setEnquiryCategory] = useState<EnquiryCategory>('WHOLESALE');
 
   // Shared Fields
   const [contactPerson, setContactPerson] = useState('');
@@ -77,7 +82,7 @@ export default function QuoteModal() {
   const [notes, setNotes] = useState('');
   const [honeypot, setHoneypot] = useState('');
 
-  // B2B Specific Fields
+  // Commercial / Organization Specific Fields
   const [companyName, setCompanyName] = useState('');
   const [gstin, setGstin] = useState('');
   const [orderType, setOrderType] = useState<'ONE_TIME' | 'MONTHLY_RECURRING' | 'CONTRACT_FARMING'>('ONE_TIME');
@@ -112,19 +117,53 @@ export default function QuoteModal() {
       : [{ _id: 'cat-gift', name: 'Wedding & Event Gift Hampers', category: 'Gifting' }]),
   ];
 
-  // Auto-load clicked product when modal opens
+  // Auto-detect & pre-select appropriate category and load clicked product when modal opens
   useEffect(() => {
-    if (isQuoteModalOpen && quoteModalInitialProduct) {
-      setInquiryType('B2B');
+    if (!isQuoteModalOpen) return;
+
+    // 1. If explicit category requested, prioritize it
+    if (quoteModalCategory) {
+      setEnquiryCategory(quoteModalCategory);
+    } else if (typeof window !== 'undefined') {
+      const path = window.location.pathname;
+      if (path.includes('/private-label')) {
+        setEnquiryCategory('PRIVATE_LABEL');
+      } else if (path.includes('/gift')) {
+        setEnquiryCategory('GIFT_HAMPER');
+      }
+    }
+
+    // 2. If a product was clicked, load it and infer category if not explicitly set
+    if (quoteModalInitialProduct) {
       const target = quoteModalInitialProduct.toLowerCase().trim();
 
-      const isPackagingOrHamper =
+      const isPrivateLabel =
         target.includes('series') ||
         target.includes('jar') ||
+        target.includes('hexa') ||
+        target.includes('octa') ||
+        target.includes('square') ||
+        target.includes('private label') ||
+        target.includes('white label') ||
+        target.includes('bottling');
+
+      const isGiftHamper =
+        target.includes('hamper') ||
         target.includes('chest') ||
         target.includes('trunk') ||
-        target.includes('hamper') ||
-        target.includes('box');
+        target.includes('wedding') ||
+        target.includes('gala') ||
+        target.includes('favor');
+
+      if (!quoteModalCategory) {
+        if (isPrivateLabel) {
+          setEnquiryCategory('PRIVATE_LABEL');
+        } else if (isGiftHamper) {
+          setEnquiryCategory('GIFT_HAMPER');
+        }
+      }
+
+      const isPackagingOrHamper = isPrivateLabel || isGiftHamper;
 
       const matched = !isPackagingOrHamper
         ? catalogList.find((p) => {
@@ -150,7 +189,7 @@ export default function QuoteModal() {
           {
             productId: matched._id,
             productName: matched.name,
-            quantity: 50,
+            quantity: matched.category === 'Oil' ? 50 : 100,
             unit: matched.category === 'Oil' ? 'LITRE' : 'KG',
             targetPrice: '',
             isCustom: false,
@@ -162,7 +201,7 @@ export default function QuoteModal() {
           {
             productId: 'CUSTOM',
             productName: quoteModalInitialProduct,
-            quantity: 100,
+            quantity: isPackagingOrHamper ? 100 : 50,
             unit: isPackagingOrHamper ? 'PIECES' : 'KG',
             targetPrice: '',
             isCustom: true,
@@ -171,11 +210,12 @@ export default function QuoteModal() {
         setGeneralSelectedProductId('');
       }
     }
-  }, [isQuoteModalOpen, quoteModalInitialProduct]);
+  }, [isQuoteModalOpen, quoteModalInitialProduct, quoteModalCategory]);
 
   const handleCloseModal = () => {
     setIsQuoteModalOpen(false);
     setQuoteModalInitialProduct(null);
+    if (setQuoteModalCategory) setQuoteModalCategory(null);
     setSubmittedLeadId(null);
     setErrorMessage('');
   };
@@ -199,15 +239,16 @@ export default function QuoteModal() {
 
   if (!isQuoteModalOpen) return null;
 
-  // Set default initial product for B2B if not set yet
+  const isGeneral = enquiryCategory === 'GENERAL';
+
   const handleAddItem = () => {
     setItems((prev) => [
       ...prev,
       {
         productId: '',
         productName: '',
-        quantity: 50,
-        unit: 'KG',
+        quantity: enquiryCategory === 'WHOLESALE' ? 50 : 100,
+        unit: enquiryCategory === 'WHOLESALE' ? 'KG' : 'PIECES',
         targetPrice: '',
       },
     ]);
@@ -259,28 +300,35 @@ export default function QuoteModal() {
       return;
     }
     if (!phone.trim()) {
-      setErrorMessage('A valid mobile number is required.');
+      setErrorMessage('A valid 10-digit mobile number is required.');
       return;
     }
 
     let payload: any = {};
 
-    if (inquiryType === 'B2B') {
-      // B2B Strict Validations
+    if (!isGeneral) {
+      // Commercial / Occasion Validations
+      const companyLabel =
+        enquiryCategory === 'GIFT_HAMPER'
+          ? 'Occasion or organization name'
+          : enquiryCategory === 'PRIVATE_LABEL'
+          ? 'Brand or company name'
+          : 'Company or business name';
+
       if (!companyName.trim()) {
-        setErrorMessage('Company or business name is required for B2B quotations.');
+        setErrorMessage(`${companyLabel} is required.`);
         return;
       }
       if (!city.trim() || !pincode.trim()) {
-        setErrorMessage('Delivery city and pincode are required.');
+        setErrorMessage('Delivery city and 6-digit pincode are required.');
         return;
       }
 
-      // Check product is compulsory for B2B
+      // Check product is compulsory for B2B / Private Label / Hampers
       for (let i = 0; i < items.length; i++) {
         const it = items[i];
         if (!it.productName.trim()) {
-          setErrorMessage(`Please select a product for Item #${i + 1}. Product selection is compulsory for B2B enquiries.`);
+          setErrorMessage(`Please select or specify a product/specification for Item #${i + 1}.`);
           return;
         }
         if (!it.quantity || Number(it.quantity) <= 0) {
@@ -291,6 +339,7 @@ export default function QuoteModal() {
 
       payload = {
         inquiryType: 'B2B',
+        enquiryCategory,
         companyName: companyName.trim(),
         contactPerson: contactPerson.trim(),
         phone: phone.trim(),
@@ -340,6 +389,7 @@ export default function QuoteModal() {
 
       payload = {
         inquiryType: 'GENERAL',
+        enquiryCategory: 'GENERAL',
         companyName: companyName.trim() || contactPerson.trim() || 'Individual Customer',
         contactPerson: contactPerson.trim(),
         phone: phone.trim(),
@@ -368,7 +418,11 @@ export default function QuoteModal() {
       if (data.success) {
         setSubmittedLeadId(data.id || 'SUBMITTED');
         showToast(
-          inquiryType === 'B2B'
+          enquiryCategory === 'PRIVATE_LABEL'
+            ? 'Private label enquiry submitted!'
+            : enquiryCategory === 'GIFT_HAMPER'
+            ? 'Gift hamper enquiry submitted!'
+            : enquiryCategory === 'WHOLESALE'
             ? 'Wholesale quotation request submitted!'
             : 'General enquiry submitted successfully!'
         );
@@ -383,12 +437,54 @@ export default function QuoteModal() {
   };
 
   const cleanStorePhone = companyConfig.phone.replace(/\D/g, '') || '9578784431';
-  const whatsappSummaryMessage = encodeURIComponent(
-    inquiryType === 'B2B'
-      ? `Hello BeesHub Farmland Commercial Desk,\n\nI have submitted a wholesale quotation request for ${companyName || 'our business'}.\nContact: ${contactPerson} (${phone})\nRequirement: ${items.map((i) => `${i.productName} (${i.quantity} ${i.unit})`).join(', ')}\nDelivery: ${city} - ${pincode}.\n\nPlease share official bulk pricing and batch availability.`
-      : `Hello BeesHub Farmland Team,\n\nI have submitted an enquiry on your website.\nName: ${contactPerson} (${phone})\nMessage: ${notes.slice(0, 150)}...\n\nPlease assist me.`
-  );
-  const whatsappUrl = `https://wa.me/91${cleanStorePhone}?text=${whatsappSummaryMessage}`;
+
+  const categoryTitles = {
+    PRIVATE_LABEL: {
+      heading: 'Private Label & Custom Bottling',
+      sub: 'Custom jar series (Hexa, Square, Octa), turnkey bottling, and white-label pure agro products.',
+      companyPlaceholder: 'e.g. PureRoots Naturals / Your Brand Name',
+      companyLabel: 'Brand or Company Name *',
+      submitLabel: 'Submit Private Label Enquiry',
+    },
+    GIFT_HAMPER: {
+      heading: 'Wedding & Event Gift Hampers',
+      sub: 'Bespoke heirloom pine-wood chests and gift boxes for weddings, ceremonies, and galas.',
+      companyPlaceholder: 'e.g. Arun & Divya Wedding Reception / Corporate Gala',
+      companyLabel: 'Occasion or Family / Corporate Name *',
+      submitLabel: 'Submit Gift Hamper Enquiry',
+    },
+    WHOLESALE: {
+      heading: 'Request Bulk Wholesale Quotation',
+      sub: 'Direct farmgate raw honey, superfood powders & cold-pressed virgin oils in commercial volumes.',
+      companyPlaceholder: 'e.g. Sri Murugan Trading / PureFoods Corp',
+      companyLabel: 'Company / Trade Name *',
+      submitLabel: 'Submit Wholesale Quotation Request',
+    },
+    GENERAL: {
+      heading: 'Customer & General Enquiry',
+      sub: 'Have questions regarding our products, farm visits, pure honey, or orders? Let us know.',
+      companyPlaceholder: 'Optional organization name',
+      companyLabel: 'Organization (Optional)',
+      submitLabel: 'Submit General Enquiry',
+    },
+  };
+
+  const currentCopy = categoryTitles[enquiryCategory];
+
+  const whatsappMessageTemplate = () => {
+    if (enquiryCategory === 'PRIVATE_LABEL') {
+      return `Hello BeesHub Farmland Team,\n\nI have submitted a Private Label & Bottling enquiry for ${companyName || 'our brand'}.\nContact: ${contactPerson} (${phone})\nRequirement: ${items.map((i) => `${i.productName} (${i.quantity} ${i.unit})`).join(', ')}\nLocation: ${city} - ${pincode}.\n\nPlease share jar catalog, MOQs, and private label bottling rates.`;
+    }
+    if (enquiryCategory === 'GIFT_HAMPER') {
+      return `Hello BeesHub Farmland Gifting Desk,\n\nI have submitted an event gift hamper enquiry for ${companyName || 'our upcoming event'}.\nContact: ${contactPerson} (${phone})\nSelected Hampers: ${items.map((i) => `${i.productName} (${i.quantity} ${i.unit})`).join(', ')}\nDelivery: ${city} - ${pincode}.\n\nPlease share hamper customization options and bulk wedding pricing.`;
+    }
+    if (enquiryCategory === 'WHOLESALE') {
+      return `Hello BeesHub Farmland Commercial Desk,\n\nI have submitted a wholesale quotation request for ${companyName || 'our business'}.\nContact: ${contactPerson} (${phone})\nRequirement: ${items.map((i) => `${i.productName} (${i.quantity} ${i.unit})`).join(', ')}\nDelivery: ${city} - ${pincode}.\n\nPlease share official bulk pricing and batch availability.`;
+    }
+    return `Hello BeesHub Farmland Team,\n\nI have submitted an enquiry on your website.\nName: ${contactPerson} (${phone})\nMessage: ${notes.slice(0, 150)}...\n\nPlease assist me.`;
+  };
+
+  const whatsappUrl = `https://wa.me/91${cleanStorePhone}?text=${encodeURIComponent(whatsappMessageTemplate())}`;
 
   return (
     <div
@@ -405,7 +501,7 @@ export default function QuoteModal() {
           <div className="absolute inset-0 bg-white/90 backdrop-blur-xs z-50 flex flex-col items-center justify-center gap-3">
             <Loader2 className="w-8 h-8 text-[#ED3500] animate-spin" />
             <p className="font-heading font-semibold text-sm text-[#163B5C]">
-              Sending your {inquiryType === 'B2B' ? 'quotation request' : 'enquiry'}…
+              Sending your {enquiryCategory.toLowerCase().replace('_', ' ')} enquiry…
             </p>
           </div>
         )}
@@ -413,27 +509,29 @@ export default function QuoteModal() {
         {/* Modal Header */}
         <div className="px-6 py-5 border-b border-[#E8EDF2] bg-[#163B5C] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-white/10 text-white flex items-center justify-center">
-              {inquiryType === 'B2B' ? (
-                <Briefcase className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0">
+              {enquiryCategory === 'PRIVATE_LABEL' ? (
+                <Tag className="w-5 h-5 text-indigo-300" />
+              ) : enquiryCategory === 'GIFT_HAMPER' ? (
+                <Gift className="w-5 h-5 text-rose-300" />
+              ) : enquiryCategory === 'GENERAL' ? (
+                <MessageCircle className="w-5 h-5 text-emerald-300" />
               ) : (
-                <MessageCircle className="w-5 h-5" />
+                <Briefcase className="w-5 h-5 text-amber-300" />
               )}
             </div>
             <div>
               <h3 className="font-heading font-bold text-base sm:text-lg">
-                {inquiryType === 'B2B' ? 'Request Wholesale Quotation' : 'Customer & General Enquiry'}
+                {currentCopy.heading}
               </h3>
-              <p className="text-xs text-slate-300">
-                {inquiryType === 'B2B'
-                  ? 'Direct farm harvest with accredited lab certification.'
-                  : 'Have questions regarding our farm, products, or orders? Let us know.'}
+              <p className="text-xs text-slate-300 leading-snug">
+                {currentCopy.sub}
               </p>
             </div>
           </div>
           <button
             onClick={handleCloseModal}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors shrink-0 ml-2"
             aria-label="Close modal"
           >
             <X className="w-4 h-4" />
@@ -441,7 +539,7 @@ export default function QuoteModal() {
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto space-y-6">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-6">
           {submittedLeadId ? (
             /* Success Confirmation Screen */
             <div className="py-8 text-center space-y-5">
@@ -450,15 +548,19 @@ export default function QuoteModal() {
               </div>
               <div className="space-y-2">
                 <h4 className="font-heading font-bold text-xl sm:text-2xl text-[#163B5C]">
-                  {inquiryType === 'B2B'
-                    ? 'Quotation request received'
-                    : 'Enquiry received successfully'}
+                  {enquiryCategory === 'PRIVATE_LABEL'
+                    ? 'Private Label Enquiry Received'
+                    : enquiryCategory === 'GIFT_HAMPER'
+                    ? 'Gift Hamper Enquiry Received'
+                    : enquiryCategory === 'WHOLESALE'
+                    ? 'Quotation Request Received'
+                    : 'Enquiry Received Successfully'}
                 </h4>
                 <p className="text-xs sm:text-sm text-[#64748B] max-w-md mx-auto leading-relaxed">
-                  Thank you, <strong className="text-[#163B5C]">{contactPerson}</strong>. Our team has received your details
-                  {inquiryType === 'B2B' && companyName ? (
+                  Thank you, <strong className="text-[#163B5C]">{contactPerson}</strong>. Our commercial desk has received your request
+                  {companyName ? (
                     <> for <strong className="text-[#163B5C]">{companyName}</strong></>
-                  ) : null}. We will review batch availability and respond within 24 hours.
+                  ) : null}. We will review product availability and respond within 24 hours.
                 </p>
               </div>
 
@@ -490,73 +592,73 @@ export default function QuoteModal() {
           ) : (
             /* Submission Form */
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* STEP 1: Enquiry Type Selector (B2B vs General) */}
-              <div className="space-y-1.5">
+              {/* CATEGORY SELECTOR TABS */}
+              <div className="space-y-2">
                 <label className="block text-xs font-semibold text-[#163B5C]">
-                  Please select your enquiry type:
+                  Select Enquiry Category:
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInquiryType('B2B');
-                      setErrorMessage('');
-                    }}
-                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3 ${
-                      inquiryType === 'B2B'
-                        ? 'border-[#ED3500] bg-[#FFF8F5] ring-2 ring-[#ED3500]/20 shadow-xs'
-                        : 'border-[#E8EDF2] bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        inquiryType === 'B2B'
-                          ? 'bg-[#ED3500] text-white'
-                          : 'bg-slate-100 text-[#163B5C]'
-                      }`}
-                    >
-                      <Briefcase className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="font-heading font-bold text-xs sm:text-sm text-[#163B5C]">
-                        B2B / Wholesale
-                      </div>
-                      <div className="text-[11px] text-[#64748B] mt-0.5 leading-snug">
-                        Bulk supply, drums, export & private label
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setInquiryType('GENERAL');
-                      setErrorMessage('');
-                    }}
-                    className={`p-3.5 rounded-2xl border text-left transition-all flex items-start gap-3 ${
-                      inquiryType === 'GENERAL'
-                        ? 'border-[#10B981] bg-[#ECFDF5] ring-2 ring-[#10B981]/20 shadow-xs'
-                        : 'border-[#E8EDF2] bg-white hover:border-slate-300'
-                    }`}
-                  >
-                    <div
-                      className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${
-                        inquiryType === 'GENERAL'
-                          ? 'bg-[#10B981] text-white'
-                          : 'bg-slate-100 text-[#163B5C]'
-                      }`}
-                    >
-                      <MessageCircle className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <div className="font-heading font-bold text-xs sm:text-sm text-[#163B5C]">
-                        General Enquiry
-                      </div>
-                      <div className="text-[11px] text-[#64748B] mt-0.5 leading-snug">
-                        Product queries, order help & farm info
-                      </div>
-                    </div>
-                  </button>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    {
+                      id: 'WHOLESALE' as EnquiryCategory,
+                      label: 'Bulk Wholesale',
+                      icon: Package,
+                      desc: 'Raw drums & lots',
+                      activeColor: 'border-amber-500 bg-amber-50/50 text-[#163B5C]',
+                    },
+                    {
+                      id: 'PRIVATE_LABEL' as EnquiryCategory,
+                      label: 'Private Label',
+                      icon: Tag,
+                      desc: 'Bottling & jars',
+                      activeColor: 'border-indigo-500 bg-indigo-50/50 text-[#163B5C]',
+                    },
+                    {
+                      id: 'GIFT_HAMPER' as EnquiryCategory,
+                      label: 'Gift Hampers',
+                      icon: Gift,
+                      desc: 'Weddings & galas',
+                      activeColor: 'border-rose-500 bg-rose-50/50 text-[#163B5C]',
+                    },
+                    {
+                      id: 'GENERAL' as EnquiryCategory,
+                      label: 'General / Support',
+                      icon: MessageCircle,
+                      desc: 'Normal inquiry',
+                      activeColor: 'border-emerald-500 bg-emerald-50/50 text-[#163B5C]',
+                    },
+                  ].map((tab) => {
+                    const Icon = tab.icon;
+                    const isActive = enquiryCategory === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => {
+                          setEnquiryCategory(tab.id);
+                          setErrorMessage('');
+                        }}
+                        className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                          isActive
+                            ? `${tab.activeColor} ring-2 ring-current/20 shadow-xs`
+                            : 'border-[#E8EDF2] bg-white hover:border-slate-300 text-[#64748B]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between w-full mb-1">
+                          <Icon className={`w-4 h-4 ${isActive ? 'text-[#ED3500]' : 'text-slate-400'}`} />
+                          {isActive && <Check className="w-3.5 h-3.5 text-[#ED3500]" />}
+                        </div>
+                        <div>
+                          <div className={`font-heading font-bold text-xs ${isActive ? 'text-[#163B5C]' : 'text-[#64748B]'}`}>
+                            {tab.label}
+                          </div>
+                          <div className="text-[10px] text-slate-400 leading-tight">
+                            {tab.desc}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -565,13 +667,13 @@ export default function QuoteModal() {
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FFF8F5] border border-[#FFD5C7] text-xs">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-[#ED3500]" />
-                    <span className="text-[#163B5C] font-medium">Selected Formulation:</span>
+                    <span className="text-[#163B5C] font-medium">Selected Item:</span>
                     <span className="font-semibold text-[#ED3500]">
                       {items[0]?.productName || quoteModalInitialProduct}
                     </span>
                   </div>
                   <span className="text-[11px] font-medium text-[#64748B] bg-white px-2 py-0.5 rounded-md border border-[#E8EDF2]">
-                    Auto-loaded
+                    Pre-loaded
                   </span>
                 </div>
               )}
@@ -595,7 +697,7 @@ export default function QuoteModal() {
                 />
               </div>
 
-              {/* Basic Contact Info */}
+              {/* Contact Person & Company / Occasion */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Contact Person Name */}
                 <div>
@@ -615,21 +717,17 @@ export default function QuoteModal() {
                   </div>
                 </div>
 
-                {/* Company Name (Compulsory for B2B, Optional for General) */}
+                {/* Company / Brand / Occasion Name */}
                 <div>
                   <label className="block text-xs font-semibold text-[#163B5C] mb-1">
-                    {inquiryType === 'B2B' ? 'Company / Trade Name *' : 'Company / Organization (Optional)'}
+                    {currentCopy.companyLabel}
                   </label>
                   <div className="relative">
                     <Building2 className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                     <input
                       type="text"
-                      required={inquiryType === 'B2B'}
-                      placeholder={
-                        inquiryType === 'B2B'
-                          ? 'e.g. PureHealth Organics Ltd'
-                          : 'Optional company name'
-                      }
+                      required={!isGeneral}
+                      placeholder={currentCopy.companyPlaceholder}
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
@@ -659,7 +757,7 @@ export default function QuoteModal() {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#163B5C] mb-1">
-                    Email Address {inquiryType === 'GENERAL' ? '(Optional)' : ''}
+                    Email Address {isGeneral ? '(Optional)' : ''}
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -678,11 +776,11 @@ export default function QuoteModal() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-[#163B5C] mb-1">
-                    {inquiryType === 'B2B' ? 'Delivery City *' : 'City / Location (Optional)'}
+                    {!isGeneral ? 'Delivery City *' : 'City / Location (Optional)'}
                   </label>
                   <input
                     type="text"
-                    required={inquiryType === 'B2B'}
+                    required={!isGeneral}
                     placeholder="e.g. Chennai"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
@@ -692,11 +790,11 @@ export default function QuoteModal() {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#163B5C] mb-1">
-                    {inquiryType === 'B2B' ? 'Pincode *' : 'Pincode (Optional)'}
+                    {!isGeneral ? 'Pincode *' : 'Pincode (Optional)'}
                   </label>
                   <input
                     type="text"
-                    required={inquiryType === 'B2B'}
+                    required={!isGeneral}
                     maxLength={6}
                     placeholder="600001"
                     value={pincode}
@@ -707,12 +805,12 @@ export default function QuoteModal() {
 
                 <div>
                   <label className="block text-xs font-semibold text-[#163B5C] mb-1">
-                    GSTIN {inquiryType === 'B2B' ? '(Optional)' : '(N/A)'}
+                    GSTIN {!isGeneral ? '(Optional)' : '(N/A)'}
                   </label>
                   <input
                     type="text"
-                    disabled={inquiryType === 'GENERAL'}
-                    placeholder={inquiryType === 'B2B' ? '33AAAAA0000A1Z5' : 'Not required'}
+                    disabled={isGeneral}
+                    placeholder={!isGeneral ? '33AAAAA0000A1Z5' : 'Not required'}
                     value={gstin}
                     onChange={(e) => setGstin(e.target.value.toUpperCase())}
                     className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500] uppercase disabled:bg-slate-50 disabled:text-slate-400"
@@ -720,18 +818,23 @@ export default function QuoteModal() {
                 </div>
               </div>
 
-              {/* SPECIFIC SECTIONS ACCORDING TO ENQUIRY TYPE */}
-              {inquiryType === 'B2B' ? (
-                /* =================== B2B MODE: PRODUCTS COMPULSORY =================== */
+              {/* =================== COMMERCIAL / PRIVATE LABEL / HAMPER REQUIREMENTS =================== */}
+              {!isGeneral ? (
                 <div className="space-y-4 pt-2 border-t border-[#E8EDF2]">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-[#163B5C] flex items-center gap-1.5">
                         <Package className="w-3.5 h-3.5 text-[#ED3500]" />
-                        <span>Requested Products & Quantity *</span>
+                        <span>
+                          {enquiryCategory === 'PRIVATE_LABEL'
+                            ? 'Requested Formulations or Jar Packaging Series *'
+                            : enquiryCategory === 'GIFT_HAMPER'
+                            ? 'Requested Hamper Curations or Box Styles *'
+                            : 'Requested Products & Quantity *'}
+                        </span>
                       </span>
                       <p className="text-[11px] text-[#64748B]">
-                        Select from catalog dropdown (Compulsory for B2B).
+                        Select from catalog or enter custom harvest/packaging specification.
                       </p>
                     </div>
                     <button
@@ -740,7 +843,7 @@ export default function QuoteModal() {
                       className="text-xs font-bold text-[#ED3500] hover:text-[#D02E00] flex items-center gap-1 shrink-0"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      <span>Add Product</span>
+                      <span>Add Item</span>
                     </button>
                   </div>
 
@@ -760,7 +863,7 @@ export default function QuoteModal() {
                               className="w-full px-3 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs font-semibold text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
                             >
                               <option value="" disabled>
-                                -- Select a Product from Catalog * --
+                                -- Select from Catalog or Packaging * --
                               </option>
                               {catalogList.map((p) => (
                                 <option key={p._id} value={p._id}>
@@ -768,7 +871,7 @@ export default function QuoteModal() {
                                 </option>
                               ))}
                               <option value="CUSTOM">
-                                + Other / Custom Farm Produce (Type below)
+                                + Custom Variety / Jar Specification (Type below)
                               </option>
                             </select>
                           </div>
@@ -796,7 +899,7 @@ export default function QuoteModal() {
                               <option value="KG">KG</option>
                               <option value="LITRE">LTR</option>
                               <option value="CASES">CASES</option>
-                              <option value="PIECES">PCS</option>
+                              <option value="PIECES">PIECES</option>
                             </select>
                           </div>
 
@@ -834,7 +937,13 @@ export default function QuoteModal() {
                             <input
                               type="text"
                               required
-                              placeholder="Enter custom product name or botanical specifications *"
+                              placeholder={
+                                enquiryCategory === 'PRIVATE_LABEL'
+                                  ? 'e.g. Hexa Jar Series 250ml with custom gold lid & front branding'
+                                  : enquiryCategory === 'GIFT_HAMPER'
+                                  ? 'e.g. Handcrafted Pine-Wood Chest with laser engraved wedding monogram'
+                                  : 'Enter custom product name or botanical specifications *'
+                              }
                               value={item.productName}
                               onChange={(e) =>
                                 handleItemFieldChange(idx, 'productName', e.target.value)
@@ -850,11 +959,11 @@ export default function QuoteModal() {
                   {/* Supply Cycle Type */}
                   <div className="space-y-1.5 pt-1">
                     <label className="block text-xs font-semibold text-[#163B5C]">
-                      Supply Arrangement
+                      Order Type / Engagement Model
                     </label>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        { id: 'ONE_TIME', label: 'One-Time Bulk' },
+                        { id: 'ONE_TIME', label: 'One-Time Order' },
                         { id: 'MONTHLY_RECURRING', label: 'Monthly Recurring' },
                         { id: 'CONTRACT_FARMING', label: 'Contract Farming' },
                       ].map((t) => (
@@ -877,11 +986,21 @@ export default function QuoteModal() {
                   {/* Additional Notes */}
                   <div>
                     <label className="block text-xs font-semibold text-[#163B5C] mb-1">
-                      Packaging / Quality Specifications
+                      {enquiryCategory === 'PRIVATE_LABEL'
+                        ? 'Packaging, Labeling & Delivery Specifications'
+                        : enquiryCategory === 'GIFT_HAMPER'
+                        ? 'Event Date, Delivery Venue & Engraving Requirements'
+                        : 'Bulk Packaging / Quality Specifications'}
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="e.g. 50kg steel drums, private label retail bottling, or specific COA parameters."
+                      placeholder={
+                        enquiryCategory === 'PRIVATE_LABEL'
+                          ? 'e.g. Need 500 jars with customer-supplied label artwork, batch expiry printing, and safe tamper-evident shrink sleeve.'
+                          : enquiryCategory === 'GIFT_HAMPER'
+                          ? 'e.g. Event on Nov 15th at Chennai. Require custom brass latch pine-wood boxes with couple initials laser engraved.'
+                          : 'e.g. 50kg food-grade steel drums, COA pesticide residue lab report required, dispatched via V-Trans.'
+                      }
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       className="w-full px-3 py-2 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
@@ -894,7 +1013,7 @@ export default function QuoteModal() {
                   {/* Optional Product Dropdown */}
                   <div>
                     <label className="block text-xs font-semibold text-[#163B5C] mb-1">
-                      Interested Product (Optional - Not Compulsory)
+                      Interested Product (Optional)
                     </label>
                     <select
                       value={generalSelectedProductId}
@@ -923,7 +1042,7 @@ export default function QuoteModal() {
                     <textarea
                       rows={4}
                       required
-                      placeholder="How can we assist you? Tell us about your query, requirement, or questions..."
+                      placeholder="How can we assist you? Tell us about your query, requirement, retail availability, or questions..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#10B981]"
@@ -938,22 +1057,25 @@ export default function QuoteModal() {
                   type="submit"
                   disabled={submitting}
                   className={`w-full py-3.5 rounded-full text-white font-semibold text-xs sm:text-sm shadow-md transition-colors flex items-center justify-center gap-2 ${
-                    inquiryType === 'B2B'
+                    enquiryCategory === 'PRIVATE_LABEL'
+                      ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/25'
+                      : enquiryCategory === 'GIFT_HAMPER'
                       ? 'bg-[#ED3500] hover:bg-[#D02E00] shadow-[#ED3500]/25'
+                      : enquiryCategory === 'WHOLESALE'
+                      ? 'bg-[#163B5C] hover:bg-[#0E273E] shadow-[#163B5C]/25'
                       : 'bg-[#10B981] hover:bg-[#059669] shadow-[#10B981]/25'
                   }`}
                 >
-                  {inquiryType === 'B2B' ? (
-                    <>
-                      <Briefcase className="w-4 h-4" />
-                      <span>Submit Wholesale Quotation Request</span>
-                    </>
+                  {enquiryCategory === 'PRIVATE_LABEL' ? (
+                    <Tag className="w-4 h-4" />
+                  ) : enquiryCategory === 'GIFT_HAMPER' ? (
+                    <Gift className="w-4 h-4" />
+                  ) : enquiryCategory === 'WHOLESALE' ? (
+                    <Briefcase className="w-4 h-4" />
                   ) : (
-                    <>
-                      <MessageCircle className="w-4 h-4" />
-                      <span>Submit General Enquiry</span>
-                    </>
+                    <MessageCircle className="w-4 h-4" />
                   )}
+                  <span>{currentCopy.submitLabel}</span>
                 </button>
               </div>
             </form>

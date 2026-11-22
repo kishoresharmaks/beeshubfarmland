@@ -15,6 +15,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'ALL';
+    const category = searchParams.get('category') || 'ALL';
     const search = searchParams.get('search') || '';
     const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
     const limit = Math.max(1, parseInt(searchParams.get('limit') || '20', 10));
@@ -25,31 +26,77 @@ export async function GET(request: Request) {
       query.status = status;
     }
 
+    if (category !== 'ALL') {
+      if (category === 'WHOLESALE') {
+        query.$or = [
+          { enquiryCategory: 'WHOLESALE' },
+          { enquiryCategory: { $exists: false } },
+          { enquiryCategory: null },
+        ];
+      } else {
+        query.enquiryCategory = category;
+      }
+    }
+
     if (search.trim()) {
       const regex = new RegExp(search.trim(), 'i');
-      query.$or = [
+      const searchConditions = [
         { companyName: regex },
         { contactPerson: regex },
         { phone: regex },
         { city: regex },
         { 'items.productName': regex },
+        { notes: regex },
       ];
+      if (query.$or) {
+        query.$and = [
+          { $or: query.$or },
+          { $or: searchConditions },
+        ];
+        delete query.$or;
+      } else {
+        query.$or = searchConditions;
+      }
     }
 
-    const [leads, total, newCount] = await Promise.all([
-      WholesaleLead.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
-      WholesaleLead.countDocuments(query),
-      WholesaleLead.countDocuments({ status: 'NEW' }),
-    ]);
+    const [leads, total, newCount, allCount, plCount, giftCount, wholesaleCount, generalCount] =
+      await Promise.all([
+        WholesaleLead.find(query).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+        WholesaleLead.countDocuments(query),
+        WholesaleLead.countDocuments({ status: 'NEW' }),
+        WholesaleLead.countDocuments({}),
+        WholesaleLead.countDocuments({ enquiryCategory: 'PRIVATE_LABEL' }),
+        WholesaleLead.countDocuments({ enquiryCategory: 'GIFT_HAMPER' }),
+        WholesaleLead.countDocuments({
+          $or: [
+            { enquiryCategory: 'WHOLESALE' },
+            { enquiryCategory: { $exists: false } },
+            { enquiryCategory: null },
+          ],
+        }),
+        WholesaleLead.countDocuments({ enquiryCategory: 'GENERAL' }),
+      ]);
+
+    const normalizedLeads = leads.map((lead: any) => ({
+      ...lead,
+      enquiryCategory: lead.enquiryCategory || 'WHOLESALE',
+    }));
 
     return NextResponse.json(
       {
         success: true,
-        data: leads,
+        data: normalizedLeads,
         total,
         page,
         totalPages: Math.ceil(total / limit) || 1,
         newLeadsCount: newCount,
+        categoryCounts: {
+          ALL: allCount,
+          PRIVATE_LABEL: plCount,
+          GIFT_HAMPER: giftCount,
+          WHOLESALE: wholesaleCount,
+          GENERAL: generalCount,
+        },
       },
       {
         headers: { 'Cache-Control': 'no-store, max-age=0' },

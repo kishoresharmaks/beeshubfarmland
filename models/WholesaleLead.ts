@@ -16,6 +16,7 @@ export interface IWholesaleLead extends Document {
   gstin?: string;
   city: string;
   pincode: string;
+  enquiryCategory: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL';
   items: IWholesaleItem[];
   orderType: 'ONE_TIME' | 'MONTHLY_RECURRING' | 'CONTRACT_FARMING';
   notes?: string;
@@ -44,6 +45,12 @@ const WholesaleLeadSchema = new Schema(
     gstin: { type: String, trim: true, uppercase: true, default: '' },
     city: { type: String, required: true, trim: true },
     pincode: { type: String, required: true, trim: true },
+    enquiryCategory: {
+      type: String,
+      enum: ['WHOLESALE', 'PRIVATE_LABEL', 'GIFT_HAMPER', 'GENERAL'],
+      default: 'WHOLESALE',
+      index: true,
+    },
     items: { type: [WholesaleItemSchema], required: true },
     orderType: {
       type: String,

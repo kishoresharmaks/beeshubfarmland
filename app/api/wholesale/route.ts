@@ -37,6 +37,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       inquiryType = 'B2B',
+      enquiryCategory,
       companyName,
       contactPerson,
       phone,
@@ -129,6 +130,41 @@ export async function POST(request: Request) {
 
     await connectToDatabase();
 
+    // Determine specific enquiry category (Private Label, Gift Hampers, Wholesale, General)
+    let resolvedCategory: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' = 'WHOLESALE';
+    if (['WHOLESALE', 'PRIVATE_LABEL', 'GIFT_HAMPER', 'GENERAL'].includes(enquiryCategory)) {
+      resolvedCategory = enquiryCategory;
+    } else if (isGeneralEnquiry) {
+      resolvedCategory = 'GENERAL';
+    } else {
+      const itemsString = validItems.map((i) => i.productName).join(' ').toLowerCase();
+      const notesString = String(notes || '').toLowerCase();
+      const combined = `${itemsString} ${notesString}`;
+
+      if (
+        combined.includes('private label') ||
+        combined.includes('jar series') ||
+        combined.includes('bottling') ||
+        combined.includes('white label') ||
+        combined.includes('hexa') ||
+        combined.includes('octa') ||
+        combined.includes('itc')
+      ) {
+        resolvedCategory = 'PRIVATE_LABEL';
+      } else if (
+        combined.includes('hamper') ||
+        combined.includes('gift') ||
+        combined.includes('wedding') ||
+        combined.includes('pooja') ||
+        combined.includes('chest') ||
+        combined.includes('favor')
+      ) {
+        resolvedCategory = 'GIFT_HAMPER';
+      } else {
+        resolvedCategory = 'WHOLESALE';
+      }
+    }
+
     const leadNotes = isGeneralEnquiry && !String(notes || '').startsWith('[General Enquiry]')
       ? `[General Enquiry] ${notes ? String(notes).trim() : ''}`.trim()
       : notes ? String(notes).trim() : '';
@@ -141,6 +177,7 @@ export async function POST(request: Request) {
       gstin: gstin ? String(gstin).trim().toUpperCase() : '',
       city: effectiveCity,
       pincode: effectivePincode,
+      enquiryCategory: resolvedCategory,
       items: validItems,
       orderType: ['ONE_TIME', 'MONTHLY_RECURRING', 'CONTRACT_FARMING'].includes(orderType)
         ? orderType
