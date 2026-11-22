@@ -1,26 +1,17 @@
 #!/usr/bin/env bash
-set -e
+# ==============================================================================
+# BeesHub Farmland - Zero-Downtime Deployment Entry Point
+# Delegates to deployment/deploy.sh (Release-Based Blue-Green Architecture)
+# ==============================================================================
 
-echo "🚀 Starting deployment..."
+set -euo pipefail
 
-# Ensure filemode doesn't cause git issues
-git config core.fileMode false
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Fetch and reset cleanly to latest main branch
-echo "📥 Pulling latest code..."
-git fetch origin main
-git reset --hard origin/main
-
-# Install dependencies if needed
-echo "📦 Installing dependencies..."
-npm install --legacy-peer-deps
-
-# Build Next.js (postbuild automatically copies static and public folders)
-echo "🔨 Building project..."
-npm run build
-
-# Restart PM2 with updated environment variables
-echo "🔄 Reloading PM2 process..."
-pm2 reload beeshub-web --update-env || pm2 restart beeshub-web --update-env
-
-echo "✅ Deployment completed successfully!"
+if [ -f "$SCRIPT_DIR/deployment/deploy.sh" ]; then
+    chmod +x "$SCRIPT_DIR/deployment/deploy.sh" || true
+    exec "$SCRIPT_DIR/deployment/deploy.sh" "$@"
+else
+    echo "❌ Error: deployment/deploy.sh not found in $SCRIPT_DIR/deployment/"
+    exit 1
+fi
