@@ -46,7 +46,7 @@ export default function FeatureBlock() {
 
             <div className="relative z-10 space-y-3 pt-6 border-t border-white/10">
               <div className="flex items-center justify-between text-xs text-slate-300">
-                <span>Dehydrated Powders (Banana, Moringa)</span>
+                <span>Dehydrated Powders (Dates, Banana, Moringa)</span>
                 <span className="font-semibold text-amber-300">Moisture &lt; 5% · 80-100 Mesh</span>
               </div>
               <div className="flex items-center justify-between text-xs text-slate-300">

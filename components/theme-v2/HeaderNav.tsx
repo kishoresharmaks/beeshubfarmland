@@ -199,9 +199,9 @@ export default function HeaderNav() {
             : 'bg-white py-2.5 sm:py-3.5 border-b border-[#E8EDF2]'
         }`}
       >
-        <div className="w-full max-w-[1280px] mx-auto px-3 sm:px-5 flex items-center justify-between gap-2 sm:gap-3">
+        <div className="w-full max-w-[1360px] 2xl:max-w-[1440px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-3 sm:gap-4">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 shrink-0 group">
+          <Link href="/" className="flex items-center gap-2 sm:gap-2.5 shrink-0 mr-1 xl:mr-3 group">
             <div className="relative h-9 sm:h-10 w-20 sm:w-24 rounded-xl overflow-hidden border border-[#E8EDF2] shadow-2xs bg-white px-1.5 py-0.5 flex items-center justify-center shrink-0">
               <Image
                 src="/images/beeshub-logo.png"
@@ -222,9 +222,9 @@ export default function HeaderNav() {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links */}
-          <nav className="hidden lg:flex items-center gap-2 xl:gap-3.5 2xl:gap-5 text-[13px] xl:text-[13.5px] font-semibold text-[#163B5C] whitespace-nowrap">
-            <Link href="/" className="hover:text-[#ED3500] transition-colors py-1">
+          {/* Desktop Navigation Links with Proper Spacing & Padding */}
+          <nav className="hidden lg:flex items-center gap-2.5 lg:gap-3.5 xl:gap-5 2xl:gap-7 text-[13px] xl:text-[13.5px] font-semibold text-[#163B5C] whitespace-nowrap">
+            <Link href="/" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
               Home
             </Link>
 
@@ -236,8 +236,8 @@ export default function HeaderNav() {
             >
               <button
                 type="button"
-                className={`flex items-center gap-1.5 py-1 transition-colors focus:outline-none ${
-                  dropdownOpen ? 'text-[#ED3500]' : 'hover:text-[#ED3500]'
+                className={`px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors focus:outline-none ${
+                  dropdownOpen ? 'text-[#ED3500] bg-orange-50/50' : 'hover:text-[#ED3500] hover:bg-orange-50/50'
                 }`}
                 aria-expanded={dropdownOpen}
               >
@@ -317,37 +317,37 @@ export default function HeaderNav() {
               )}
             </div>
 
-            <Link href="/private-label" className="hover:text-[#ED3500] transition-colors py-1">
+            <Link href="/private-label" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
               Private Label
             </Link>
 
-            <Link href="/gift" className="hover:text-[#ED3500] transition-colors py-1">
+            <Link href="/gift" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
               Gift Hampers
             </Link>
 
-            <a href="/#services" className="hover:text-[#ED3500] transition-colors py-1">
+            <a href="/#services" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
               Services
             </a>
 
-            <a href="/#about" className="hover:text-[#ED3500] transition-colors py-1">
+            <a href="/#about" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
               About
             </a>
 
-            <Link href="/blog" className="hover:text-[#ED3500] transition-colors py-1">
+            <Link href="/blog" className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors">
               Farm Stories
             </Link>
 
             <button
               type="button"
               onClick={() => setIsTrackingModalOpen(true)}
-              className="hover:text-[#ED3500] transition-colors py-1 text-slate-600"
+              className="px-2.5 py-1.5 rounded-lg hover:text-[#ED3500] hover:bg-orange-50/50 transition-colors text-slate-600"
             >
               <span>Track Order</span>
             </button>
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0 ml-1 xl:ml-3">
             {/* Search Trigger */}
             <button
               type="button"

@@ -28,9 +28,10 @@ export default function ServicesZigZag() {
     },
     {
       title: 'Dehydrated Fruit & Superfood Powder Processing',
-      desc: 'Commercial cleanroom solar and tray dehydration of farm-fresh harvest: Nendran banana, red banana (Chevvazhai), moringa leaf, sweet potato, beetroot, and dates. Ground to fine 80-100 mesh for baby food, health mixes, bakeries, and nutraceutical brands.',
+      desc: 'Commercial cleanroom solar and tray dehydration of farm-fresh harvest: natural dates powder, Nendran banana, red banana (Chevvazhai), moringa leaf, sweet potato, beetroot, and caffeine-free roasted dates coffee. Ground to fine 80-100 mesh for baby food, health mixes, bakeries, and nutraceutical brands.',
       bullets: [
         'Gentle low-temperature dehydration preserving native color, vitamins, and minerals',
+        'Natural unrefined dates powder sugar substitute and roasted caffeine-free dates coffee formulation',
         'Zero maltodextrin, zero added starch, zero chemical preservatives or anticaking agents',
         'Available in 1kg/5kg nitrogen-flushed barrier pouches and 25kg bulk moisture-proof liner cartons',
       ],

@@ -387,14 +387,34 @@ function GiftPageContent() {
                 <span>Bespoke Event & Wedding Return Gift Hampers</span>
               </div>
 
-              <div className="space-y-3">
-                <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-5xl text-[#163B5C] tracking-tight leading-tight">
-                  Wholesome Farmstead Gift Hampers <br className="hidden sm:inline" />
-                  <span className="text-[#ED3500]">For Weddings, Ceremonies & Galas</span>
+              <div className="space-y-4">
+                <h1 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] text-[#163B5C] tracking-tight leading-[1.2]">
+                  <span className="block whitespace-normal sm:whitespace-nowrap">Wholesome Farmstead Gift Hampers</span>
+                  <span className="block text-[#ED3500] mt-1 sm:mt-1.5 whitespace-normal sm:whitespace-nowrap">For Weddings, Ceremonies &amp; Galas</span>
                 </h1>
                 <p className="text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl">
-                  Celebrate auspicious weddings, Griha Pravesh ceremonies, festivals, and corporate galas with wholesome gifts of wellness. Curated gift hampers featuring pure raw forest honey, wood cold-pressed virgin oils, dehydrated fruit & superfood powders (Nendran Banana, Red Banana, Sweet Potato), crunchy Fox Nut Makhana, and botanical herbal soaps, hand-packed in artisanal pine wood chests with custom laser engraving and direct venue delivery.
+                  Celebrate auspicious weddings, Griha Pravesh ceremonies, festivals, and corporate galas with wholesome gifts of wellness. Curated gift hampers featuring pure raw forest honey, wood cold-pressed virgin oils, dehydrated fruit &amp; superfood powders (Nendran Banana, Red Banana, Sweet Potato, Dates), crunchy Fox Nut Makhana, and botanical herbal soaps, hand-packed in artisanal pine wood chests with custom laser engraving and direct venue delivery.
                 </p>
+
+                {/* Line by Line Feature Highlights */}
+                <div className="space-y-2 pt-1 text-xs sm:text-sm text-[#475569]">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#ED3500] shrink-0" />
+                    <span><strong className="text-[#163B5C]">Handcrafted Keepsakes:</strong> Solid pine-wood chests, royal gold-embossed boxes, and sustainable jute trunks</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#ED3500] shrink-0" />
+                    <span><strong className="text-[#163B5C]">Pure Farm Harvest:</strong> Raw forest honey, wood cold-pressed virgin oils, banana &amp; dates powders, and makhana</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#ED3500] shrink-0" />
+                    <span><strong className="text-[#163B5C]">Custom Personalization:</strong> Laser-engraved host names, auspicious wedding dates, and custom blessing cards</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#ED3500] shrink-0" />
+                    <span><strong className="text-[#163B5C]">Direct Venue Delivery:</strong> Coordinated pan-India freight arrival 48 hours prior to your ceremony or reception</span>
+                  </div>
+                </div>
               </div>
 
               {/* Event Host Key Guarantees */}
