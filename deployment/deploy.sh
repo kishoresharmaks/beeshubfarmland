@@ -48,6 +48,56 @@ if [ -f "$STATE_FILE" ]; then
     fi
 fi
 
+# Helper function: Check if a port is in use
+is_port_in_use() {
+    local port="$1"
+    if command -v ss >/dev/null 2>&1; then
+        ss -tuln | grep -E ":${port}\b" >/dev/null 2>&1
+    elif command -v netstat >/dev/null 2>&1; then
+        netstat -tuln | grep -E ":${port}\b" >/dev/null 2>&1
+    elif command -v lsof >/dev/null 2>&1; then
+        lsof -i :"$port" >/dev/null 2>&1
+    else
+        (echo >/dev/tcp/127.0.0.1/"$port") >/dev/null 2>&1
+    fi
+}
+
+# Ensure target port is free by scanning 3000-3100 if occupied
+find_free_port() {
+    local preferred="$1"
+    local active="$2"
+    local target_worker="beeshub-$TARGET_COLOR"
+
+    # If preferred port is not active and not in use, use it
+    if [ "$preferred" -ne "$active" ] && ! is_port_in_use "$preferred"; then
+        echo "$preferred"
+        return 0
+    fi
+
+    # Check if preferred port is only occupied by our own target worker (which PM2 restarts)
+    local target_pid
+    target_pid=$(pm2 pid "$target_worker" 2>/dev/null || echo "")
+    if [ -n "$target_pid" ] && [ "$target_pid" != "0" ]; then
+        if command -v lsof >/dev/null 2>&1 && lsof -i :"$preferred" 2>/dev/null | grep -q "$target_pid"; then
+            echo "$preferred"
+            return 0
+        fi
+    fi
+
+    # Preferred port is occupied by another service: find first free port in range 3000 to 3100
+    echo "⚠️ Target port $preferred is occupied. Scanning 3000-3100 for a free port..." >&2
+    for p in $(seq 3000 3100); do
+        if [ "$p" -ne "$active" ] && ! is_port_in_use "$p"; then
+            echo "$p"
+            return 0
+        fi
+    done
+
+    echo "$preferred"
+}
+
+TARGET_PORT=$(find_free_port "$TARGET_PORT" "$ACTIVE_PORT")
+
 echo "📍 Current Active State: beeshub-$ACTIVE_COLOR (Port $ACTIVE_PORT)"
 echo "🎯 Deployment Target:    beeshub-$TARGET_COLOR (Port $TARGET_PORT)"
 
@@ -172,12 +222,18 @@ upstream beeshub_backend {
 }
 EOF
 
+# Determine sudo prefix if non-root (required to read Let's Encrypt certificates)
+SUDO_CMD=""
+if [ "$(id -u)" -ne 0 ] && command -v sudo >/dev/null 2>&1; then
+    SUDO_CMD="sudo"
+fi
+
 # Test Nginx syntax before reload
 if command -v nginx >/dev/null 2>&1; then
-    echo "   Testing Nginx configuration syntax..."
-    nginx -t
+    echo "   Testing Nginx configuration syntax with elevated permissions..."
+    $SUDO_CMD nginx -t
     echo "   Reloading Nginx gracefully (zero dropped connections)..."
-    nginx -s reload || systemctl reload nginx
+    $SUDO_CMD systemctl reload nginx || $SUDO_CMD nginx -s reload
 else
     echo "ℹ️ Note: Nginx CLI not directly present in path (or running in container/LiteSpeed). Upstream file updated."
 fi
