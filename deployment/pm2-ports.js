@@ -18,14 +18,17 @@ try {
     let port = p.pm2_env?.env?.PORT || p.pm2_env?.PORT || null;
 
     // Check if namespace is set to a numeric port (e.g. 3002)
-    if (!port && p.pm2_env?.namespace && /^\d+$/.test(p.pm2_env.namespace)) {
-      port = p.pm2_env.namespace;
+    if (!port && p.pm2_env?.namespace && /^\d+$/.test(String(p.pm2_env.namespace))) {
+      port = String(p.pm2_env.namespace);
     }
 
     // Check script arguments (e.g. "start -- -p 3002")
-    if (!port && p.pm2_env?.args) {
-      const argsStr = Array.isArray(p.pm2_env.args) ? p.pm2_env.args.join(" ") : String(p.pm2_env.args);
-      const argMatch = argsStr.match(/-p\s+(\d+)/);
+    if (!port && (p.pm2_env?.args || p.pm2_env?.node_args)) {
+      const allArgs = [
+        ...(Array.isArray(p.pm2_env?.args) ? p.pm2_env.args : [p.pm2_env?.args || ""]),
+        ...(Array.isArray(p.pm2_env?.node_args) ? p.pm2_env.node_args : [p.pm2_env?.node_args || ""])
+      ].join(" ");
+      const argMatch = allArgs.match(/-p\s+(\d+)/);
       if (argMatch) port = argMatch[1];
     }
 
@@ -35,12 +38,11 @@ try {
 
       if (!match) {
         try {
-          const children = execSync(`pgrep -P ${pid} 2>/dev/null`).toString().trim().split("\n");
-          for (const cpid of children) {
-            if (cpid) {
-              match = ssOutput.split("\n").find(line => line.includes(`pid=${cpid},`));
-              if (match) break;
-            }
+          const children = execSync(`pgrep -P ${pid} 2>/dev/null`).toString();
+          const allPids = [pid, ...(children.match(/\d+/g) || [])];
+          for (const cpid of allPids) {
+            match = ssOutput.split("\n").find(line => line.includes(`pid=${cpid},`));
+            if (match) break;
           }
         } catch (e) {}
       }
