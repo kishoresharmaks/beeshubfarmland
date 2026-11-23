@@ -9,9 +9,9 @@ try {
     ssOutput = execSync("sudo ss -tulnp 2>/dev/null || ss -tulnp 2>/dev/null").toString();
   } catch (e) {}
 
-  console.log("┌────┬──────────────────────┬─────────┬────────┬───────────┬──────────┐");
-  console.log("│ ID │ Process Name         │ Port    │ PID    │ Status    │ Memory   │");
-  console.log("├────┼──────────────────────┼─────────┼────────┼───────────┼──────────┤");
+  console.log("┌────┬──────────────────────┬─────────┬─────────┬────────┬───────────┬──────────┐");
+  console.log("│ ID │ Process Name         │ Port    │ Version │ PID    │ Status    │ Memory   │");
+  console.log("├────┼──────────────────────┼─────────┼─────────┼────────┼───────────┼──────────┤");
 
   pm2Data.forEach(p => {
     const pid = p.pid;
@@ -66,13 +66,14 @@ try {
     const id = String(p.pm_id).padEnd(2);
     const name = String(p.name).padEnd(20);
     const portStr = String(portDisplay).padEnd(7);
+    const versionStr = String(p.pm2_env?.version || "N/A").padEnd(7);
     const pidStr = String(pid || "-").padEnd(6);
     const status = String(p.pm2_env?.status).padEnd(9);
     const mem = ((p.monit?.memory || 0) / (1024 * 1024)).toFixed(1) + "mb";
-    console.log(`│ ${id} │ ${name} │ ${portStr} │ ${pidStr} │ ${status} │ ${mem.padEnd(8)} │`);
+    console.log(`│ ${id} │ ${name} │ ${portStr} │ ${versionStr} │ ${pidStr} │ ${status} │ ${mem.padEnd(8)} │`);
   });
 
-  console.log("└────┴──────────────────────┴─────────┴────────┴───────────┴──────────┘");
+  console.log("└────┴──────────────────────┴─────────┴─────────┴────────┴───────────┴──────────┘");
 } catch (err) {
   console.error("Error retrieving PM2 ports:", err.message);
 }
