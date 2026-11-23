@@ -66,13 +66,12 @@ mkdir -p "$RELEASE_DIR"
 # ------------------------------------------------------------------------------
 echo "📥 Checking out latest source code from main branch..."
 if [ -d "$BASE_DIR/.git" ]; then
-    # Clone from local repo reference to save bandwidth and ensure exact clean tree
-    git clone --depth 1 -b main "file://$BASE_DIR" "$RELEASE_DIR" || {
-        # Fallback to direct git fetch/archive if local clone fails
-        git --work-tree="$RELEASE_DIR" --git-dir="$BASE_DIR/.git" checkout -f main
-    }
+    # Fetch latest main in base repo first
+    git -C "$BASE_DIR" fetch origin main 2>/dev/null || true
+    # Clone clean tree into release directory
+    git clone --depth 1 -b main "$BASE_DIR" "$RELEASE_DIR" 2>/dev/null || \
+    git clone --depth 1 -b main "https://github.com/kishoresharmaks/beeshubfarmland.git" "$RELEASE_DIR"
 else
-    # Remote clone if running outside repository root
     git clone --depth 1 -b main "https://github.com/kishoresharmaks/beeshubfarmland.git" "$RELEASE_DIR"
 fi
 

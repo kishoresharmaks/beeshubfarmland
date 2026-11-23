@@ -6,7 +6,7 @@
 const path = require('path');
 const fs = require('fs');
 
-const BASE_DIR = process.env.BEESHUB_DIR || '/var/www/beeshub';
+const BASE_DIR = process.env.BEESHUB_DIR || '/var/www/beeshubfarmland';
 const LOGS_DIR = path.join(BASE_DIR, 'shared', 'logs');
 
 // Ensure log directory exists if writable

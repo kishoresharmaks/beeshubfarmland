@@ -66,7 +66,14 @@ DEPLOYED_AT="$(date '+%Y-%m-%d %H:%M:%S')"
 EOF
 fi
 
-# 5. Set executable permissions on scripts
+# 5. Dynamically configure paths in Nginx virtual host
+if [ -f "$BASE_DIR/deployment/nginx/beeshub.conf" ]; then
+    echo "⚙️ Tuning Nginx config paths to match $BASE_DIR..."
+    sed -i "s|/var/www/beeshub/|$BASE_DIR/|g" "$BASE_DIR/deployment/nginx/beeshub.conf" 2>/dev/null || true
+    sed -i "s|/var/www/beeshubfarmland|$BASE_DIR|g" "$BASE_DIR/deployment/nginx/beeshub.conf" 2>/dev/null || true
+fi
+
+# 6. Set executable permissions on scripts
 chmod +x "$BASE_DIR/deployment/deploy.sh" || true
 chmod +x "$BASE_DIR/deployment/rollback.sh" || true
 chmod +x "$BASE_DIR/deployment/health-check.sh" || true
