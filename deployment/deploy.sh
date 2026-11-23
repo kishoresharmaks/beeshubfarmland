@@ -262,7 +262,9 @@ echo "⏳ Allowing 30-second graceful drain for in-flight requests on Port $ACTI
 sleep 30
 
 echo "🛑 Stopping retired worker: beeshub-$ACTIVE_COLOR"
-pm2 stop "beeshub-$ACTIVE_COLOR" || true
+pm2 stop "beeshub-$ACTIVE_COLOR" 2>/dev/null || true
+# Clean up initial legacy worker if present
+pm2 stop beeshub-web 2>/dev/null || true
 
 # ------------------------------------------------------------------------------
 # STEP 13: Retention Pruning (Keep Last 4 Releases)
