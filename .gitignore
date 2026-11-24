@@ -1,41 +1,76 @@
-# dependencies
+# ==============================================================================
+# Dependencies
+# ==============================================================================
 /node_modules
 /.pnp
 .pnp.js
 
-# testing
-/coverage
-
-# next.js
+# ==============================================================================
+# Production Build Artifacts (Next.js)
+# ==============================================================================
 /.next/
 /out/
-
-# production
 /build
+*.tsbuildinfo
+next-env.d.ts
 
-# debug
+# ==============================================================================
+# Testing & Code Quality
+# ==============================================================================
+/coverage
+
+# ==============================================================================
+# Environment Variables & Secrets
+# ==============================================================================
+.env*.local
+.env
+!.env.example
+
+# ==============================================================================
+# Logs & Process Supervisor Data
+# ==============================================================================
+logs/
+*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
-.env*.local
-.env
+# ==============================================================================
+# Deployment Runtime & Host State
+# ==============================================================================
+deployment/.deploy_state
+deployment/pm2-ports.js
+releases/
+shared/
+deploy.sh.bak
 
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfo
-next-env.d.ts
-
-# archives
+# ==============================================================================
+# Temporary Archives & Backups
+# ==============================================================================
 *.zip
+*.tar.gz
+*.bak
 
-# standalone licensing server repo
+# ==============================================================================
+# Internal Design, Planning & Workspace Tooling
+# ==============================================================================
+.agents/
+.claude/
+.planning/
+skills-lock.json
+docs/SERVER_PORT_MAP.md
+docs/security_remediation_report.md
+docs/designs/
+backend.md
+concepts_brief.md
+consolidated_review_report.md
+design_draft.md
+posthog-self-driving-report.md
+ui.md
+
+# ==============================================================================
+# Vercel & Subsystems
+# ==============================================================================
+.vercel
 /licensing-server
 licensing-server/
-.env.local
-
-# local agent skills
-.agents/

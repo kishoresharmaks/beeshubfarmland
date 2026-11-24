@@ -1,7 +1,0 @@
-# Design Documents Sitemap
-
-| Document | Date | Author | Components | Status | Description |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| [Customer Razorpay Payment Gateway Integration](./customer_razorpay_integration.md) | 2026-11-15 | kishoresharmaks | `app/page.tsx`, `models/Order.ts`, `models/Settings.ts`, `lib/razorpay.ts`, `lib/inventory.ts`, `app/api/orders/*`, `app/api/webhooks/*` | Approved | Automated Razorpay Standard Checkout migration with webhook reconciliation, multi-document atomic transactions, and stock conflict badges. |
-| [Dual-Track B2C/B2B Hero & Wholesale Lead System](./dual_track_b2b_b2c_hero.md) | 2026-11-19 | kishoresharmaks | `app/page.tsx`, `components/wholesale/WholesaleEnquiryModal.tsx`, `models/WholesaleLead.ts`, `models/Settings.ts`, `app/api/wholesale/*`, `app/api/admin/wholesale/*`, `app/admin/dashboard/*` | Approved | Re-architect storefront hero for dual consumer retail and B2B wholesale acquisition with dynamic FSSAI/GST credentials, interactive quotation modal, and admin CRM lead triage tab. |
-| [Editorial Blog & Organic Content Marketing Engine](./blog_system.md) | 2026-11-19 | kishoresharmaks | `app/blog/*`, `models/BlogPost.ts`, `app/api/blog/*`, `app/api/admin/blog/*`, `app/admin/dashboard/components/BlogTab.tsx`, `app/sitemap.ts` | Proposed | Magazine-style editorial blog hub and article reader with direct e-commerce product linking, admin publishing CMS, and automated SEO/GEO metadata schema. |
