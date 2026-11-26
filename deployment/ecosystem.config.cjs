@@ -57,7 +57,7 @@ module.exports = {
       exp_backoff_restart_delay: 100,
       env: {
         NODE_ENV: 'production',
-        PORT: 3002,
+        PORT: 3003,
       },
       error_file: path.join(LOGS_DIR, 'green-error.log'),
       out_file: path.join(LOGS_DIR, 'green-out.log'),

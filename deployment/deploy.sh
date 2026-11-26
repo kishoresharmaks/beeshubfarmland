@@ -34,7 +34,7 @@ echo "======================================================================"
 ACTIVE_COLOR="blue"
 ACTIVE_PORT="3001"
 TARGET_COLOR="green"
-TARGET_PORT="3002"
+TARGET_PORT="3003"
 
 if [ -f "$STATE_FILE" ]; then
     # Load previous state
@@ -42,7 +42,7 @@ if [ -f "$STATE_FILE" ]; then
     source "$STATE_FILE"
     if [ "${ACTIVE_COLOR:-blue}" = "green" ]; then
         ACTIVE_COLOR="green"
-        ACTIVE_PORT="3002"
+        ACTIVE_PORT="3003"
         TARGET_COLOR="blue"
         TARGET_PORT="3001"
     fi
@@ -133,11 +133,15 @@ cd "$RELEASE_DIR"
 echo "🔗 Linking persistent environment and shared data..."
 if [ -f "$SHARED_DIR/.env.production" ]; then
     ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.env.local"
+    ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.env.production"
+    ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.env"
 elif [ -f "$BASE_DIR/.env.local" ]; then
     # First-time bootstrap: migrate existing .env.local to shared directory
     cp "$BASE_DIR/.env.local" "$SHARED_DIR/.env.production"
     chmod 600 "$SHARED_DIR/.env.production"
     ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.env.local"
+    ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.env.production"
+    ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.env"
 else
     echo "⚠️ Warning: No .env.production found in $SHARED_DIR. Using release .env if available."
 fi
@@ -165,11 +169,20 @@ if [ ! -f "$RELEASE_DIR/.next/standalone/server.js" ]; then
     exit 1
 fi
 
-# Ensure public and static assets are fully synced to standalone bundle
+# Ensure public, static assets, and environment files are fully synced to standalone bundle
 mkdir -p "$RELEASE_DIR/.next/standalone/public"
 mkdir -p "$RELEASE_DIR/.next/standalone/.next/static"
 cp -r "$RELEASE_DIR/public/"* "$RELEASE_DIR/.next/standalone/public/" 2>/dev/null || true
 cp -r "$RELEASE_DIR/.next/static/"* "$RELEASE_DIR/.next/standalone/.next/static/" 2>/dev/null || true
+
+# Crucial: Symlink persistent production env files into standalone working directory
+if [ -f "$SHARED_DIR/.env.production" ]; then
+    ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.next/standalone/.env.production"
+    ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.next/standalone/.env.local"
+    ln -sfn "$SHARED_DIR/.env.production" "$RELEASE_DIR/.next/standalone/.env"
+elif [ -f "$RELEASE_DIR/.env.local" ]; then
+    cp "$RELEASE_DIR/.env.local" "$RELEASE_DIR/.next/standalone/.env.local"
+fi
 
 # ------------------------------------------------------------------------------
 # STEP 7: Cumulative Static Asset Retention (Eliminates Chunk 404s)
@@ -183,6 +196,15 @@ cp -rn "$RELEASE_DIR/.next/static/"* "$STATIC_CACHE_DIR/_next/static/" 2>/dev/nu
 # STEP 8: Start Target Release on Idle Port via PM2
 # ------------------------------------------------------------------------------
 echo "🚀 Starting target release on Port $TARGET_PORT (beeshub-$TARGET_COLOR)..."
+
+# Export production environment variables into subshell so PM2 worker receives MONGODB_URI
+if [ -f "$SHARED_DIR/.env.production" ]; then
+    set -a
+    # shellcheck source=/dev/null
+    source "$SHARED_DIR/.env.production"
+    set +a
+fi
+
 PORT="$TARGET_PORT" pm2 start server.js \
     --name "beeshub-$TARGET_COLOR" \
     --cwd "$RELEASE_DIR/.next/standalone" \

@@ -1,5 +1,7 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
+import fs from 'fs';
+import path from 'path';
 
 // Configure DNS defaults for Node.js (Windows DNS SRV bug workaround)
 try {
@@ -13,10 +15,54 @@ try {
   // Ignore DNS config errors
 }
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/beeshub';
+/**
+ * Dynamically resolves MONGODB_URI from environment variables or persistent .env files.
+ * Ensures Next.js standalone and PM2 find production credentials even if process.cwd() shifted.
+ */
+function resolveEnvironmentMongoUri(): string {
+  if (process.env.MONGODB_URI && process.env.MONGODB_URI.trim()) {
+    return process.env.MONGODB_URI.trim();
+  }
 
-if (!MONGODB_URI) {
-  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+  const candidatePaths = [
+    path.join(process.cwd(), '.env.production'),
+    path.join(process.cwd(), '.env.local'),
+    path.join(process.cwd(), '.env'),
+    path.join(process.cwd(), '..', '.env.production'),
+    path.join(process.cwd(), '..', '.env.local'),
+    path.join(process.cwd(), '..', '..', '.env.production'),
+    path.join(process.cwd(), '..', '..', '.env.local'),
+    '/var/www/beeshubfarmland/shared/.env.production',
+    '/var/www/beeshubfarmland/.env.production',
+    '/var/www/beeshubfarmland/.env.local',
+    '/var/www/beeshubfarmland/.env',
+  ];
+
+  for (const filePath of candidatePaths) {
+    try {
+      if (fs.existsSync(filePath)) {
+        const fileContent = fs.readFileSync(filePath, 'utf8');
+        const match = fileContent.match(/^\s*MONGODB_URI\s*=\s*(.+)$/m);
+        if (match && match[1]) {
+          const parsed = match[1].trim().replace(/^["']|["']$/g, '');
+          if (parsed) {
+            console.log(`[db] Loaded MONGODB_URI dynamically from: ${filePath}`);
+            process.env.MONGODB_URI = parsed;
+            return parsed;
+          }
+        }
+      }
+    } catch {
+      // Ignore filesystem read errors
+    }
+  }
+
+  // Fallback to local MongoDB ONLY in local development
+  if (process.env.NODE_ENV !== 'production') {
+    return 'mongodb://127.0.0.1:27017/beeshub';
+  }
+
+  return '';
 }
 
 /**
@@ -130,7 +176,14 @@ async function connectToDatabase() {
         await mongoose.disconnect();
       }
 
-      const targetUri = await resolveMongoUri(MONGODB_URI);
+      const rawUri = resolveEnvironmentMongoUri();
+      if (!rawUri) {
+        throw new Error(
+          'MONGODB_URI is undefined! Please configure MONGODB_URI in /var/www/beeshubfarmland/shared/.env.production'
+        );
+      }
+
+      const targetUri = await resolveMongoUri(rawUri);
 
       try {
         const conn = await mongoose.connect(targetUri, opts);
@@ -144,8 +197,8 @@ async function connectToDatabase() {
           await mongoose.disconnect();
         }
 
-        // Fallback connection to local MongoDB if Atlas connection fails
-        if (MONGODB_URI !== 'mongodb://127.0.0.1:27017/beeshub') {
+        // Fallback connection to local MongoDB ONLY in non-production environments
+        if (process.env.NODE_ENV !== 'production' && rawUri !== 'mongodb://127.0.0.1:27017/beeshub') {
           console.log('Attempting fallback connection to local MongoDB (mongodb://127.0.0.1:27017/beeshub)...');
           try {
             const localConn = await mongoose.connect('mongodb://127.0.0.1:27017/beeshub', opts);
