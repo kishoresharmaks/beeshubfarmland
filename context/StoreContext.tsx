@@ -148,9 +148,11 @@ interface StoreContextType {
   setIsQuoteModalOpen: (open: boolean) => void;
   quoteModalInitialProduct: string | null;
   setQuoteModalInitialProduct: (productName: string | null) => void;
+  quoteModalInitialProductId: string | null;
+  setQuoteModalInitialProductId: (id: string | null) => void;
   quoteModalCategory: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null;
   setQuoteModalCategory: (cat: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null) => void;
-  openQuoteModal: (productName?: string, category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL') => void;
+  openQuoteModal: (productName?: string, category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL', productId?: string) => void;
   isTrackingModalOpen: boolean;
   setIsTrackingModalOpen: (open: boolean) => void;
   quickViewProduct: Product | null;
@@ -195,18 +197,28 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [quoteModalInitialProduct, setQuoteModalInitialProduct] = useState<string | null>(null);
+  const [quoteModalInitialProductId, setQuoteModalInitialProductId] = useState<string | null>(null);
   const [quoteModalCategory, setQuoteModalCategory] = useState<'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null>(null);
 
-  const openQuoteModal = (productName?: string, category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL') => {
+  const openQuoteModal = (
+    productName?: string,
+    category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL',
+    productId?: string
+  ) => {
     if (productName) {
       setQuoteModalInitialProduct(productName);
     } else {
       setQuoteModalInitialProduct(null);
     }
+    if (productId) {
+      setQuoteModalInitialProductId(productId);
+    } else {
+      setQuoteModalInitialProductId(null);
+    }
     if (category) {
       setQuoteModalCategory(category);
     } else {
-      setQuoteModalCategory(null);
+      setQuoteModalCategory('WHOLESALE');
     }
     setIsQuoteModalOpen(true);
   };
@@ -661,6 +673,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setIsQuoteModalOpen,
         quoteModalInitialProduct,
         setQuoteModalInitialProduct,
+        quoteModalInitialProductId,
+        setQuoteModalInitialProductId,
         quoteModalCategory,
         setQuoteModalCategory,
         openQuoteModal,

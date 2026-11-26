@@ -12,6 +12,7 @@ import {
   Filter,
 } from 'lucide-react';
 import { useStore, Product } from '@/context/StoreContext';
+import { sortProductsWithFeaturedFirst } from '@/lib/featuredProducts';
 
 /**
  * Embedded Product Catalog Grid
@@ -31,6 +32,7 @@ export default function ProductCatalogSection() {
   } = useStore();
 
   const allCategoryTabs = ['All', ...categories.map((c) => c.name)];
+  const orderedProducts = sortProductsWithFeaturedFirst(filteredProducts);
 
   return (
     <section id="catalog-section" className="w-full py-16 sm:py-24 bg-white border-b border-[#E8EDF2]">
@@ -71,7 +73,7 @@ export default function ProductCatalogSection() {
               <div key={n} className="h-80 rounded-3xl bg-slate-100 animate-pulse border border-[#E8EDF2]" />
             ))}
           </div>
-        ) : filteredProducts.length === 0 ? (
+        ) : orderedProducts.length === 0 ? (
           <div className="py-16 text-center space-y-3 bg-[#FFFCFB] rounded-3xl border border-[#E8EDF2]">
             <Leaf className="w-8 h-8 text-slate-400 mx-auto" />
             <h4 className="font-heading font-bold text-base text-[#163B5C]">
@@ -92,7 +94,7 @@ export default function ProductCatalogSection() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => {
+            {orderedProducts.map((product) => {
               const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0] : undefined;
               const displayPrice = defaultVariant ? defaultVariant.price : product.price;
               const displayMrp = defaultVariant ? defaultVariant.mrp : product.mrp;

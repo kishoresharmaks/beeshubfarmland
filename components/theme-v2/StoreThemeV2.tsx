@@ -5,6 +5,7 @@ import Script from 'next/script';
 import TopUtilityBar from './TopUtilityBar';
 import HeaderNav from './HeaderNav';
 import HeroSlider from './HeroSlider';
+import FeaturedDatesSection from './FeaturedDatesSection';
 import HeroCopyStats from './HeroCopyStats';
 import LogoWall from './LogoWall';
 import ProblemCards from './ProblemCards';
@@ -45,6 +46,9 @@ export default function StoreThemeV2() {
       <main className="flex-1">
         {/* C. Hero Slider + Badge Strip */}
         <HeroSlider />
+
+        {/* C2. Featured Dates & Superfood Powders (Live from Admin Catalog) */}
+        <FeaturedDatesSection />
 
         {/* D. Hero Copy + Stats */}
         <HeroCopyStats />

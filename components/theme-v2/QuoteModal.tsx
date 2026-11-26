@@ -63,6 +63,8 @@ export default function QuoteModal() {
     setIsQuoteModalOpen,
     quoteModalInitialProduct,
     setQuoteModalInitialProduct,
+    quoteModalInitialProductId,
+    setQuoteModalInitialProductId,
     quoteModalCategory,
     setQuoteModalCategory,
     products,
@@ -130,12 +132,15 @@ export default function QuoteModal() {
         setEnquiryCategory('PRIVATE_LABEL');
       } else if (path.includes('/gift')) {
         setEnquiryCategory('GIFT_HAMPER');
+      } else {
+        setEnquiryCategory('WHOLESALE');
       }
     }
 
     // 2. If a product was clicked, load it and infer category if not explicitly set
-    if (quoteModalInitialProduct) {
-      const target = quoteModalInitialProduct.toLowerCase().trim();
+    if (quoteModalInitialProduct || quoteModalInitialProductId) {
+      const target = (quoteModalInitialProduct || '').toLowerCase().trim();
+      const targetId = (quoteModalInitialProductId || '').trim();
 
       const isPrivateLabel =
         target.includes('series') ||
@@ -160,29 +165,54 @@ export default function QuoteModal() {
           setEnquiryCategory('PRIVATE_LABEL');
         } else if (isGiftHamper) {
           setEnquiryCategory('GIFT_HAMPER');
+        } else {
+          setEnquiryCategory('WHOLESALE');
         }
       }
 
       const isPackagingOrHamper = isPrivateLabel || isGiftHamper;
 
-      const matched = !isPackagingOrHamper
-        ? catalogList.find((p) => {
-            const name = p.name.toLowerCase();
-            return (
-              name === target ||
-              name.includes(target) ||
-              (target.includes('banana') && name.includes('banana')) ||
-              (target.includes('moringa') && name.includes('moringa')) ||
-              (target.includes('honey') && name.includes('honey')) ||
-              (target.includes('coconut') && name.includes('coconut')) ||
-              (target.includes('sesame') && name.includes('sesame')) ||
-              (target.includes('groundnut') && name.includes('groundnut')) ||
-              (target.includes('makhana') && name.includes('makhana')) ||
-              (target.includes('sweet potato') && name.includes('sweet potato')) ||
-              (target.includes('dates') && name.includes('dates'))
-            );
-          })
-        : null;
+      let matched: any = null;
+
+      // Check ID match first (highest accuracy)
+      if (targetId) {
+        matched = catalogList.find((p) => String(p._id) === targetId);
+      }
+
+      // Check exact Name match next
+      if (!matched && target) {
+        matched = catalogList.find((p) => p.name.toLowerCase().trim() === target);
+      }
+
+      // Check substring match (prioritizing longer matching names)
+      if (!matched && target && !isPackagingOrHamper) {
+        matched = catalogList.find((p) => {
+          const pName = p.name.toLowerCase().trim();
+          return pName === target || pName.includes(target) || target.includes(pName);
+        });
+      }
+
+      // Token-based fallback for specific multi-word SKUs
+      if (!matched && target && !isPackagingOrHamper) {
+        if (target.includes('dates') && target.includes('coffee')) {
+          matched = catalogList.find((p) => {
+            const n = p.name.toLowerCase();
+            return n.includes('dates') && n.includes('coffee');
+          });
+        } else if (target.includes('dates') && target.includes('natural')) {
+          matched = catalogList.find((p) => {
+            const n = p.name.toLowerCase();
+            return n.includes('dates') && n.includes('natural');
+          });
+        } else if (target.includes('dates') && target.includes('raw')) {
+          matched = catalogList.find((p) => {
+            const n = p.name.toLowerCase();
+            return n.includes('dates') && n.includes('raw');
+          });
+        } else if (target.includes('beetroot')) {
+          matched = catalogList.find((p) => p.name.toLowerCase().includes('beetroot'));
+        }
+      }
 
       if (matched) {
         setItems([
@@ -190,7 +220,7 @@ export default function QuoteModal() {
             productId: matched._id,
             productName: matched.name,
             quantity: matched.category === 'Oil' ? 50 : 100,
-            unit: matched.category === 'Oil' ? 'LITRE' : 'KG',
+            unit: matched.category === 'Oil' ? 'LITRE' : isPackagingOrHamper ? 'PIECES' : 'KG',
             targetPrice: '',
             isCustom: false,
           },
@@ -200,7 +230,7 @@ export default function QuoteModal() {
         setItems([
           {
             productId: 'CUSTOM',
-            productName: quoteModalInitialProduct,
+            productName: quoteModalInitialProduct || 'Custom Harvest / Packaging Specification',
             quantity: isPackagingOrHamper ? 100 : 50,
             unit: isPackagingOrHamper ? 'PIECES' : 'KG',
             targetPrice: '',
@@ -210,11 +240,12 @@ export default function QuoteModal() {
         setGeneralSelectedProductId('');
       }
     }
-  }, [isQuoteModalOpen, quoteModalInitialProduct, quoteModalCategory]);
+  }, [isQuoteModalOpen, quoteModalInitialProduct, quoteModalInitialProductId, quoteModalCategory]);
 
   const handleCloseModal = () => {
     setIsQuoteModalOpen(false);
     setQuoteModalInitialProduct(null);
+    if (setQuoteModalInitialProductId) setQuoteModalInitialProductId(null);
     if (setQuoteModalCategory) setQuoteModalCategory(null);
     setSubmittedLeadId(null);
     setErrorMessage('');
