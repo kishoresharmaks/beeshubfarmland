@@ -172,8 +172,9 @@ fi
 # Ensure public, static assets, and environment files are fully synced to standalone bundle
 mkdir -p "$RELEASE_DIR/.next/standalone/public"
 mkdir -p "$RELEASE_DIR/.next/standalone/.next/static"
-cp -r "$RELEASE_DIR/public/"* "$RELEASE_DIR/.next/standalone/public/" 2>/dev/null || true
-cp -r "$RELEASE_DIR/.next/static/"* "$RELEASE_DIR/.next/standalone/.next/static/" 2>/dev/null || true
+cp -a "$RELEASE_DIR/public/." "$RELEASE_DIR/.next/standalone/public/" 2>/dev/null || true
+ln -sfn "$SHARED_DIR/uploads" "$RELEASE_DIR/.next/standalone/public/uploads"
+cp -rn "$RELEASE_DIR/.next/static/"* "$RELEASE_DIR/.next/standalone/.next/static/" 2>/dev/null || true
 
 # Crucial: Symlink persistent production env files into standalone working directory
 if [ -f "$SHARED_DIR/.env.production" ]; then
