@@ -4,6 +4,7 @@ import Product from '@/models/Product';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 import { processAndSaveImage } from '@/lib/imageStorage';
+import { sanitizeProductRecord } from '@/lib/serverCatalog';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -34,7 +35,8 @@ export async function GET(request: Request) {
     }
 
     // Use indexed sort, allowDiskUse(true), and .lean() for maximum performance
-    const products = await Product.find(filter).sort({ createdAt: -1 }).allowDiskUse(true).lean();
+    const rawProducts = await Product.find(filter).sort({ createdAt: -1 }).allowDiskUse(true).lean();
+    const products = await Promise.all(rawProducts.map(sanitizeProductRecord));
     
     return NextResponse.json(
       { success: true, count: products.length, data: products },

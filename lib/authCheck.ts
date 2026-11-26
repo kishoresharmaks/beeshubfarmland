@@ -7,8 +7,6 @@ const SESSION_SECRET =
   process.env.JWT_SECRET ||
   'beeshub_farmland_admin_secure_key_2026_@auth';
 
-const LEGACY_SESSION_TOKEN = 'logged_in_admin_session_key';
-
 /**
  * Creates a cryptographically signed session token for authenticated administrators.
  */
@@ -25,9 +23,6 @@ export function createAdminSessionToken(username = 'admin'): string {
  */
 export function verifyAdminSessionToken(token: string | undefined | null): boolean {
   if (!token || typeof token !== 'string') return false;
-
-  // Backward compatibility with existing sessions
-  if (token === LEGACY_SESSION_TOKEN) return true;
 
   try {
     const parts = token.split('.');

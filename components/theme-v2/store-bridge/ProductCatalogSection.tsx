@@ -11,8 +11,10 @@ import {
   Leaf,
   Filter,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useStore, Product } from '@/context/StoreContext';
 import { sortProductsWithFeaturedFirst } from '@/lib/featuredProducts';
+import { formatProductDisplayName, getProductSlugUrl } from '@/lib/productFormatting';
 
 /**
  * Embedded Product Catalog Grid
@@ -142,7 +144,9 @@ export default function ProductCatalogSection() {
                         {product.category || 'Organic'}
                       </span>
                       <h4 className="font-heading font-bold text-sm text-[#163B5C] leading-snug line-clamp-1 group-hover:text-[#ED3500] transition-colors">
-                        {product.name}
+                        <Link href={getProductSlugUrl(product)}>
+                          {product.displayName || formatProductDisplayName(product.name)}
+                        </Link>
                       </h4>
                       <p className="text-[11px] text-[#64748B] line-clamp-2 leading-relaxed">
                         {product.description}

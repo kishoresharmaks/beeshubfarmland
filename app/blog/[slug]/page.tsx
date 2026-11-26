@@ -42,7 +42,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = post.seoTitle || post.title;
   const description = post.seoDescription || post.excerpt;
-  const imageUrl = post.coverImage || 'https://beeshubfarmland.com/logo.jpg';
+  const imageUrl = post.coverImage || 'https://beeshubfarmland.com/images/beeshub-logo.png';
 
   return {
     title: `${title} | BeesHub Farmland`,
@@ -112,7 +112,7 @@ export default async function BlogPostPage({ params }: PageProps) {
     '@type': 'BlogPosting',
     headline: post.title,
     description: post.excerpt,
-    image: post.coverImage || 'https://beeshubfarmland.com/logo.jpg',
+    image: post.coverImage || 'https://beeshubfarmland.com/images/beeshub-logo.png',
     datePublished: post.publishedAt ? new Date(post.publishedAt).toISOString() : new Date().toISOString(),
     author: {
       '@type': 'Organization',
@@ -124,7 +124,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       name: 'BeesHub Farmland Pvt Ltd',
       logo: {
         '@type': 'ImageObject',
-        url: 'https://beeshubfarmland.com/logo.jpg',
+        url: 'https://beeshubfarmland.com/images/beeshub-logo.png',
       },
     },
     mainEntityOfPage: {
@@ -146,7 +146,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3 group">
             <img
-              src="/logo.jpg"
+              src="/images/beeshub-logo.png"
               alt="BeesHub Farmland Logo"
               className="w-10 h-10 object-contain rounded-xl shadow-xs border border-[#E8EDF2]"
             />
@@ -366,7 +366,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 >
                   <div className="aspect-[16/10] rounded-xl overflow-hidden bg-[#FFF8F5]">
                     <img
-                      src={rPost.coverImage || '/logo.jpg'}
+                      src={rPost.coverImage || '/images/beeshub-logo.png'}
                       alt={rPost.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
@@ -404,7 +404,7 @@ export default async function BlogPostPage({ params }: PageProps) {
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pb-8 border-b border-[#E8EDF2]">
             <Link href="/" className="flex items-center gap-3">
               <img
-                src="/logo.jpg"
+                src="/images/beeshub-logo.png"
                 alt="BeesHub Farmland Logo"
                 className="w-9 h-9 object-contain rounded-xl border border-[#E8EDF2]"
               />

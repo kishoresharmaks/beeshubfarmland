@@ -2,9 +2,10 @@ import { MetadataRoute } from 'next';
 import connectToDatabase from '@/lib/db';
 import Product from '@/models/Product';
 import BlogPost from '@/models/BlogPost';
+import { slugifyProduct } from '@/lib/productFormatting';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 3600; // Revalidate every hour
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://beeshubfarmland.com';
@@ -15,6 +16,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1.0,
+    },
+    {
+      url: `${baseUrl}/shop`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.95,
     },
     {
       url: `${baseUrl}/private-label`,
@@ -29,6 +36,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.95,
     },
     {
+      url: `${baseUrl}/services`,
+      lastModified: new Date(),
+      changeFrequency: 'weekly',
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/about`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
+      url: `${baseUrl}/contact`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.85,
+    },
+    {
       url: `${baseUrl}/blog`,
       lastModified: new Date(),
       changeFrequency: 'daily',
@@ -38,17 +63,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   try {
     await connectToDatabase();
-    // Fetch all product IDs and updated dates for dynamic product URLs
-    const products = await Product.find({}, '_id updatedAt').lean();
+    const products = await Product.find({}, '_id name updatedAt').lean();
 
     const productUrls: MetadataRoute.Sitemap = products.map((item: any) => ({
-      url: `${baseUrl}/product/${item._id}`,
+      url: `${baseUrl}/product/${slugifyProduct(item.name) || item._id}`,
       lastModified: item.updatedAt ? new Date(item.updatedAt) : new Date(),
       changeFrequency: 'weekly',
       priority: 0.8,
     }));
 
-    // Fetch published blog posts
     const blogPosts = await BlogPost.find({ status: 'published' }, 'slug updatedAt').lean();
     const blogUrls: MetadataRoute.Sitemap = blogPosts.map((post: any) => ({
       url: `${baseUrl}/blog/${post.slug}`,

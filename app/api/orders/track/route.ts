@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('query');
 
-    if (!query || query.trim().length < 4) {
+    if (!query || query.trim().length < 6) {
       recordFailedAttempt(rateLimitKey);
       return NextResponse.json(
         { success: false, message: 'Valid phone number, email, or order ID is required to track order.' },
@@ -42,19 +42,19 @@ export async function GET(request: Request) {
     }
 
     const cleanQuery = query.trim();
-    const safeRegex = new RegExp(escapeRegex(cleanQuery), 'i');
+    const exactRegex = new RegExp(`^${escapeRegex(cleanQuery)}$`, 'i');
 
     await connectToDatabase();
 
     const orders = await Order.find({
       $or: [
-        { customerPhone: safeRegex },
-        { customerEmail: safeRegex },
-        { orderId: safeRegex },
+        { customerPhone: exactRegex },
+        { customerEmail: exactRegex },
+        { orderId: exactRegex },
       ],
     })
       .sort({ createdAt: -1 })
-      .limit(10)
+      .limit(5)
       .lean();
 
     // Data-Minimization: Strip all customer PII from public tracking responses.

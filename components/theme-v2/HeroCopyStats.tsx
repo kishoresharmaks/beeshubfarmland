@@ -22,7 +22,7 @@ export default function HeroCopyStats() {
     { target: 24, suffix: 'h', label: 'Trade Desk Response', sub: 'Lab reports (COA) dispatched' },
   ];
 
-  const [counts, setCounts] = useState([0, 0, 0, 0]);
+  const [counts, setCounts] = useState([100, 30, 50, 24]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(

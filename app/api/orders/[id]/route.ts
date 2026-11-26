@@ -4,6 +4,31 @@ import Order from '@/models/Order';
 import { captureServerEvent, captureServerException } from '@/lib/posthog-server';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
 
+export async function GET(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    if (!isAuthenticatedAdmin(request)) {
+      return unauthenticatedResponse();
+    }
+    await connectToDatabase();
+    const order = await Order.findById(params.id).lean();
+    if (!order) {
+      return NextResponse.json(
+        { success: false, message: 'Order not found' },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json({ success: true, data: order });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, message: error.message || 'Failed to fetch order' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: { id: string } }

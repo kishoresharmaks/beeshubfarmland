@@ -84,8 +84,8 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${outfit.variable} ${inter.variable}`}>
       <head>
-        <link rel="icon" href="/logo.jpg" type="image/jpeg" />
-        <link rel="apple-touch-icon" href="/logo.jpg" />
+        <link rel="icon" href="/favicon.png" type="image/png" />
+        <link rel="apple-touch-icon" href="/favicon.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{

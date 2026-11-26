@@ -403,8 +403,7 @@ export default function HeaderNav() {
               className="hidden sm:inline-flex items-center gap-1.5 px-3.5 2xl:px-4 py-2 sm:py-2.5 rounded-full bg-[#ED3500] hover:bg-[#D02E00] text-white font-semibold text-xs whitespace-nowrap shadow-sm shadow-[#ED3500]/25 transition-colors"
             >
               <Briefcase className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden 2xl:inline">Request Quotation</span>
-              <span className="2xl:hidden">Request Quote</span>
+              <span className="whitespace-nowrap">Request Quote</span>
             </button>
 
             {/* Mobile Hamburger Toggle Button */}

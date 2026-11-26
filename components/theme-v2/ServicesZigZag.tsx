@@ -24,7 +24,8 @@ export default function ServicesZigZag() {
       ],
       icon: Leaf,
       badge: 'Certified Apiculture',
-      image: 'https://images.unsplash.com/photo-1758522965167-42e34a12bf13?auto=format&fit=crop&w=1200&q=80',
+      tagline: 'Cold-extracted Western Ghats forest honey in tamper-proof 30kg–300kg drums.',
+      image: '/images/beeshub-pure-forest-honey-spotlight.webp',
     },
     {
       title: 'Dehydrated Fruit & Superfood Powder Processing',
@@ -37,7 +38,8 @@ export default function ServicesZigZag() {
       ],
       icon: Factory,
       badge: 'Solar Dehydration Facility',
-      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1200&q=80',
+      tagline: '80–100 mesh solar-dehydrated powders with zero maltodextrin or fillers.',
+      image: '/images/products/dates-powder-natural.jpg',
     },
     {
       title: 'Wood Cold-Pressed Virgin Oils Extraction & Milling',
@@ -49,7 +51,8 @@ export default function ServicesZigZag() {
       ],
       icon: Leaf,
       badge: 'Wood Cold-Press Mill',
-      image: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=1200&q=80',
+      tagline: 'Slow Marachekku wood-pressed below 45°C for intact antioxidants.',
+      image: '/images/products/coconut-oil.png',
     },
     {
       title: 'Turnkey Private Labeling & Retail Packaging',
@@ -61,7 +64,8 @@ export default function ServicesZigZag() {
       ],
       icon: Factory,
       badge: 'Cleanroom Packaging & Co-Packing',
-      image: 'https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?auto=format&fit=crop&w=1200&q=80',
+      tagline: 'Turnkey glass jar bottling, induction sealing & FSSAI compliance from 100 units.',
+      image: '/images/packaging/hexa-jar-series.webp',
     },
   ];
 
@@ -125,7 +129,7 @@ export default function ServicesZigZag() {
                       {item.title}
                     </h4>
                     <p className="text-[11px] text-slate-200 line-clamp-2">
-                      Hygienic processing adhering to Codex Alimentarius & FSSAI standards.
+                      {item.tagline}
                     </p>
                   </div>
                 </div>

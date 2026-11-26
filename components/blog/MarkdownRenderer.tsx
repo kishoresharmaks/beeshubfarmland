@@ -272,10 +272,10 @@ export default function MarkdownRenderer({ content, className = '' }: MarkdownRe
         <ol key={elementKey++} className="space-y-3 my-4 pl-1 text-slate-700">
           {listItems.map((item, lIdx) => (
             <li key={lIdx} className="flex items-start gap-3">
-              <span className="w-6 h-6 rounded-lg bg-[#FFF8F5] border border-[#ED3500]/20 text-[#ED3500] text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
+              <span aria-hidden="true" className="w-6 h-6 rounded-lg bg-[#FFF8F5] border border-[#ED3500]/20 text-[#ED3500] text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
                 {item.num}
               </span>
-              <span className="flex-1 leading-relaxed text-sm sm:text-base">{renderInline(item.text)}</span>
+              <span className="flex-1 leading-relaxed text-sm sm:text-base">{renderInline(item.text.replace(/^\d+\.\s*/, ''))}</span>
             </li>
           ))}
         </ol>

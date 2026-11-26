@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/db';
 import Settings from '@/models/Settings';
 import { isAuthenticatedAdmin, unauthenticatedResponse } from '@/lib/authCheck';
+import { processAndSaveImage } from '@/lib/imageStorage';
 
 export async function GET() {
   try {
@@ -37,8 +38,36 @@ export async function GET() {
         settings.activeTheme = 'v2';
       }
     }
+    const sanitizedSpotlight = settings.spotlight
+      ? {
+          ...settings.spotlight,
+          productImage: await processAndSaveImage(settings.spotlight.productImage, 'spotlight'),
+        }
+      : undefined;
+
+    const sanitizedSpotlights = Array.isArray(settings.spotlights)
+      ? await Promise.all(
+          settings.spotlights.map(async (sp: any, idx: number) => ({
+            ...sp,
+            productImage: await processAndSaveImage(sp.productImage, `spotlight_${idx}`),
+          }))
+        )
+      : undefined;
+
+    const publicSettings = {
+      activeTheme: settings.activeTheme || 'v2',
+      enableOnlinePayment: settings.enableOnlinePayment ?? settings.enableUPI ?? true,
+      enableUPI: settings.enableUPI ?? true,
+      enableCOD: settings.enableCOD ?? true,
+      fssaiNumber: settings.fssaiNumber || '12425009000671',
+      gstin: settings.gstin || '33AAOCB0453D1Z3',
+      enableWholesale: settings.enableWholesale ?? true,
+      ...(sanitizedSpotlight ? { spotlight: sanitizedSpotlight } : {}),
+      ...(sanitizedSpotlights ? { spotlights: sanitizedSpotlights } : {}),
+    };
+
     return NextResponse.json(
-      { success: true, data: settings },
+      { success: true, data: publicSettings },
       {
         headers: {
           'Cache-Control': 'no-store, max-age=0',

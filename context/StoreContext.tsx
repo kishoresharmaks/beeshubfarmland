@@ -15,6 +15,8 @@ export interface ProductVariant {
 export interface Product {
   _id: string;
   name: string;
+  displayName?: string;
+  slug?: string;
   description: string;
   image: string;
   mrp: number;
@@ -166,23 +168,40 @@ interface StoreContextType {
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-export function StoreProvider({ children }: { children: React.ReactNode }) {
+export interface InitialStoreData {
+  products?: Product[];
+  categories?: CategoryItem[];
+  banners?: BannerItem[];
+  settings?: StoreSettings;
+}
+
+export function StoreProvider({
+  children,
+  initialData,
+}: {
+  children: React.ReactNode;
+  initialData?: InitialStoreData;
+}) {
   // Company Configuration
   const [companyConfig] = useState<CompanyConfig>(getCompanyConfig());
 
   // Store Catalog
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [products, setProducts] = useState<Product[]>(initialData?.products || []);
+  const [categories, setCategories] = useState<CategoryItem[]>(initialData?.categories || []);
+  const [banners, setBanners] = useState<BannerItem[]>(initialData?.banners || []);
   const [spotlightItems, setSpotlightItems] = useState<SpotlightItem[]>([]);
-  const [settings, setSettings] = useState<StoreSettings>({
-    activeTheme: 'v2',
-    enableOnlinePayment: true,
-    enableUPI: true,
-    enableCOD: true,
-    enableWholesale: true,
-  });
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [settings, setSettings] = useState<StoreSettings>(
+    initialData?.settings || {
+      activeTheme: 'v2',
+      enableOnlinePayment: true,
+      enableUPI: true,
+      enableCOD: true,
+      enableWholesale: true,
+    }
+  );
+  const [loadingProducts, setLoadingProducts] = useState(
+    !(initialData?.products && initialData.products.length > 0)
+  );
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -294,7 +313,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const fetchProducts = async () => {
     try {
-      setLoadingProducts(true);
+      if (products.length === 0) {
+        setLoadingProducts(true);
+      }
       const res = await fetch('/api/products');
       const data = await res.json();
       if (data.success) {
@@ -323,11 +344,20 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    fetchSettings();
-    fetchCategories();
-    fetchBanners();
+    if (!initialData?.settings) fetchSettings();
+    if (!initialData?.categories?.length) fetchCategories();
+    if (!initialData?.banners?.length) fetchBanners();
     fetchSpotlight();
-    fetchProducts();
+    if (!initialData?.products?.length) {
+      fetchProducts();
+    } else if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetId = urlParams.get('product') || (window.location.hash.startsWith('#product-') ? window.location.hash.replace('#product-', '') : null);
+      if (targetId) {
+        const found = initialData.products.find((p: any) => p._id === targetId || p.slug === targetId);
+        if (found) setQuickViewProduct(found);
+      }
+    }
   }, []);
 
   // 2. Cart Persistence (localStorage)

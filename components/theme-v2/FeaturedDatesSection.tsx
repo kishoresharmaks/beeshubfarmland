@@ -18,6 +18,8 @@ import {
 } from 'lucide-react';
 import { useStore, Product, ProductVariant } from '@/context/StoreContext';
 import { getTargetedHomepageProducts, getFeaturedPriority } from '@/lib/featuredProducts';
+import { formatProductDisplayName, getProductSlugUrl } from '@/lib/productFormatting';
+import Link from 'next/link';
 
 export default function FeaturedDatesSection() {
   const { products, loadingProducts, addToCart, openQuoteModal, companyConfig } = useStore();
@@ -211,7 +213,7 @@ export default function FeaturedDatesSection() {
                         isActive ? 'bg-[#ED3500]' : 'bg-slate-300'
                       }`}
                     />
-                    <span className="truncate max-w-[200px] sm:max-w-none">{p.name}</span>
+                    <span className="truncate max-w-[200px] sm:max-w-none">{p.displayName || formatProductDisplayName(p.name)}</span>
                     {priority === 1 && (
                       <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-[#ED3500]/20 text-[#ED3500]">
                         Top Pick
@@ -309,7 +311,9 @@ export default function FeaturedDatesSection() {
 
                   {/* Title */}
                   <h3 className="font-heading font-bold text-2xl sm:text-3xl text-[#163B5C] tracking-tight leading-tight">
-                    {activeProduct.name}
+                    <Link href={getProductSlugUrl(activeProduct)} className="hover:text-[#ED3500] transition-colors">
+                      {activeProduct.displayName || formatProductDisplayName(activeProduct.name)}
+                    </Link>
                   </h3>
 
                   {/* Tagline / Description */}
@@ -458,7 +462,7 @@ export default function FeaturedDatesSection() {
                         </div>
                         <div className="min-w-0">
                           <h4 className="font-heading font-bold text-xs text-[#163B5C] truncate">
-                            {p.name}
+                            {p.displayName || formatProductDisplayName(p.name)}
                           </h4>
                           <div className="text-[11px] font-semibold text-[#ED3500]">
                             ₹{p.price.toLocaleString('en-IN')}
