@@ -1,73 +1,64 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Phone, MessageCircle, Briefcase, ShoppingBag } from 'lucide-react';
 import { useStore } from '@/context/StoreContext';
 
 /**
- * Section Q: Floating Actions
- * Two circular icon buttons (call, WhatsApp chat in green), bottom-right, 48-56px.
- * Paired CTA bar ("Enquire" + "View Products") sticky at bottom on mobile.
+ * Floating WhatsApp Customer Support + Mobile Quick Action Bar
  */
 export default function FloatingActions() {
-  const { companyConfig, setIsQuoteModalOpen, setIsCartOpen, cartItemCount } = useStore();
+  const { companyConfig, openQuoteModal } = useStore();
 
   const cleanPhone = companyConfig.phone.replace(/\D/g, '') || '9578784431';
   const whatsappUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(
-    'Hello BeesHub Farmland Team, I would like to inquire about wholesale bulk supply and pricing for raw honey & organic spices.'
+    'Hello Bees Hub Farmland Team, I would like to enquire about your products and supply options.'
   )}`;
-
-  const handleScrollToProducts = () => {
-    const catalogEl = document.getElementById('catalog-section');
-    if (catalogEl) {
-      catalogEl.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
 
   return (
     <>
-      {/* Floating Circular Buttons (Bottom Right, Desktop & Mobile) */}
-      <div className="fixed bottom-20 sm:bottom-6 right-5 z-40 flex flex-col gap-3 items-end">
-        {/* Call Button */}
+      {/* Floating Support Buttons (Bottom Right) */}
+      <div className="fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 flex flex-col gap-2.5 items-end">
         <a
-          href={`tel:${companyConfig.phone}`}
-          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#163B5C] text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all border-2 border-white"
-          title="Call BeesHub Farmland"
-          aria-label="Call Trade Desk"
+          href={`tel:+91${cleanPhone}`}
+          className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-[#173F2B] hover:bg-[#102E20] text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 border-2 border-white"
+          title="Call Bees Hub Farmland"
+          aria-label="Call Bees Hub Farmland"
         >
-          <Phone className="w-5 h-5 sm:w-6 sm:h-6" />
+          <Phone className="w-5 h-5" />
         </a>
 
-        {/* WhatsApp Chat Button (#25D366) */}
         <a
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-[#25D366] text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all border-2 border-white"
+          className="w-12 h-12 sm:w-13 sm:h-13 rounded-full bg-[#25D366] hover:bg-[#20bd5a] text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105 border-2 border-white"
           title="Chat on WhatsApp"
-          aria-label="WhatsApp Chat"
+          aria-label="WhatsApp Support"
         >
-          <MessageCircle className="w-6 h-6 sm:w-7 sm:h-7 fill-white" />
+          <MessageCircle className="w-6 h-6 fill-white" />
         </a>
       </div>
 
-      {/* Paired Sticky 2-Button CTA Bar on Mobile (UI.md pattern) */}
-      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E8EDF2] p-2.5 flex items-center gap-2.5 shadow-2xl">
+      {/* Mobile Bottom Paired Action Bar */}
+      <div className="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-[#E4E7E1] px-3 py-2 flex items-center gap-2.5 shadow-xl">
         <button
-          onClick={() => setIsQuoteModalOpen(true)}
-          className="flex-1 py-3 rounded-full bg-[#ED3500] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
+          type="button"
+          onClick={() => openQuoteModal(undefined, 'WHOLESALE')}
+          className="flex-1 py-2.5 rounded-full bg-[#A97843] text-white font-semibold text-xs flex items-center justify-center gap-1.5"
         >
-          <Briefcase className="w-4 h-4" />
-          <span>Enquire Bulk</span>
+          <Briefcase className="w-3.5 h-3.5" />
+          <span>Wholesale Quote</span>
         </button>
 
-        <button
-          onClick={handleScrollToProducts}
-          className="flex-1 py-3 rounded-full bg-[#163B5C] text-white font-semibold text-xs flex items-center justify-center gap-2 shadow-sm transition-colors"
+        <Link
+          href="/shop"
+          className="flex-1 py-2.5 rounded-full bg-[#173F2B] text-white font-semibold text-xs flex items-center justify-center gap-1.5"
         >
-          <ShoppingBag className="w-4 h-4" />
-          <span>View Products</span>
-        </button>
+          <ShoppingBag className="w-3.5 h-3.5" />
+          <span>Shop Products</span>
+        </Link>
       </div>
     </>
   );

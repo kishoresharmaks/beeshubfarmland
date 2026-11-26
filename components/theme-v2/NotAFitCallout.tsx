@@ -20,7 +20,7 @@ export default function NotAFitCallout() {
       <div className="max-w-[1000px] mx-auto px-4 sm:px-6">
         <div className="rounded-3xl p-6 sm:p-10 border border-[#E8EDF2] bg-white shadow-xs space-y-6">
           <div className="space-y-1.5">
-            <h3 className="font-heading font-bold text-xl sm:text-2xl text-[#163B5C]">
+            <h3 className="font-heading font-bold text-xl sm:text-2xl text-[#202820]">
               Orders we do not fulfill
             </h3>
             <p className="text-xs sm:text-sm text-[#64748B]">
@@ -30,7 +30,7 @@ export default function NotAFitCallout() {
 
           <div className="space-y-3 pt-1">
             {disqualifiers.map((item, idx) => (
-              <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm text-[#163B5C] font-medium leading-relaxed">
+              <div key={idx} className="flex items-start gap-3 text-xs sm:text-sm text-[#202820] font-medium leading-relaxed">
                 <div className="w-5 h-5 rounded-full bg-slate-100 text-[#64748B] border border-slate-200 flex items-center justify-center shrink-0 mt-0.5">
                   <X className="w-3 h-3 stroke-[2.5]" />
                 </div>

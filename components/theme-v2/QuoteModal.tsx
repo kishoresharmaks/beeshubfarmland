@@ -22,6 +22,7 @@ import {
   Check,
 } from 'lucide-react';
 import { useStore, EnquiryCategory } from '@/context/StoreContext';
+import { formatProductDisplayName } from '@/lib/productFormatting';
 
 interface FormItem {
   productId: string;
@@ -179,16 +180,26 @@ export default function QuoteModal() {
         matched = catalogList.find((p) => String(p._id) === targetId);
       }
 
-      // Check exact Name match next
+      // Check exact Name or formatted displayName match next
       if (!matched && target) {
-        matched = catalogList.find((p) => p.name.toLowerCase().trim() === target);
+        matched = catalogList.find((p) => {
+          const rawLower = p.name.toLowerCase().trim();
+          const dispLower = formatProductDisplayName(p.name).toLowerCase().trim();
+          return rawLower === target || dispLower === target;
+        });
       }
 
-      // Check substring match (prioritizing longer matching names)
-      if (!matched && target && !isPackagingOrHamper) {
+      // Check substring match against both raw name and cleaned displayName
+      if (!matched && target) {
         matched = catalogList.find((p) => {
           const pName = p.name.toLowerCase().trim();
-          return pName === target || pName.includes(target) || target.includes(pName);
+          const pDisp = formatProductDisplayName(p.name).toLowerCase().trim();
+          return (
+            pName.includes(target) ||
+            target.includes(pName) ||
+            pDisp.includes(target) ||
+            target.includes(pDisp)
+          );
         });
       }
 
@@ -215,11 +226,12 @@ export default function QuoteModal() {
       }
 
       if (matched) {
+        const displayTitle = formatProductDisplayName(matched.name);
         setItems([
           {
             productId: matched._id,
-            productName: matched.name,
-            quantity: matched.category === 'Oil' ? 50 : 100,
+            productName: displayTitle,
+            quantity: matched.category === 'Oil' ? 50 : isPackagingOrHamper ? 100 : 100,
             unit: matched.category === 'Oil' ? 'LITRE' : isPackagingOrHamper ? 'PIECES' : 'KG',
             targetPrice: '',
             isCustom: false,
@@ -239,8 +251,20 @@ export default function QuoteModal() {
         ]);
         setGeneralSelectedProductId('');
       }
+    } else {
+      setItems([
+        {
+          productId: '',
+          productName: '',
+          quantity: 50,
+          unit: 'KG',
+          targetPrice: '',
+          isCustom: false,
+        },
+      ]);
+      setGeneralSelectedProductId('');
     }
-  }, [isQuoteModalOpen, quoteModalInitialProduct, quoteModalInitialProductId, quoteModalCategory]);
+  }, [isQuoteModalOpen, quoteModalInitialProduct, quoteModalInitialProductId, quoteModalCategory, products.length]);
 
   const handleCloseModal = () => {
     setIsQuoteModalOpen(false);
@@ -530,15 +554,15 @@ export default function QuoteModal() {
         {/* Loading Overlay */}
         {submitting && (
           <div className="absolute inset-0 bg-white/90 backdrop-blur-xs z-50 flex flex-col items-center justify-center gap-3">
-            <Loader2 className="w-8 h-8 text-[#ED3500] animate-spin" />
-            <p className="font-heading font-semibold text-sm text-[#163B5C]">
+            <Loader2 className="w-8 h-8 text-[#173F2B] animate-spin" />
+            <p className="font-heading font-semibold text-sm text-[#202820]">
               Sending your {enquiryCategory.toLowerCase().replace('_', ' ')} enquiry…
             </p>
           </div>
         )}
 
         {/* Modal Header */}
-        <div className="px-6 py-5 border-b border-[#E8EDF2] bg-[#163B5C] text-white flex items-center justify-between shrink-0">
+        <div className="px-6 py-5 border-b border-[#E8EDF2] bg-[#173F2B] text-white flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white/10 text-white flex items-center justify-center shrink-0">
               {enquiryCategory === 'PRIVATE_LABEL' ? (
@@ -578,7 +602,7 @@ export default function QuoteModal() {
                 <CheckCircle2 className="w-8 h-8" />
               </div>
               <div className="space-y-2">
-                <h4 className="font-heading font-bold text-xl sm:text-2xl text-[#163B5C]">
+                <h4 className="font-heading font-bold text-xl sm:text-2xl text-[#202820]">
                   {enquiryCategory === 'PRIVATE_LABEL'
                     ? 'Private Label Enquiry Received'
                     : enquiryCategory === 'GIFT_HAMPER'
@@ -588,16 +612,16 @@ export default function QuoteModal() {
                     : 'Enquiry Received Successfully'}
                 </h4>
                 <p className="text-xs sm:text-sm text-[#64748B] max-w-md mx-auto leading-relaxed">
-                  Thank you, <strong className="text-[#163B5C]">{contactPerson}</strong>. Our commercial desk has received your request
+                  Thank you, <strong className="text-[#202820]">{contactPerson}</strong>. Our commercial desk has received your request
                   {companyName ? (
-                    <> for <strong className="text-[#163B5C]">{companyName}</strong></>
+                    <> for <strong className="text-[#202820]">{companyName}</strong></>
                   ) : null}. We will review product availability and respond within 24 hours.
                 </p>
               </div>
 
               <div className="p-4 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] max-w-md mx-auto text-left space-y-1.5 text-xs">
                 <div className="text-[10px] font-semibold uppercase text-[#64748B]">Reference ID</div>
-                <div className="font-mono font-bold text-[#163B5C] text-sm break-all">
+                <div className="font-mono font-bold text-[#202820] text-sm break-all">
                   {submittedLeadId}
                 </div>
               </div>
@@ -614,7 +638,7 @@ export default function QuoteModal() {
                 </a>
                 <button
                   onClick={handleCloseModal}
-                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#163B5C] hover:bg-[#0E273E] text-white font-semibold text-xs transition-colors"
+                  className="w-full sm:w-auto px-6 py-3 rounded-full bg-[#202820] hover:bg-[#0E273E] text-white font-semibold text-xs transition-colors"
                 >
                   Close Window
                 </button>
@@ -625,7 +649,7 @@ export default function QuoteModal() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* CATEGORY SELECTOR TABS */}
               <div className="space-y-2">
-                <label className="block text-xs font-semibold text-[#163B5C]">
+                <label className="block text-xs font-semibold text-[#202820]">
                   Select Enquiry Category:
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -635,28 +659,28 @@ export default function QuoteModal() {
                       label: 'Bulk Wholesale',
                       icon: Package,
                       desc: 'Raw drums & lots',
-                      activeColor: 'border-amber-500 bg-amber-50/50 text-[#163B5C]',
+                      activeColor: 'border-amber-500 bg-amber-50/50 text-[#202820]',
                     },
                     {
                       id: 'PRIVATE_LABEL' as EnquiryCategory,
                       label: 'Private Label',
                       icon: Tag,
                       desc: 'Bottling & jars',
-                      activeColor: 'border-indigo-500 bg-indigo-50/50 text-[#163B5C]',
+                      activeColor: 'border-indigo-500 bg-indigo-50/50 text-[#202820]',
                     },
                     {
                       id: 'GIFT_HAMPER' as EnquiryCategory,
                       label: 'Gift Hampers',
                       icon: Gift,
                       desc: 'Weddings & galas',
-                      activeColor: 'border-rose-500 bg-rose-50/50 text-[#163B5C]',
+                      activeColor: 'border-rose-500 bg-rose-50/50 text-[#202820]',
                     },
                     {
                       id: 'GENERAL' as EnquiryCategory,
                       label: 'General / Support',
                       icon: MessageCircle,
                       desc: 'Normal inquiry',
-                      activeColor: 'border-emerald-500 bg-emerald-50/50 text-[#163B5C]',
+                      activeColor: 'border-emerald-500 bg-emerald-50/50 text-[#202820]',
                     },
                   ].map((tab) => {
                     const Icon = tab.icon;
@@ -676,11 +700,11 @@ export default function QuoteModal() {
                         }`}
                       >
                         <div className="flex items-center justify-between w-full mb-1">
-                          <Icon className={`w-4 h-4 ${isActive ? 'text-[#ED3500]' : 'text-slate-400'}`} />
-                          {isActive && <Check className="w-3.5 h-3.5 text-[#ED3500]" />}
+                          <Icon className={`w-4 h-4 ${isActive ? 'text-[#173F2B]' : 'text-slate-400'}`} />
+                          {isActive && <Check className="w-3.5 h-3.5 text-[#173F2B]" />}
                         </div>
                         <div>
-                          <div className={`font-heading font-bold text-xs ${isActive ? 'text-[#163B5C]' : 'text-[#64748B]'}`}>
+                          <div className={`font-heading font-bold text-xs ${isActive ? 'text-[#202820]' : 'text-[#64748B]'}`}>
                             {tab.label}
                           </div>
                           <div className="text-[10px] text-slate-400 leading-tight">
@@ -697,9 +721,9 @@ export default function QuoteModal() {
               {quoteModalInitialProduct && (
                 <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FFF8F5] border border-[#FFD5C7] text-xs">
                   <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-[#ED3500]" />
-                    <span className="text-[#163B5C] font-medium">Selected Item:</span>
-                    <span className="font-semibold text-[#ED3500]">
+                    <Package className="w-4 h-4 text-[#173F2B]" />
+                    <span className="text-[#202820] font-medium">Selected Item:</span>
+                    <span className="font-semibold text-[#173F2B]">
                       {items[0]?.productName || quoteModalInitialProduct}
                     </span>
                   </div>
@@ -732,7 +756,7 @@ export default function QuoteModal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Contact Person Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#202820] mb-1">
                     Your Full Name *
                   </label>
                   <div className="relative">
@@ -743,14 +767,14 @@ export default function QuoteModal() {
                       placeholder="e.g. Ramesh Patel"
                       value={contactPerson}
                       onChange={(e) => setContactPerson(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                     />
                   </div>
                 </div>
 
                 {/* Company / Brand / Occasion Name */}
                 <div>
-                  <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#202820] mb-1">
                     {currentCopy.companyLabel}
                   </label>
                   <div className="relative">
@@ -761,7 +785,7 @@ export default function QuoteModal() {
                       placeholder={currentCopy.companyPlaceholder}
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                     />
                   </div>
                 </div>
@@ -770,7 +794,7 @@ export default function QuoteModal() {
               {/* Phone & Email Row */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#202820] mb-1">
                     Mobile Number (10 Digits) *
                   </label>
                   <div className="relative">
@@ -781,13 +805,13 @@ export default function QuoteModal() {
                       placeholder="e.g. 9876543210"
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#202820] mb-1">
                     Email Address {isGeneral ? '(Optional)' : ''}
                   </label>
                   <div className="relative">
@@ -797,7 +821,7 @@ export default function QuoteModal() {
                       placeholder="e.g. contact@business.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                      className="w-full pl-9 pr-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                     />
                   </div>
                 </div>
@@ -806,7 +830,7 @@ export default function QuoteModal() {
               {/* Location Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#202820] mb-1">
                     {!isGeneral ? 'Delivery City *' : 'City / Location (Optional)'}
                   </label>
                   <input
@@ -815,12 +839,12 @@ export default function QuoteModal() {
                     placeholder="e.g. Chennai"
                     value={city}
                     onChange={(e) => setCity(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                    className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#202820] mb-1">
                     {!isGeneral ? 'Pincode *' : 'Pincode (Optional)'}
                   </label>
                   <input
@@ -830,12 +854,12 @@ export default function QuoteModal() {
                     placeholder="600001"
                     value={pincode}
                     onChange={(e) => setPincode(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                    className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                  <label className="block text-xs font-semibold text-[#202820] mb-1">
                     GSTIN {!isGeneral ? '(Optional)' : '(N/A)'}
                   </label>
                   <input
@@ -844,7 +868,7 @@ export default function QuoteModal() {
                     placeholder={!isGeneral ? '33AAAAA0000A1Z5' : 'Not required'}
                     value={gstin}
                     onChange={(e) => setGstin(e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500] uppercase disabled:bg-slate-50 disabled:text-slate-400"
+                    className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B] uppercase disabled:bg-slate-50 disabled:text-slate-400"
                   />
                 </div>
               </div>
@@ -854,8 +878,8 @@ export default function QuoteModal() {
                 <div className="space-y-4 pt-2 border-t border-[#E8EDF2]">
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xs font-bold text-[#163B5C] flex items-center gap-1.5">
-                        <Package className="w-3.5 h-3.5 text-[#ED3500]" />
+                      <span className="text-xs font-bold text-[#202820] flex items-center gap-1.5">
+                        <Package className="w-3.5 h-3.5 text-[#173F2B]" />
                         <span>
                           {enquiryCategory === 'PRIVATE_LABEL'
                             ? 'Requested Formulations or Jar Packaging Series *'
@@ -871,7 +895,7 @@ export default function QuoteModal() {
                     <button
                       type="button"
                       onClick={handleAddItem}
-                      className="text-xs font-bold text-[#ED3500] hover:text-[#D02E00] flex items-center gap-1 shrink-0"
+                      className="text-xs font-bold text-[#173F2B] hover:text-[#D02E00] flex items-center gap-1 shrink-0"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add Item</span>
@@ -891,14 +915,14 @@ export default function QuoteModal() {
                               required
                               value={item.isCustom ? 'CUSTOM' : item.productId}
                               onChange={(e) => handleProductSelect(idx, e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs font-semibold text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                              className="w-full px-3 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs font-semibold text-[#202820] focus:outline-none focus:border-[#173F2B]"
                             >
                               <option value="" disabled>
                                 -- Select from Catalog or Packaging * --
                               </option>
                               {catalogList.map((p) => (
                                 <option key={p._id} value={p._id}>
-                                  {p.name} {p.category ? `(${p.category})` : ''}
+                                  {formatProductDisplayName(p.name)} {p.category ? `(${p.category})` : ''}
                                 </option>
                               ))}
                               <option value="CUSTOM">
@@ -918,14 +942,14 @@ export default function QuoteModal() {
                               onChange={(e) =>
                                 handleItemFieldChange(idx, 'quantity', e.target.value)
                               }
-                              className="w-full px-2.5 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                              className="w-full px-2.5 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                             />
                             <select
                               value={item.unit}
                               onChange={(e) =>
                                 handleItemFieldChange(idx, 'unit', e.target.value)
                               }
-                              className="px-2 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs font-bold text-[#163B5C] focus:outline-none"
+                              className="px-2 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs font-bold text-[#202820] focus:outline-none"
                             >
                               <option value="KG">KG</option>
                               <option value="LITRE">LTR</option>
@@ -943,7 +967,7 @@ export default function QuoteModal() {
                               onChange={(e) =>
                                 handleItemFieldChange(idx, 'targetPrice', e.target.value)
                               }
-                              className="w-full px-2 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                              className="w-full px-2 py-2 bg-white border border-[#E8EDF2] rounded-lg text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                             />
                           </div>
 
@@ -979,7 +1003,7 @@ export default function QuoteModal() {
                               onChange={(e) =>
                                 handleItemFieldChange(idx, 'productName', e.target.value)
                               }
-                              className="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                              className="w-full px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                             />
                           </div>
                         )}
@@ -989,7 +1013,7 @@ export default function QuoteModal() {
 
                   {/* Supply Cycle Type */}
                   <div className="space-y-1.5 pt-1">
-                    <label className="block text-xs font-semibold text-[#163B5C]">
+                    <label className="block text-xs font-semibold text-[#202820]">
                       Order Type / Engagement Model
                     </label>
                     <div className="grid grid-cols-3 gap-2">
@@ -1004,7 +1028,7 @@ export default function QuoteModal() {
                           onClick={() => setOrderType(t.id as any)}
                           className={`py-2 px-2 text-xs font-bold rounded-xl border text-center transition-all ${
                             orderType === t.id
-                              ? 'bg-[#163B5C] text-white border-[#163B5C] shadow-xs'
+                              ? 'bg-[#173F2B] text-white border-[#202820] shadow-xs'
                               : 'bg-[#FFFCFB] text-[#64748B] border-[#E8EDF2] hover:border-slate-300'
                           }`}
                         >
@@ -1016,7 +1040,7 @@ export default function QuoteModal() {
 
                   {/* Additional Notes */}
                   <div>
-                    <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                    <label className="block text-xs font-semibold text-[#202820] mb-1">
                       {enquiryCategory === 'PRIVATE_LABEL'
                         ? 'Packaging, Labeling & Delivery Specifications'
                         : enquiryCategory === 'GIFT_HAMPER'
@@ -1034,7 +1058,7 @@ export default function QuoteModal() {
                       }
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      className="w-full px-3 py-2 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                      className="w-full px-3 py-2 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
                     />
                   </div>
                 </div>
@@ -1043,13 +1067,13 @@ export default function QuoteModal() {
                 <div className="space-y-4 pt-2 border-t border-[#E8EDF2]">
                   {/* Optional Product Dropdown */}
                   <div>
-                    <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                    <label className="block text-xs font-semibold text-[#202820] mb-1">
                       Interested Product (Optional)
                     </label>
                     <select
                       value={generalSelectedProductId}
                       onChange={(e) => setGeneralSelectedProductId(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#10B981]"
+                      className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#10B981]"
                     >
                       <option value="">
                         -- None / General Inquiry or Question --
@@ -1067,7 +1091,7 @@ export default function QuoteModal() {
 
                   {/* Compulsory Message Field for General Enquiry */}
                   <div>
-                    <label className="block text-xs font-semibold text-[#163B5C] mb-1">
+                    <label className="block text-xs font-semibold text-[#202820] mb-1">
                       Your Enquiry / Message *
                     </label>
                     <textarea
@@ -1076,7 +1100,7 @@ export default function QuoteModal() {
                       placeholder="How can we assist you? Tell us about your query, requirement, retail availability, or questions..."
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#163B5C] focus:outline-none focus:border-[#10B981]"
+                      className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#10B981]"
                     />
                   </div>
                 </div>
@@ -1091,9 +1115,9 @@ export default function QuoteModal() {
                     enquiryCategory === 'PRIVATE_LABEL'
                       ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-600/25'
                       : enquiryCategory === 'GIFT_HAMPER'
-                      ? 'bg-[#ED3500] hover:bg-[#D02E00] shadow-[#ED3500]/25'
+                      ? 'bg-[#173F2B] hover:bg-[#D02E00] shadow-[#173F2B]/25'
                       : enquiryCategory === 'WHOLESALE'
-                      ? 'bg-[#163B5C] hover:bg-[#0E273E] shadow-[#163B5C]/25'
+                      ? 'bg-[#202820] hover:bg-[#0E273E] shadow-[#202820]/25'
                       : 'bg-[#10B981] hover:bg-[#059669] shadow-[#10B981]/25'
                   }`}
                 >

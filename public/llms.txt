@@ -1,34 +1,20 @@
-# BEES HUB FARMLAND PRIVATE LIMITED (BeesHub Farmland)
+# BEES HUB FARMLAND PRIVATE LIMITED (Bees Hub Farmland)
 
-> 100% Pure Organic Farm Produce, Raw Forest Honey, Wood Cold-Pressed Virgin Oils, and Solar-Dehydrated Superfood Powders directly from Kanyakumari farmlands, Western Ghats, Tamil Nadu, India.
+> Farm-sourced raw forest honey, solar-dehydrated superfood powders, wood cold-pressed virgin oils, and turnkey private-label packaging from Kanyakumari District, Tamil Nadu, India.
 
-## Business & Legal Entity
-- **Brand Name**: BeesHub Farmland
-- **Legal Entity**: BEES HUB FARMLAND PRIVATE LIMITED
-- **Headquarters / Facility Address**: Door No: 2/26-1, Muhilanvilai, Monikettipottal-Post, Nagercoil, Kanyakumari District, Tamil Nadu - 629501, India
-- **Customer Care & B2B Trade Desk**: +91 95787 84431
-- **Email**: admin@beeshubfarmland.com
-- **Official Website**: https://beeshubfarmland.com
+## Core Storefront & B2B Pages
+- [Bees Hub Farmland Homepage](https://beeshubfarmland.com/): Overview of B2C retail products, B2B wholesale supply, certifications, and FAQs.
+- [Shop All Farm-Sourced Products](https://beeshubfarmland.com/shop): Full catalog across Natural Honey, Superfood Powders, Cold-Pressed Oils, Dehydrated Products, Natural Food Ingredients, and Other Farm Products.
+- [Wholesale & Processing Services](https://beeshubfarmland.com/services): Bulk honey drums (30kg–300kg), 25kg dehydrated powder lots, Marachekku cold-pressed oil production, and quality specifications.
+- [Private Label & Contract Bottling](https://beeshubfarmland.com/private-label): Cleanroom bottling in Square, Hexa, Octa, and ITC glass jar series starting from 100 pilot units.
+- [Wedding & Corporate Gift Hampers](https://beeshubfarmland.com/gift): Curated pine-wood wellness gift chests with custom laser engraving for events and corporate gifting.
+- [About Bees Hub Farmland](https://beeshubfarmland.com/about): Kanyakumari sourcing story, FSSAI Central (`12425009000671`), ISO `9001:2015`, ISO `22000:2018`, GMP, and IEC (`AAOCB0453D`) credentials.
+- [Contact & Trade Desk](https://beeshubfarmland.com/contact): Registered address in Nagercoil, Kanyakumari, phone `+91 95787 84431`, and email `admin@beeshubfarmland.com`.
+- [The Farmland Journal (Blog)](https://beeshubfarmland.com/blog): Educational articles on honey purity, superfood processing, and regional farming.
+- [Shipping Policy](https://beeshubfarmland.com/shipping-policy): Retail free shipping across India, order tracking, and commercial bulk freight terms.
+- [Return & Refund Policy](https://beeshubfarmland.com/return-policy): Support workflow for damaged, leaked, or incorrect deliveries.
+- [Privacy Policy](https://beeshubfarmland.com/privacy-policy): Customer order, enquiry, and Razorpay payment data handling.
+- [Terms and Conditions](https://beeshubfarmland.com/terms): Storefront pricing, GST invoicing, and B2B supply terms.
 
-## Certifications & Compliance
-- **FSSAI Central License**: 12425009000671
-- **GSTIN**: 33AAOCB0453D1Z3
-- **Import Export Code (IEC)**: AAOCB0453D
-- **Quality & Safety**: ISO 22000:2018, ISO 9001:2015, GMP Certified Cleanroom Facility
-- **Lab Verification**: NABL-accredited batch COA, C4 & NMR sugar purity tested (zero added cane sugar or rice syrup)
-
-## Canonical Store & B2B Routes
-- **Homepage & Bulk Desk**: https://beeshubfarmland.com/
-- **Retail Storefront Catalog**: https://beeshubfarmland.com/shop
-- **Private Label & Contract Bottling**: https://beeshubfarmland.com/private-label (MOQ from 100 pilot units; 7–12 day production turnaround; Square, Hexa, Octa, and ITC glass jar series)
-- **Wedding & Corporate Gift Hampers**: https://beeshubfarmland.com/gift (Heirloom pine-wood chests with laser engraving, ₹850–₹1,150 price band)
-- **B2B Processing & Services**: https://beeshubfarmland.com/services
-- **About & Certifications**: https://beeshubfarmland.com/about
-- **Contact & Trade Desk**: https://beeshubfarmland.com/contact
-- **The Farmland Journal (Blog)**: https://beeshubfarmland.com/blog
-
-## Core Product Offerings
-- **Raw Pure Honey**: Unprocessed Pure Forest Honey (₹399/500g retail; 30kg/50kg/300kg bulk drums) harvested in the Western Ghats.
-- **Dehydrated Superfood Powders (80–100 Mesh)**: Natural Dates Powder (unrefined sweetener), Caffeine-Free Dates Coffee Powder, Nendran Banana Powder, Red Banana Powder, Beetroot Powder, Moringa Leaf Powder, and Sweet Potato Powder.
-- **Wood Cold-Pressed Virgin Oils**: Virgin Coconut Oil, Sesame Oil, and Groundnut Oil extracted below 45°C via traditional Marachekku mills.
-- **Wellness & Snacks**: Jumbo Fox Nut (Makhana), Moringa Capsules, Himalayan Pink Salt, and Organic Jaggery Powder.
+## Full Machine-Readable Overview
+- [Full Site & Product Reference (llms-full.txt)](https://beeshubfarmland.com/llms-full.txt): Complete factual company, product, certification, and FAQ reference for AI search engines.

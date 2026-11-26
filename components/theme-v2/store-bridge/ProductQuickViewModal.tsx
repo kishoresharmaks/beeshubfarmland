@@ -13,6 +13,8 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useStore, ProductVariant } from '@/context/StoreContext';
+import { formatProductDisplayName, getProductSlugUrl } from '@/lib/productFormatting';
+import SocialShareBar from '../SocialShareBar';
 
 /**
  * Product QuickView Modal
@@ -53,7 +55,7 @@ export default function ProductQuickViewModal() {
       <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border border-[#E8EDF2] max-h-[92vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#E8EDF2] flex items-center justify-between bg-[#FFFCFB]">
-          <span className="text-xs font-semibold text-[#163B5C]">
+          <span className="text-xs font-semibold text-[#202820]">
             Product details
           </span>
           <button
@@ -88,14 +90,14 @@ export default function ProductQuickViewModal() {
                 <span className="text-[11px] font-medium text-[#64748B]">
                   {quickViewProduct.category || 'Farm Produce'}
                 </span>
-                <h3 className="font-heading font-bold text-xl sm:text-2xl text-[#163B5C] mt-1 leading-tight">
+                <h3 className="font-heading font-bold text-xl sm:text-2xl text-[#202820] mt-1 leading-tight">
                   {quickViewProduct.name}
                 </h3>
               </div>
 
               {/* Price Row */}
               <div className="flex items-baseline gap-3">
-                <span className="font-heading font-bold text-2xl text-[#163B5C]">
+                <span className="font-heading font-bold text-2xl text-[#202820]">
                   ₹{activePrice.toLocaleString('en-IN')}
                 </span>
                 {activeMrp && activeMrp > activePrice && (
@@ -118,7 +120,7 @@ export default function ProductQuickViewModal() {
               {/* Variants */}
               {quickViewProduct.variants && quickViewProduct.variants.length > 0 && (
                 <div className="space-y-2">
-                  <label className="block text-xs font-extrabold text-[#163B5C]">
+                  <label className="block text-xs font-extrabold text-[#202820]">
                     Select Packaging Size / Variant:
                   </label>
                   <div className="flex flex-wrap gap-2">
@@ -129,7 +131,7 @@ export default function ProductQuickViewModal() {
                         onClick={() => setSelectedVariant(v)}
                         className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all ${
                           selectedVariant?.name === v.name
-                            ? 'bg-[#163B5C] text-white border-[#163B5C] shadow-xs'
+                            ? 'bg-[#202820] text-white border-[#202820] shadow-xs'
                             : 'bg-[#FFFCFB] text-[#64748B] border-[#E8EDF2] hover:border-slate-300'
                         }`}
                       >
@@ -162,7 +164,7 @@ export default function ProductQuickViewModal() {
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
-                  <span className="w-10 text-center text-xs font-black text-[#163B5C]">
+                  <span className="w-10 text-center text-xs font-black text-[#202820]">
                     {quantity}
                   </span>
                   <button
@@ -176,11 +178,20 @@ export default function ProductQuickViewModal() {
                 <button
                   onClick={handleAddToCart}
                   disabled={activeStock <= 0}
-                  className="flex-1 py-3.5 px-6 rounded-full bg-[#ED3500] hover:bg-[#D02E00] text-white font-semibold text-xs shadow-md shadow-[#ED3500]/25 transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300"
+                  className="flex-1 py-3.5 px-6 rounded-full bg-[#173F2B] hover:bg-[#102E20] text-white font-semibold text-xs shadow-md shadow-[#173F2B]/25 transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300"
                 >
                   <ShoppingBag className="w-4 h-4" />
                   <span>Add to Cart</span>
                 </button>
+              </div>
+
+              <div className="pt-3 border-t border-[#E4E7E1]">
+                <SocialShareBar
+                  title={formatProductDisplayName(quickViewProduct.name)}
+                  description={quickViewProduct.description}
+                  path={getProductSlugUrl(quickViewProduct)}
+                  label="Share Product"
+                />
               </div>
             </div>
           </div>

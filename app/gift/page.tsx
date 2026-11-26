@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import GiftClient from './GiftClient';
 
 export const metadata: Metadata = {
-  title: 'Wedding Return Gift Hampers & Corporate Wellness Chests | BeesHub Farmland',
+  title: 'Wedding Return Gift Hampers & Corporate Chests',
   description:
-    'Auspicious wedding return favors and corporate wellness gift hampers. Pure wild forest honey, wood cold-pressed virgin oils, dehydrated superfood powders, and crunchy makhana hand-packed in artisanal pine-wood chests with custom laser engraving and direct venue delivery.',
+    'Wedding return favors and corporate gift hampers featuring pure forest honey, cold-pressed oils, superfood powders, and makhana in engraved pine-wood chests.',
   keywords: [
     'Wedding Return Gift Hampers',
     'Auspicious Honey Wedding Favors',

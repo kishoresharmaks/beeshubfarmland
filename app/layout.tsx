@@ -7,35 +7,36 @@ import "./globals.css";
 const outfit = Outfit({
   subsets: ["latin"],
   variable: "--font-outfit",
+  display: "swap",
 });
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "BEES HUB FARMLAND — Pure Forest Honey, Cold-Pressed Oils, Superfood Powders & Private Label",
-    template: "%s | BEES HUB FARMLAND",
+    default: "Bees Hub Farmland | Pure Honey & Organic Products India",
+    template: "%s | Bees Hub Farmland",
   },
   description:
-    "Direct farmgate producer in Kanyakumari, Western Ghats. Certified pure wild forest honey, wood cold-pressed virgin oils, dehydrated fruit powders (Nendran Banana, Sweet Potato), jumbo makhana, private label bottling, and bespoke event gift hampers.",
+    "Discover farm-sourced honey, superfood powders and cold-pressed oils from Bees Hub Farmland, Tamil Nadu. Explore quality agricultural products and wholesale supply solutions.",
   keywords: [
     "BEES HUB FARMLAND PRIVATE LIMITED",
-    "BeesHub Farmland",
-    "Pure Wild Forest Honey",
+    "Bees Hub Farmland",
+    "Pure Forest Honey India",
+    "Natural Honey Tamil Nadu",
     "Dehydrated Nendran Banana Powder",
-    "Red Banana Powder Chevvazhai",
-    "Sweet Potato Powder",
+    "Red Banana Powder",
+    "Natural Dates Powder",
     "Cold Pressed Virgin Coconut Oil",
     "Cold Pressed Sesame Oil",
-    "Jumbo Fox Nut Makhana",
-    "Private Label Honey Packaging India",
-    "Contract Bottling Tamil Nadu",
-    "Wedding Return Gift Hampers",
-    "Corporate Wellness Gifts",
-    "Kanyakumari Western Ghats Farmgate",
+    "Superfood Powders India",
+    "Wholesale Agricultural Ingredients",
+    "Private Label Honey Bottling India",
+    "Kanyakumari Farm Products",
   ],
   authors: [{ name: "BEES HUB FARMLAND PRIVATE LIMITED" }],
   creator: "BEES HUB FARMLAND PRIVATE LIMITED",
@@ -48,17 +49,17 @@ export const metadata: Metadata = {
     apple: "/logo.jpg",
   },
   openGraph: {
-    title: "BEES HUB FARMLAND — Pure Honey, Cold-Pressed Oils & Superfoods",
+    title: "Bees Hub Farmland | Pure Honey & Organic Products India",
     description:
-      "Direct farmgate pure wild forest honey, wood cold-pressed virgin oils, dehydrated superfood powders, private label contract manufacturing, and artisanal event gift hampers from Kanyakumari.",
+      "Discover farm-sourced honey, superfood powders and cold-pressed oils from Bees Hub Farmland, Tamil Nadu. Explore quality agricultural products and wholesale supply solutions.",
     url: "https://beeshubfarmland.com",
     siteName: "BEES HUB FARMLAND PRIVATE LIMITED",
     images: [
       {
-        url: "/images/beeshub-logo.png",
-        width: 1137,
-        height: 451,
-        alt: "BEES HUB FARMLAND Official Logo",
+        url: "/images/beeshub-pure-forest-honey-spotlight.webp",
+        width: 1200,
+        height: 630,
+        alt: "Bees Hub Farmland Pure Forest Honey and Agricultural Products",
       },
     ],
     locale: "en_IN",
@@ -66,9 +67,10 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "BEES HUB FARMLAND — Pure Honey, Cold-Pressed Oils & Superfoods",
-    description: "Pure wild forest honey, wood cold-pressed oils, dehydrated powders, and private label services.",
-    images: ["/images/beeshub-logo.png"],
+    title: "Bees Hub Farmland | Pure Honey & Organic Products India",
+    description:
+      "Farm-sourced honey, superfood powders, cold-pressed oils, and wholesale supply solutions from Kanyakumari, Tamil Nadu.",
+    images: ["/images/beeshub-pure-forest-honey-spotlight.webp"],
   },
   metadataBase: new URL("https://beeshubfarmland.com"),
   alternates: {
@@ -97,14 +99,14 @@ export default function RootLayout({
                   "@id": "https://beeshubfarmland.com/#organization",
                   "name": "BEES HUB FARMLAND PRIVATE LIMITED",
                   "legalName": "BEES HUB FARMLAND PRIVATE LIMITED",
-                  "alternateName": ["BeesHub Farmland", "BeesHub"],
+                  "alternateName": ["Bees Hub Farmland", "BeesHub Farmland", "BeesHub"],
                   "url": "https://beeshubfarmland.com",
                   "logo": {
                     "@type": "ImageObject",
                     "url": "https://beeshubfarmland.com/images/beeshub-logo.png",
-                    "caption": "BEES HUB FARMLAND Logo"
+                    "caption": "Bees Hub Farmland Logo",
                   },
-                  "image": "https://beeshubfarmland.com/images/beeshub-logo.png",
+                  "image": "https://beeshubfarmland.com/images/beeshub-pure-forest-honey-spotlight.webp",
                   "telephone": "+919578784431",
                   "email": "admin@beeshubfarmland.com",
                   "priceRange": "₹₹",
@@ -116,21 +118,21 @@ export default function RootLayout({
                     "addressLocality": "Nagercoil, Kanyakumari District",
                     "addressRegion": "Tamil Nadu",
                     "postalCode": "629501",
-                    "addressCountry": "IN"
+                    "addressCountry": "IN",
                   },
                   "geo": {
                     "@type": "GeoCoordinates",
                     "latitude": 8.1833,
-                    "longitude": 77.4119
+                    "longitude": 77.4119,
                   },
                   "areaServed": {
                     "@type": "Country",
-                    "name": "India"
+                    "name": "India",
                   },
                   "sameAs": [
                     "https://www.facebook.com/Beeshubfarmland/",
                     "https://www.instagram.com/beeshubfarmland",
-                    "https://www.youtube.com/@BeesHubFarmlandPvtLtd"
+                    "https://www.youtube.com/@BeesHubFarmlandPvtLtd",
                   ],
                   "knowsAbout": [
                     "Apiculture",
@@ -138,33 +140,35 @@ export default function RootLayout({
                     "Wood Cold-Pressed Virgin Oils",
                     "Dehydrated Nendran Banana Powder",
                     "Red Banana Powder",
+                    "Natural Dates Powder",
                     "Sweet Potato Powder",
                     "Makhana Fox Nuts",
                     "Private Label Bottling",
-                    "Wedding Return Gift Hampers"
-                  ]
+                    "Wholesale Agricultural Ingredients",
+                  ],
                 },
                 {
                   "@type": "WebSite",
                   "@id": "https://beeshubfarmland.com/#website",
                   "url": "https://beeshubfarmland.com",
-                  "name": "BeesHub Farmland",
-                  "description": "Pure wild forest honey, wood cold-pressed virgin oils, dehydrated fruit powders, and private label bottling from Kanyakumari.",
+                  "name": "Bees Hub Farmland",
+                  "description":
+                    "Farm-sourced honey, superfood powders, cold-pressed oils, and wholesale supply solutions from Kanyakumari, Tamil Nadu.",
                   "publisher": {
-                    "@id": "https://beeshubfarmland.com/#organization"
+                    "@id": "https://beeshubfarmland.com/#organization",
                   },
                   "potentialAction": {
                     "@type": "SearchAction",
-                    "target": "https://beeshubfarmland.com/?search={search_term_string}",
-                    "query-input": "required name=search_term_string"
-                  }
-                }
-              ]
-            })
+                    "target": "https://beeshubfarmland.com/shop?search={search_term_string}",
+                    "query-input": "required name=search_term_string",
+                  },
+                },
+              ],
+            }),
           }}
         />
       </head>
-      <body className="min-h-screen bg-[#FFFCFB] text-[#163B5C] antialiased flex flex-col justify-between">
+      <body className="min-h-screen bg-white text-[#202820] font-sans antialiased flex flex-col justify-between">
         <PostHogInit />
         <ImpactAnalytics />
         {children}

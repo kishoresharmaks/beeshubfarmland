@@ -2,9 +2,9 @@ import type { Metadata } from 'next';
 import PrivateLabelClient from './PrivateLabelClient';
 
 export const metadata: Metadata = {
-  title: 'Private Label Honey, Superfood Powders & Custom Bottling | BeesHub Farmland',
+  title: 'Private Label Honey & Custom Bottling',
   description:
-    'OEM & contract packaging for pure raw forest honey, cold-pressed virgin oils, and dehydrated fruit flours. Food-grade glass jars (Square, Hexa, Octa, ITC), automated cleanroom bottling, low pilot MOQ from 100 units.',
+    'OEM contract packaging for pure forest honey, cold-pressed oils, and dehydrated superfood powders in Square, Hexa, Octa, and ITC glass jars from 100 units.',
   keywords: [
     'Private Label Honey India',
     'Honey Bottling Packaging Manufacturer',

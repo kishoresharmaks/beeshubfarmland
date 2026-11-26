@@ -389,7 +389,7 @@ function GiftPageContent() {
 
               <div className="space-y-4">
                 <h1 className="font-heading font-bold text-2xl sm:text-3xl md:text-4xl lg:text-[34px] xl:text-[40px] text-[#163B5C] tracking-tight leading-[1.2]">
-                  <span className="block whitespace-normal sm:whitespace-nowrap">Wholesome Farmstead Gift Hampers</span>
+                  <span className="block whitespace-normal sm:whitespace-nowrap">Wholesome Farmstead Gift Hampers </span>
                   <span className="block text-[#ED3500] mt-1 sm:mt-1.5 whitespace-normal sm:whitespace-nowrap">For Weddings, Ceremonies &amp; Galas</span>
                 </h1>
                 <p className="text-sm sm:text-base text-[#64748B] leading-relaxed max-w-xl">

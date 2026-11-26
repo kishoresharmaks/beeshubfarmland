@@ -78,7 +78,7 @@ export default function OrderTrackingModal() {
     >
       <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl border border-[#E8EDF2] max-h-[90vh] flex flex-col overflow-hidden animate-in zoom-in-95 duration-200">
         {/* Header */}
-        <div className="px-6 py-5 border-b border-[#E8EDF2] bg-[#163B5C] text-white flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-[#E8EDF2] bg-[#173F2B] text-white flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-white/10 text-amber-300 flex items-center justify-center">
               <PackageCheck className="w-4 h-4" />
@@ -113,13 +113,13 @@ export default function OrderTrackingModal() {
                 placeholder="e.g. 9876543210 or ORD-123456"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-10 pr-3 py-3 bg-[#FFFCFB] border border-[#E8EDF2] rounded-2xl text-xs text-[#163B5C] focus:outline-none focus:border-[#ED3500]"
+                className="w-full pl-10 pr-3 py-3 bg-[#FFFCFB] border border-[#E8EDF2] rounded-2xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-3 rounded-2xl bg-[#ED3500] hover:bg-[#D02E00] text-white font-semibold text-xs transition-colors disabled:bg-slate-300"
+              className="px-5 py-3 rounded-2xl bg-[#173F2B] hover:bg-[#D02E00] text-white font-semibold text-xs transition-colors disabled:bg-slate-300"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Track'}
             </button>
@@ -147,7 +147,7 @@ export default function OrderTrackingModal() {
               >
                 <div className="flex items-center justify-between pb-2 border-b border-[#E8EDF2]">
                   <div>
-                    <span className="font-mono font-black text-xs text-[#ED3500] block">
+                    <span className="font-mono font-black text-xs text-[#173F2B] block">
                       {ord.orderId}
                     </span>
                     <span className="text-[10px] text-[#64748B] flex items-center gap-1 mt-0.5">
@@ -172,7 +172,7 @@ export default function OrderTrackingModal() {
                   <div className="text-[11px] font-bold text-[#64748B]">Purchased Produce:</div>
                   <ul className="space-y-1 pl-1">
                     {ord.items.map((it, iIdx) => (
-                      <li key={iIdx} className="flex justify-between text-xs text-[#163B5C]">
+                      <li key={iIdx} className="flex justify-between text-xs text-[#202820]">
                         <span>
                           {it.name} {it.variantName ? `(${it.variantName})` : ''} × {it.quantity}
                         </span>
@@ -184,7 +184,7 @@ export default function OrderTrackingModal() {
 
                 <div className="pt-2 border-t border-[#E8EDF2] flex justify-between items-center text-xs">
                   <span className="text-[#64748B]">Total Amount:</span>
-                  <span className="font-black text-sm text-[#163B5C]">
+                  <span className="font-black text-sm text-[#202820]">
                     ₹{ord.totalAmount?.toLocaleString('en-IN')}
                   </span>
                 </div>

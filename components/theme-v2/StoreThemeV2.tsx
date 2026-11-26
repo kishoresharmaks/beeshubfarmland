@@ -2,21 +2,22 @@
 
 import React from 'react';
 import Script from 'next/script';
-import TopUtilityBar from './TopUtilityBar';
+import AnnouncementBar from './AnnouncementBar';
 import HeaderNav from './HeaderNav';
-import HeroSlider from './HeroSlider';
-import FeaturedDatesSection from './FeaturedDatesSection';
-import HeroCopyStats from './HeroCopyStats';
-import LogoWall from './LogoWall';
-import ProblemCards from './ProblemCards';
-import BenefitsGrid from './BenefitsGrid';
-import ServicesZigZag from './ServicesZigZag';
-import AboutBlock from './AboutBlock';
-import WhyChooseUs from './WhyChooseUs';
-import ProcessStepper from './ProcessStepper';
-import NotAFitCallout from './NotAFitCallout';
-import FeatureBlock from './FeatureBlock';
-import FaqAccordion from './FaqAccordion';
+import HeroSection from './HeroSection';
+import TrustCertificationStrip from './TrustCertificationStrip';
+import CategoryShowcase from './CategoryShowcase';
+import FeaturedProductsSection from './FeaturedProductsSection';
+import WhyChooseBeesHub from './WhyChooseBeesHub';
+import OurFarmSection from './OurFarmSection';
+import B2BSolutionsSection from './B2BSolutionsSection';
+import WhoWeServeSection from './WhoWeServeSection';
+import ManufacturingQualitySection from './ManufacturingQualitySection';
+import WholesaleProcessSection from './WholesaleProcessSection';
+import QualityAssuranceSection from './QualityAssuranceSection';
+import BlogStoriesSection from './BlogStoriesSection';
+import FaqSection from './FaqSection';
+import FinalCtaSection from './FinalCtaSection';
 import Footer from './Footer';
 import FloatingActions from './FloatingActions';
 import QuoteModal from './QuoteModal';
@@ -24,79 +25,74 @@ import CartDrawer from './store-bridge/CartDrawer';
 import CheckoutModal from './store-bridge/CheckoutModal';
 import ProductQuickViewModal from './store-bridge/ProductQuickViewModal';
 import OrderTrackingModal from './store-bridge/OrderTrackingModal';
-import ProductCatalogSection from './store-bridge/ProductCatalogSection';
 
 /**
- * BeesHub Farmland Storefront Theme V2
- * Long-scroll B2B landing page & integrated retail storefront based on UI.md.
+ * Bees Hub Farmland Redesigned Storefront (17-Section Editorial B2C + B2B Homepage)
  */
 export default function StoreThemeV2() {
   return (
-    <div className="min-h-screen bg-[#FFFCFB] text-[#163B5C] flex flex-col justify-between selection:bg-amber-200 selection:text-[#163B5C]">
+    <div className="min-h-screen bg-white text-[#202820] flex flex-col justify-between selection:bg-[#E8EFE6] selection:text-[#102E20]">
       {/* Razorpay Checkout SDK Script */}
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
 
-      {/* A. Top Utility Bar */}
-      <TopUtilityBar />
+      {/* 1. Announcement Bar */}
+      <AnnouncementBar />
 
-      {/* B. Header / Navigation */}
+      {/* 2. Main Navigation */}
       <HeaderNav />
 
-      {/* Main Long-Scroll Landing Content */}
       <main className="flex-1">
-        {/* C. Hero Slider + Badge Strip */}
-        <HeroSlider />
+        {/* 3. Static High-Impact Hero */}
+        <HeroSection />
 
-        {/* C2. Featured Dates & Superfood Powders (Live from Admin Catalog) */}
-        <FeaturedDatesSection />
+        {/* 4. Trust & Certification Strip */}
+        <TrustCertificationStrip />
 
-        {/* D. Hero Copy + Stats */}
-        <HeroCopyStats />
+        {/* 5. Shop by Category */}
+        <CategoryShowcase />
 
-        {/* F. Client & Institutional Logo Wall */}
-        <LogoWall />
+        {/* 6. Featured & Best-Selling Products */}
+        <FeaturedProductsSection />
 
-        {/* G. Problem Persona Cards */}
-        <ProblemCards />
+        {/* 7. Why Choose Bees Hub? */}
+        <WhyChooseBeesHub />
 
-        {/* H. Benefits Grid (7 Cards: 4+3 centered) */}
-        <BenefitsGrid />
+        {/* 8. Our Farm & Sourcing Story */}
+        <OurFarmSection />
 
-        {/* Storefront Retail Catalog Grid */}
-        <ProductCatalogSection />
+        {/* 9. B2B Business Solutions */}
+        <B2BSolutionsSection />
 
-        {/* I. Services Zig-Zag & Closing CTA Strip */}
-        <ServicesZigZag />
+        {/* 10. Who We Serve */}
+        <WhoWeServeSection />
 
-        {/* J. About Block & 5-Card Collage */}
-        <AboutBlock />
+        {/* 11. Manufacturing & Quality Process */}
+        <ManufacturingQualitySection />
 
-        {/* K. Why Choose Us (6 Icon Cards) */}
-        <WhyChooseUs />
+        {/* 12. How Wholesale Ordering Works */}
+        <WholesaleProcessSection />
 
-        {/* L. Process Stepper (5 Steps) */}
-        <ProcessStepper />
+        {/* 13. Quality Assurance, Transparency & Support */}
+        <QualityAssuranceSection />
 
-        {/* M. "Not a Fit" Ethical Callout */}
-        <NotAFitCallout />
+        {/* 14. Blog & Farm Stories */}
+        <BlogStoriesSection />
 
-        {/* N. Feature Block & Botanical Specs */}
-        <FeatureBlock />
+        {/* 15. FAQ (Retail & Wholesale) */}
+        <FaqSection />
 
-        {/* O. FAQ Accordion (8 Items) */}
-        <FaqAccordion />
+        {/* 16. Final CTA */}
+        <FinalCtaSection />
       </main>
 
-      {/* P. Comprehensive Footer */}
+      {/* 17. Four-Column Footer */}
       <Footer />
 
-      {/* Q. Floating Action Buttons (Call, WhatsApp, Mobile Paired Bar) */}
+      {/* Floating WhatsApp Support & Mobile Action Bar */}
       <FloatingActions />
 
-      {/* R. Wholesale Quote Request Modal */}
+      {/* Modals & Drawers */}
       <QuoteModal />
-
-      {/* Global E-Commerce Store Overlays */}
       <CartDrawer />
       <CheckoutModal />
       <ProductQuickViewModal />

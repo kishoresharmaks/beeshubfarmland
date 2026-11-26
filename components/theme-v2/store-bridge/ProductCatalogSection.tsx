@@ -1,183 +1,127 @@
 'use client';
 
 import React from 'react';
-import Image from 'next/image';
-import {
-  ShoppingBag,
-  Eye,
-  Plus,
-  CheckCircle2,
-  Sparkles,
-  Leaf,
-  Filter,
-} from 'lucide-react';
-import Link from 'next/link';
-import { useStore, Product } from '@/context/StoreContext';
+import { Leaf, Search, X, AlertCircle, RefreshCw } from 'lucide-react';
+import { useStore } from '@/context/StoreContext';
 import { sortProductsWithFeaturedFirst } from '@/lib/featuredProducts';
-import { formatProductDisplayName, getProductSlugUrl } from '@/lib/productFormatting';
+import { STORE_CATEGORIES } from '@/lib/productFormatting';
+import { StorefrontProductCard } from '@/components/theme-v2/FeaturedProductsSection';
 
 /**
- * Embedded Product Catalog Grid
- * Category filter pills, search input, responsive product cards with instant Add-to-Cart.
+ * Full Product Catalog Grid (/shop)
+ * Clean category filter pills, search input, responsive product cards with variant support & Add-to-Cart.
  */
 export default function ProductCatalogSection() {
   const {
     filteredProducts,
-    categories,
     selectedCategory,
     setSelectedCategory,
     searchQuery,
     setSearchQuery,
-    addToCart,
-    setQuickViewProduct,
     loadingProducts,
+    catalogError,
+    refetchCatalog,
   } = useStore();
 
-  const allCategoryTabs = ['All', ...categories.map((c) => c.name)];
+  const categoryTabs = ['All', ...STORE_CATEGORIES.map((c) => c.id)];
   const orderedProducts = sortProductsWithFeaturedFirst(filteredProducts);
 
   return (
-    <section id="catalog-section" className="w-full py-16 sm:py-24 bg-white border-b border-[#E8EDF2]">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-10">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div className="space-y-1">
-            <h3 className="font-heading font-bold text-2xl sm:text-3xl lg:text-4xl text-[#163B5C] tracking-tight">
-              Retail and sample products
-            </h3>
-            <p className="text-xs sm:text-sm text-[#64748B]">
-              Natural harvest dispatched directly from Kanyakumari.
-            </p>
-          </div>
-
-          {/* Category Filter Pills (Horizontal Scroll) */}
-          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-            {allCategoryTabs.map((cat, idx) => (
+    <section id="catalog-section" className="w-full py-12 sm:py-16 bg-white border-b border-[#E4E7E1]">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 space-y-8">
+        <h2 className="font-serif font-bold text-xl sm:text-2xl text-[#202820]">
+          All Farm-Sourced Products
+        </h2>
+        {/* Filter & Search Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-6 border-b border-[#E4E7E1]">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
+            {categoryTabs.map((cat) => (
               <button
-                key={idx}
+                key={cat}
+                type="button"
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-colors ${
                   selectedCategory === cat
-                    ? 'bg-[#163B5C] text-white shadow-xs'
-                    : 'bg-[#FFFCFB] text-[#64748B] border border-[#E8EDF2] hover:border-slate-300'
+                    ? 'bg-[#173F2B] text-white'
+                    : 'bg-[#F7F4EB] text-[#6B756B] border border-[#E4E7E1] hover:border-[#173F2B]/40 hover:text-[#202820]'
                 }`}
               >
                 {cat}
               </button>
             ))}
           </div>
+
+          <div className="relative w-full lg:w-72 shrink-0">
+            <Search className="w-4 h-4 text-[#6B756B] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Filter products..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              aria-label="Filter products by name or description"
+              className="w-full pl-9 pr-8 py-2 rounded-full bg-[#F7F4EB]/70 border border-[#E4E7E1] focus:border-[#173F2B] text-xs text-[#202820] placeholder:text-[#6B756B] focus:outline-none"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6B756B] hover:text-[#202820]"
+                aria-label="Clear filter"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Product Cards Grid */}
+        {/* Product Grid */}
         {loadingProducts ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map((n) => (
-              <div key={n} className="h-80 rounded-3xl bg-slate-100 animate-pulse border border-[#E8EDF2]" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {Array.from({ length: 8 }).map((_, n) => (
+              <div key={n} className="h-[400px] rounded-2xl bg-[#F7F4EB]/60 animate-pulse border border-[#E4E7E1]" />
             ))}
           </div>
+        ) : catalogError ? (
+          <div className="py-16 text-center space-y-3 bg-[#F7F4EB]/50 rounded-2xl border border-[#E4E7E1]">
+            <AlertCircle className="w-8 h-8 text-[#A97843] mx-auto" />
+            <h3 className="font-serif font-bold text-lg text-[#202820]">
+              Unable to load products
+            </h3>
+            <p className="text-xs text-[#6B756B]">{catalogError}</p>
+            <button
+              type="button"
+              onClick={refetchCatalog}
+              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-full bg-[#173F2B] text-white text-xs font-semibold"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Retry</span>
+            </button>
+          </div>
         ) : orderedProducts.length === 0 ? (
-          <div className="py-16 text-center space-y-3 bg-[#FFFCFB] rounded-3xl border border-[#E8EDF2]">
-            <Leaf className="w-8 h-8 text-slate-400 mx-auto" />
-            <h4 className="font-heading font-bold text-base text-[#163B5C]">
+          <div className="py-16 text-center space-y-3 bg-[#F7F4EB]/50 rounded-2xl border border-[#E4E7E1]">
+            <Leaf className="w-8 h-8 text-[#6B756B] mx-auto" />
+            <h3 className="font-serif font-bold text-lg text-[#202820]">
               No products found
-            </h4>
-            <p className="text-xs text-[#64748B]">
-              Try selecting a different category or clearing your search term.
+            </h3>
+            <p className="text-xs text-[#6B756B]">
+              Try selecting another category or clearing your search filter.
             </p>
             <button
+              type="button"
               onClick={() => {
                 setSelectedCategory('All');
                 setSearchQuery('');
               }}
-              className="text-xs font-bold text-[#ED3500] hover:underline"
+              className="px-5 py-2 rounded-full bg-[#173F2B] text-white text-xs font-semibold"
             >
               Reset Filters
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {orderedProducts.map((product) => {
-              const defaultVariant = product.variants && product.variants.length > 0 ? product.variants[0] : undefined;
-              const displayPrice = defaultVariant ? defaultVariant.price : product.price;
-              const displayMrp = defaultVariant ? defaultVariant.mrp : product.mrp;
-              const discount = product.discount || (displayMrp && displayMrp > displayPrice ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100) : 0);
-
-              return (
-                <div
-                  key={product._id}
-                  className="bg-[#FFFCFB] rounded-3xl p-5 border border-[#E8EDF2] shadow-card hover:shadow-hover transition-all duration-300 flex flex-col justify-between group"
-                >
-                  <div className="space-y-4">
-                    {/* Image Area */}
-                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-white border border-[#E8EDF2] p-3 flex items-center justify-center">
-                      {product.image ? (
-                        <Image
-                          src={product.image}
-                          alt={product.name}
-                          fill
-                          className="object-contain p-3 group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <Leaf className="w-12 h-12 text-slate-300" />
-                      )}
-
-                      {/* Discount Badge */}
-                      {discount > 0 && (
-                        <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-[#ED3500] text-white text-[10px] font-black">
-                          {discount}% OFF
-                        </span>
-                      )}
-
-                      {/* Quick View Button */}
-                      <button
-                        onClick={() => setQuickViewProduct(product)}
-                        className="absolute bottom-2.5 right-2.5 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-[#163B5C] hover:text-[#ED3500] shadow-md flex items-center justify-center transition-colors opacity-90 sm:opacity-0 group-hover:opacity-100"
-                        title="Quick View"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-                    </div>
-
-                    {/* Metadata */}
-                    <div className="space-y-1">
-                      <span className="text-[11px] font-medium text-[#64748B]">
-                        {product.category || 'Organic'}
-                      </span>
-                      <h4 className="font-heading font-bold text-sm text-[#163B5C] leading-snug line-clamp-1 group-hover:text-[#ED3500] transition-colors">
-                        <Link href={getProductSlugUrl(product)}>
-                          {product.displayName || formatProductDisplayName(product.name)}
-                        </Link>
-                      </h4>
-                      <p className="text-[11px] text-[#64748B] line-clamp-2 leading-relaxed">
-                        {product.description}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Price & Add to Cart */}
-                  <div className="pt-4 mt-4 border-t border-[#E8EDF2] flex items-center justify-between gap-2">
-                    <div>
-                      <div className="font-heading font-bold text-base text-[#163B5C]">
-                        ₹{displayPrice.toLocaleString('en-IN')}
-                      </div>
-                      {displayMrp && displayMrp > displayPrice && (
-                        <div className="text-[10px] text-slate-400 line-through">
-                          ₹{displayMrp.toLocaleString('en-IN')}
-                        </div>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => addToCart(product, 1, defaultVariant)}
-                      className="px-4 py-2 rounded-full bg-[#163B5C] hover:bg-[#ED3500] text-white font-semibold text-xs transition-colors flex items-center gap-1.5 shadow-2xs"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Add</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {orderedProducts.map((product) => (
+              <StorefrontProductCard key={product._id} product={product} />
+            ))}
           </div>
         )}
       </div>

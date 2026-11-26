@@ -3,38 +3,47 @@
 @import "tailwindcss/utilities";
 
 :root {
-  --color-primary:      #163B5C;
-  --color-cta:          #ED3500;
-  --color-cta-soft:     #FFF8F5;
-  --color-accent:       #10B981;
-  --color-accent-dark:  #059669;
-  --color-accent-soft:  #ECFDF5;
-  --color-accent-line:  #A7F3D0;
-  --color-ink:          #163B5C;
-  --color-ink-muted:    #64748B;
-  --color-line:         #E5E7EB;
+  --color-primary:      #173F2B;
+  --color-deep-green:   #102E20;
+  --color-cream:        #F7F4EB;
+  --color-earth:        #A97843;
+  --color-muted-green:  #E8EFE6;
+
+  --color-cta:          #173F2B;
+  --color-cta-soft:     #E8EFE6;
+  --color-accent:       #A97843;
+  --color-accent-dark:  #8B6032;
+  --color-accent-soft:  #F7F4EB;
+  --color-accent-line:  #D9E2D7;
+  --color-ink:          #202820;
+  --color-ink-muted:    #6B756B;
+  --color-line:         #E4E7E1;
   --color-surface:      #FFFFFF;
-  --color-surface-alt:  #E8EDF2;
-  --color-link:         #2563EB;
+  --color-surface-alt:  #F7F4EB;
+  --color-link:         #173F2B;
   --color-chat:         #25D366;
 
-  --background:         #FFFCFB;
-  --foreground:         #163B5C;
+  --background:         #FFFFFF;
+  --foreground:         #202820;
 
   --font-heading:       var(--font-outfit), "Poppins", system-ui, sans-serif;
-  --font-body:          "Inter", system-ui, sans-serif;
+  --font-body:          var(--font-inter), "Inter", system-ui, sans-serif;
 
   --radius-sm:          8px;
   --radius-md:          16px;
   --radius-lg:          24px;
   --radius-pill:        999px;
 
-  --shadow-card:        0 6px 20px rgba(31, 41, 51, 0.08);
-  --shadow-hover:       0 12px 28px rgba(31, 41, 51, 0.14);
+  --shadow-card:        0 2px 14px rgba(16, 46, 32, 0.05);
+  --shadow-hover:       0 10px 28px rgba(16, 46, 32, 0.10);
 
-  --container:          1200px;
+  --container:          1240px;
   --gutter:             24px;
   --section-y:          80px;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -44,24 +53,24 @@ body {
   overflow-x: hidden;
 }
 
-h1, h2, h3, h4, .font-heading {
+h1, h2, h3, h4, .font-heading, .font-serif, .font-editorial {
   font-family: var(--font-heading);
 }
 
-/* Custom Scrollbars */
+/* Subtle Custom Scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: #F7F4EB;
 }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface-alt);
+  background: #CBD5CA;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-ink-muted);
+  background: #6B756B;
 }
 
 /* Smooth Accordion */
@@ -77,36 +86,17 @@ h1, h2, h3, h4, .font-heading {
   overflow: hidden;
 }
 
-/* Marquee Animation */
-@keyframes marquee {
-  0% {
-    transform: translateX(0%);
-  }
-  100% {
-    transform: translateX(-50%);
-  }
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-
-.animate-marquee {
-  display: flex;
-  width: max-content;
-  animation: marquee 35s linear infinite;
-}
-
-.animate-marquee:hover {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .animate-marquee {
-    animation: none;
-    transform: none;
-  }
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 
 @layer utilities {
   .glass-card {
-    background: rgba(255, 255, 255, 0.88);
+    background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(12px);
     border: 1px solid var(--color-line);
   }

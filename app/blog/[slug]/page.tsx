@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   if (!post) {
     return {
-      title: 'Article Not Found | BeesHub Farmland',
+      title: 'Article Not Found',
     };
   }
 
@@ -45,8 +45,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const imageUrl = post.coverImage || 'https://beeshubfarmland.com/images/beeshub-logo.png';
 
   return {
-    title: `${title} | BeesHub Farmland`,
+    title,
     description,
+    alternates: {
+      canonical: `https://beeshubfarmland.com/blog/${post.slug}`,
+    },
     openGraph: {
       title,
       description,

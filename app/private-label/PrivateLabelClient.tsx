@@ -392,7 +392,7 @@ function PrivateLabelContent() {
               {/* Main Heading */}
               <div className="space-y-3">
                 <h1 className="font-heading font-bold text-3xl sm:text-4xl lg:text-[42px] xl:text-[46px] text-[#12334D] tracking-tight leading-[1.16]">
-                  <span className="block">Launch Your Own Brand with</span>
+                  <span className="block">Launch Your Own Brand with </span>
                   <span className="block text-[#F0440A] mt-1 sm:mt-1.5">Our Private Label Solutions</span>
                 </h1>
                 <p className="text-sm sm:text-[15px] xl:text-base text-[#64748B] leading-relaxed max-w-xl">

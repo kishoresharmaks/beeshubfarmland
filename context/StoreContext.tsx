@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { CompanyConfig, getCompanyConfig } from '@/lib/companyConfig';
+import { normalizeStoreCategory } from '@/lib/productFormatting';
 
 export interface ProductVariant {
   _id?: string;
@@ -39,6 +40,18 @@ export interface BannerItem {
   title: string;
   image: string;
   link?: string;
+}
+
+export interface BlogSummaryItem {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  coverImage: string;
+  category: string;
+  author: string;
+  readTime: string;
+  publishedAt: string;
 }
 
 export interface SpotlightItem {
@@ -110,10 +123,12 @@ interface StoreContextType {
   products: Product[];
   categories: CategoryItem[];
   banners: BannerItem[];
+  blogPosts: BlogSummaryItem[];
   spotlightItems: SpotlightItem[];
   settings: StoreSettings;
   companyConfig: CompanyConfig;
   loadingProducts: boolean;
+  catalogError: string | null;
   searchQuery: string;
   setSearchQuery: (q: string) => void;
   selectedCategory: string;
@@ -172,6 +187,7 @@ export interface InitialStoreData {
   products?: Product[];
   categories?: CategoryItem[];
   banners?: BannerItem[];
+  blogPosts?: BlogSummaryItem[];
   settings?: StoreSettings;
 }
 
@@ -189,6 +205,7 @@ export function StoreProvider({
   const [products, setProducts] = useState<Product[]>(initialData?.products || []);
   const [categories, setCategories] = useState<CategoryItem[]>(initialData?.categories || []);
   const [banners, setBanners] = useState<BannerItem[]>(initialData?.banners || []);
+  const [blogPosts, setBlogPosts] = useState<BlogSummaryItem[]>(initialData?.blogPosts || []);
   const [spotlightItems, setSpotlightItems] = useState<SpotlightItem[]>([]);
   const [settings, setSettings] = useState<StoreSettings>(
     initialData?.settings || {
@@ -202,6 +219,7 @@ export function StoreProvider({
   const [loadingProducts, setLoadingProducts] = useState(
     !(initialData?.products && initialData.products.length > 0)
   );
+  const [catalogError, setCatalogError] = useState<string | null>(null);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -224,21 +242,9 @@ export function StoreProvider({
     category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL',
     productId?: string
   ) => {
-    if (productName) {
-      setQuoteModalInitialProduct(productName);
-    } else {
-      setQuoteModalInitialProduct(null);
-    }
-    if (productId) {
-      setQuoteModalInitialProductId(productId);
-    } else {
-      setQuoteModalInitialProductId(null);
-    }
-    if (category) {
-      setQuoteModalCategory(category);
-    } else {
-      setQuoteModalCategory('WHOLESALE');
-    }
+    setQuoteModalInitialProduct(productName || null);
+    setQuoteModalInitialProductId(productId || null);
+    setQuoteModalCategory(category || 'WHOLESALE');
     setIsQuoteModalOpen(true);
   };
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
@@ -299,6 +305,18 @@ export function StoreProvider({
     }
   };
 
+  const fetchBlogs = async () => {
+    try {
+      const res = await fetch('/api/blog?limit=3');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        setBlogPosts(data.data);
+      }
+    } catch (err) {
+      console.error('Failed to load blog posts:', err);
+    }
+  };
+
   const fetchSpotlight = async () => {
     try {
       const res = await fetch('/api/spotlight');
@@ -313,6 +331,7 @@ export function StoreProvider({
 
   const fetchProducts = async () => {
     try {
+      setCatalogError(null);
       if (products.length === 0) {
         setLoadingProducts(true);
       }
@@ -324,15 +343,18 @@ export function StoreProvider({
           const urlParams = new URLSearchParams(window.location.search);
           const targetId = urlParams.get('product') || (window.location.hash.startsWith('#product-') ? window.location.hash.replace('#product-', '') : null);
           if (targetId) {
-            const found = data.data.find((p: any) => p._id === targetId);
+            const found = data.data.find((p: any) => p._id === targetId || p.slug === targetId);
             if (found) {
               setQuickViewProduct(found);
             }
           }
         }
+      } else {
+        setCatalogError(data.message || 'Unable to load products right now.');
       }
     } catch (err) {
       console.error('Failed to load products:', err);
+      setCatalogError('Unable to reach the product catalog. Please try again.');
     } finally {
       setLoadingProducts(false);
     }
@@ -347,7 +369,17 @@ export function StoreProvider({
     if (!initialData?.settings) fetchSettings();
     if (!initialData?.categories?.length) fetchCategories();
     if (!initialData?.banners?.length) fetchBanners();
+    if (!initialData?.blogPosts?.length) fetchBlogs();
     fetchSpotlight();
+
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCategory = urlParams.get('category');
+      const urlSearch = urlParams.get('search');
+      if (urlCategory) setSelectedCategory(urlCategory);
+      if (urlSearch) setSearchQuery(urlSearch);
+    }
+
     if (!initialData?.products?.length) {
       fetchProducts();
     } else if (typeof window !== 'undefined') {
@@ -389,7 +421,7 @@ export function StoreProvider({
     const availableStock = activeVariant ? activeVariant.quantity : product.quantity;
 
     if (availableStock <= 0) {
-      showToast(`Sorry, "${product.name}" is currently out of stock.`);
+      showToast(`Sorry, "${product.displayName || product.name}" is currently out of stock.`);
       return;
     }
 
@@ -421,8 +453,9 @@ export function StoreProvider({
       return [...prevCart, { product, selectedVariant: activeVariant, quantity: quantityToAdd }];
     });
 
-    const label = activeVariant ? `${product.name} (${activeVariant.name})` : product.name;
-    showToast(`Added "${label}" to cart! 🛒`);
+    const displayTitle = product.displayName || product.name;
+    const label = activeVariant ? `${displayTitle} (${activeVariant.name})` : displayTitle;
+    showToast(`Added "${label}" to cart.`);
   };
 
   const updateCartQty = (productId: string, variantName: string | undefined, newQty: number) => {
@@ -486,13 +519,19 @@ export function StoreProvider({
   const cartGrandTotal = Math.round(cartSubtotal + cartGstTotal);
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // Filtered Products
+  // Filtered Products (supports both raw DB category and normalized storefront categories)
   const filteredProducts = products.filter((p) => {
-    const matchCategory = selectedCategory === 'All' || p.category === selectedCategory;
+    const normalizedCat = normalizeStoreCategory(p);
+    const matchCategory =
+      selectedCategory === 'All' ||
+      p.category === selectedCategory ||
+      normalizedCat === selectedCategory;
     const matchSearch =
       !searchQuery.trim() ||
+      (p.displayName || p.name).toLowerCase().includes(searchQuery.toLowerCase()) ||
       p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      p.description.toLowerCase().includes(searchQuery.toLowerCase());
+      p.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      normalizedCat.toLowerCase().includes(searchQuery.toLowerCase());
     return matchCategory && matchSearch;
   });
 
@@ -541,9 +580,7 @@ export function StoreProvider({
         image: item.product.image,
       }));
 
-      // ==========================================
       // Branch 1: Razorpay Online Payment
-      // ==========================================
       if (checkoutForm.paymentMethod === 'RAZORPAY' || checkoutForm.paymentMethod === 'UPI') {
         const createRes = await fetch('/api/orders/razorpay/create', {
           method: 'POST',
@@ -584,7 +621,7 @@ export function StoreProvider({
             contact: checkoutForm.customerPhone,
           },
           theme: {
-            color: '#ED3500',
+            color: '#173F2B',
           },
           modal: {
             ondismiss: () => {
@@ -629,9 +666,7 @@ export function StoreProvider({
         return;
       }
 
-      // ==========================================
       // Branch 2: Cash on Delivery (COD)
-      // ==========================================
       const payload = {
         ...checkoutForm,
         paymentMethod: 'COD',
@@ -669,10 +704,12 @@ export function StoreProvider({
         products,
         categories,
         banners,
+        blogPosts,
         spotlightItems,
         settings,
         companyConfig,
         loadingProducts,
+        catalogError,
         searchQuery,
         setSearchQuery,
         selectedCategory,
@@ -720,7 +757,11 @@ export function StoreProvider({
       {children}
       {/* Toast Notification Container */}
       {toastMessage && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl bg-[#163B5C] text-white text-xs sm:text-sm font-bold shadow-2xl border border-white/20 animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-20 sm:bottom-6 left-1/2 -translate-x-1/2 z-[100] px-5 py-3 rounded-2xl bg-[#102E20] text-[#F7F4EB] text-xs sm:text-sm font-semibold shadow-2xl border border-[#A97843]/40 animate-in fade-in slide-in-from-bottom-4 duration-200"
+        >
           {toastMessage}
         </div>
       )}

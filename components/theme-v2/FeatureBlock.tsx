@@ -36,7 +36,7 @@ export default function FeatureBlock() {
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
           {/* Left Column: Visual Highlight Box */}
-          <div className="lg:col-span-5 h-[340px] sm:h-[400px] rounded-3xl bg-[#163B5C] p-8 sm:p-10 text-white flex flex-col justify-between shadow-xs relative overflow-hidden">
+          <div className="lg:col-span-5 h-[340px] sm:h-[400px] rounded-3xl bg-[#173F2B] p-8 sm:p-10 text-white flex flex-col justify-between shadow-xs relative overflow-hidden">
             <div className="relative z-10 space-y-1">
               <h4 className="font-heading font-bold text-2xl text-white leading-tight">
                 Quality parameters
@@ -63,7 +63,7 @@ export default function FeatureBlock() {
           {/* Right Column: H3 + Paragraph + 2x2 Grid */}
           <div className="lg:col-span-7 space-y-6">
             <div className="space-y-2">
-              <h3 className="font-heading font-bold text-2xl sm:text-3xl lg:text-4xl text-[#163B5C] tracking-tight">
+              <h3 className="font-heading font-bold text-2xl sm:text-3xl lg:text-4xl text-[#202820] tracking-tight">
                 Quality specifications for bulk honey
               </h3>
               <p className="text-xs sm:text-sm text-[#64748B] leading-relaxed">
@@ -77,8 +77,8 @@ export default function FeatureBlock() {
                 const Icon = item.icon;
                 return (
                   <div key={idx} className="p-4 sm:p-5 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] space-y-1.5">
-                    <Icon className="w-5 h-5 text-[#163B5C]" />
-                    <h4 className="font-heading font-bold text-sm text-[#163B5C] pt-1">
+                    <Icon className="w-5 h-5 text-[#202820]" />
+                    <h4 className="font-heading font-bold text-sm text-[#202820] pt-1">
                       {item.title}
                     </h4>
                     <p className="text-xs text-[#64748B] leading-snug">

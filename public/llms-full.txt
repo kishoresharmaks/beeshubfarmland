@@ -1,0 +1,54 @@
+# BEES HUB FARMLAND PRIVATE LIMITED — Full Reference (`llms-full.txt`)
+
+> Bees Hub Farmland is an agricultural products manufacturer, B2C ecommerce storefront, and B2B wholesale & private-label supplier headquartered in Nagercoil, Kanyakumari District, Tamil Nadu, India.
+
+## Verified Legal Entity & Credentials
+- **Legal Entity**: BEES HUB FARMLAND PRIVATE LIMITED
+- **Brand Name**: Bees Hub Farmland
+- **Factory & Office Address**: Door No: 2/26-1, Muhilanvilai, Monikettipottal-Post, Nagercoil, Kanyakumari District, Tamil Nadu – 629501, India
+- **FSSAI Central License**: 12425009000671
+- **GSTIN**: 33AAOCB0453D1Z3 (State Code: 33 – Tamil Nadu)
+- **Import Export Code (IEC)**: AAOCB0453D
+- **Quality & Safety Certifications**: GMP & Organic Certified Operations, ISO 9001:2015 & ISO 22000:2018
+- **Phone / WhatsApp**: +91 95787 84431
+- **Email**: admin@beeshubfarmland.com
+- **Website**: https://beeshubfarmland.com
+
+## Product Categories & Core Offerings
+1. **Natural Honey**: Raw, unheated Pure Forest Honey harvested from Western Ghats apiaries; moisture controlled under 19%; batch COA and C4/NMR sugar purity tested. Retail packs (500g, 1kg) and bulk 30kg/50kg/300kg drums.
+2. **Superfood & Dehydrated Powders**: Solar-dehydrated below 50°C and milled to 80–100 mesh with zero maltodextrin or added cane sugar:
+   - Natural Dates Powder
+   - Caffeine-Free Dates Coffee Powder
+   - Nendran Banana Powder
+   - Red Banana Powder
+   - Moringa Leaf Powder
+   - Beetroot Powder, Carrot Powder, Sweet Potato Powder, Pineapple Powder
+3. **Cold-Pressed Oils**: Traditional Marachekku wood-pressed below 45°C:
+   - Cold-Pressed Virgin Coconut Oil
+   - Cold-Pressed Sesame Oil
+   - Cold-Pressed Groundnut Oil
+4. **Natural Food Ingredients & Other Farm Products**:
+   - Organic Jaggery Powder, Black Dry Dates, Himalayan Pink Salt, Black Salt
+   - Jumbo Fox Nut Makhana (Grade 5 & Grade 6), Moringa Capsules, Botanical Herbal Soaps
+
+## B2B Services & Minimum Order Quantities (MOQ)
+- **Bulk Raw Honey Drums**: Starting MOQ 50 kg (available in 30kg, 50kg, and 300kg food-grade drums).
+- **Bulk Superfood Powders**: Starting MOQ 25 kg lots in moisture-proof liner cartons.
+- **Private Label & Custom Bottling** (`https://beeshubfarmland.com/private-label`): Pilot MOQ from 100 units in Square, Hexa, Octa, and ITC glass jar series.
+- **Wedding & Corporate Gift Hampers** (`https://beeshubfarmland.com/gift`): Custom laser-engraved pine-wood chests starting from 25 units.
+
+## Retail Storefront Policies
+- **Payment Methods**: Razorpay Online Payments (UPI, Cards, NetBanking) and Cash on Delivery (COD) where enabled.
+- **Shipping**: Retail storefront orders currently qualify for free shipping across India. Live order status can be checked via the Track Order tool.
+- **Returns & Refunds**: Support for damaged, leaked, or incorrect items via admin@beeshubfarmland.com or +91 95787 84431 with Order ID and packaging photos.
+
+## Sitemap & Key URLs
+- [Homepage](https://beeshubfarmland.com/)
+- [Shop](https://beeshubfarmland.com/shop)
+- [Wholesale & Services](https://beeshubfarmland.com/services)
+- [Private Label](https://beeshubfarmland.com/private-label)
+- [Gift Hampers](https://beeshubfarmland.com/gift)
+- [About Us](https://beeshubfarmland.com/about)
+- [Contact](https://beeshubfarmland.com/contact)
+- [Farmland Journal](https://beeshubfarmland.com/blog)
+- [XML Sitemap](https://beeshubfarmland.com/sitemap.xml)

@@ -52,7 +52,7 @@ export default function CartDrawer() {
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
         <div className="w-screen max-w-md bg-white shadow-2xl flex flex-col justify-between animate-in slide-in-from-right duration-300">
           {/* Header */}
-          <div className="px-6 py-5 border-b border-[#E8EDF2] flex items-center justify-between bg-[#163B5C] text-white">
+          <div className="px-6 py-5 border-b border-[#E8EDF2] flex items-center justify-between bg-[#173F2B] text-white">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center">
                 <ShoppingBag className="w-4 h-4 text-amber-300" />
@@ -83,7 +83,7 @@ export default function CartDrawer() {
                   <ShoppingBag className="w-8 h-8" />
                 </div>
                 <div className="space-y-1">
-                  <h4 className="font-heading font-black text-lg text-[#163B5C]">
+                  <h4 className="font-heading font-black text-lg text-[#202820]">
                     Your Cart is Empty
                   </h4>
                   <p className="text-xs text-[#64748B] max-w-xs leading-relaxed">
@@ -92,7 +92,7 @@ export default function CartDrawer() {
                 </div>
                 <button
                   onClick={() => setIsCartOpen(false)}
-                  className="px-6 py-2.5 rounded-full bg-[#163B5C] text-white font-semibold text-xs shadow-xs hover:bg-[#0E273E] transition-colors"
+                  className="px-6 py-2.5 rounded-full bg-[#173F2B] text-white font-semibold text-xs shadow-xs hover:bg-[#0E273E] transition-colors"
                 >
                   Browse products
                 </button>
@@ -126,15 +126,15 @@ export default function CartDrawer() {
 
                     {/* Details */}
                     <div className="flex-1 min-w-0">
-                      <h4 className="font-heading font-bold text-xs sm:text-sm text-[#163B5C] truncate">
+                      <h4 className="font-heading font-bold text-xs sm:text-sm text-[#202820] truncate">
                         {item.product.name}
                       </h4>
                       {variantName && (
-                        <span className="text-[10px] font-extrabold text-[#ED3500] bg-orange-50 px-2 py-0.5 rounded-md inline-block mt-0.5 border border-orange-200">
+                        <span className="text-[10px] font-extrabold text-[#173F2B] bg-orange-50 px-2 py-0.5 rounded-md inline-block mt-0.5 border border-orange-200">
                           {variantName}
                         </span>
                       )}
-                      <div className="text-xs font-black text-[#163B5C] mt-1">
+                      <div className="text-xs font-black text-[#202820] mt-1">
                         ₹{unitPrice.toLocaleString('en-IN')}{' '}
                         <span className="text-[10px] text-[#64748B] font-normal">
                           (+{item.product.gst || 0}% GST)
@@ -152,7 +152,7 @@ export default function CartDrawer() {
                         >
                           <Minus className="w-3 h-3" />
                         </button>
-                        <span className="w-8 text-center text-xs font-black text-[#163B5C]">
+                        <span className="w-8 text-center text-xs font-black text-[#202820]">
                           {item.quantity}
                         </span>
                         <button
@@ -184,13 +184,13 @@ export default function CartDrawer() {
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between text-[#64748B]">
                   <span>Subtotal (Base Value)</span>
-                  <span className="font-bold text-[#163B5C]">
+                  <span className="font-bold text-[#202820]">
                     ₹{cartSubtotal.toLocaleString('en-IN')}
                   </span>
                 </div>
                 <div className="flex justify-between text-[#64748B]">
                   <span>Itemized GST Taxes</span>
-                  <span className="font-bold text-[#163B5C]">
+                  <span className="font-bold text-[#202820]">
                     +₹{cartGstTotal.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -199,10 +199,10 @@ export default function CartDrawer() {
                   <span className="font-bold text-[#10B981]">FREE SHIPPING</span>
                 </div>
                 <div className="pt-2 border-t border-[#E8EDF2] flex justify-between items-baseline">
-                  <span className="font-heading font-extrabold text-sm text-[#163B5C]">
+                  <span className="font-heading font-extrabold text-sm text-[#202820]">
                     Total Payable Amount
                   </span>
-                  <span className="font-heading font-black text-xl text-[#ED3500]">
+                  <span className="font-heading font-black text-xl text-[#173F2B]">
                     ₹{cartGrandTotal.toLocaleString('en-IN')}
                   </span>
                 </div>
@@ -210,7 +210,7 @@ export default function CartDrawer() {
 
               <button
                 onClick={handleProceedToCheckout}
-                className="w-full py-4 rounded-full bg-[#ED3500] hover:bg-[#D02E00] text-white font-semibold text-sm shadow-md shadow-[#ED3500]/25 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-full bg-[#173F2B] hover:bg-[#102E20] text-white font-semibold text-sm shadow-md transition-colors flex items-center justify-center gap-2"
               >
                 <span>Proceed to checkout</span>
                 <ArrowRight className="w-4 h-4" />
