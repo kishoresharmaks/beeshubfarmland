@@ -7,6 +7,8 @@ import {
   Briefcase,
   CheckCircle2,
   ChevronRight,
+  Download,
+  FileText,
   Leaf,
   MessageCircle,
   Plus,
@@ -198,6 +200,28 @@ export default function ProductDetailClient({
                 <MessageCircle className="w-4 h-4 text-[#25D366]" />
                 <span>Order or Request COA on WhatsApp (+91 95787 84431)</span>
               </a>
+
+              {product.coaUrl && (
+                <div className="flex flex-wrap items-center gap-2.5 pt-1">
+                  <a
+                    href={product.coaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#E8EFE6] hover:bg-[#173F2B] text-[#173F2B] hover:text-white text-xs font-semibold transition-colors"
+                  >
+                    <FileText className="w-3.5 h-3.5" />
+                    <span>View Certificate of Analysis (COA)</span>
+                  </a>
+                  <a
+                    href={`${product.coaUrl}${product.coaUrl.includes('?') ? '&' : '?'}download=1`}
+                    download
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full bg-[#F7F4EB] hover:bg-[#E8EFE6] text-[#202820] border border-[#E4E7E1] text-xs font-semibold transition-colors"
+                  >
+                    <Download className="w-3.5 h-3.5 text-[#A97843]" />
+                    <span>Download COA</span>
+                  </a>
+                </div>
+              )}
 
               <div className="pt-2">
                 <SocialShareBar

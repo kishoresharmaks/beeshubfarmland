@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     await connectToDatabase();
     const body = await request.json();
 
-    const { name, description, image, mrp, price, quantity, gst, category, variants } = body;
+    const { name, description, image, mrp, price, quantity, gst, category, variants, showOnHomepage, coaUrl } = body;
 
     // Validation
     if (!name || !description || !image || mrp === undefined || price === undefined || quantity === undefined || gst === undefined) {
@@ -102,6 +102,8 @@ export async function POST(request: Request) {
       quantity: numQuantity,
       gst: numGst,
       category: category || 'General',
+      showOnHomepage: Boolean(showOnHomepage),
+      coaUrl: typeof coaUrl === 'string' ? coaUrl.trim() : '',
       variants: formattedVariants,
     });
 

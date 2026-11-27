@@ -26,6 +26,8 @@ export interface Product {
   quantity: number;
   gst: number;
   category: string;
+  showOnHomepage?: boolean;
+  coaUrl?: string;
   variants?: ProductVariant[];
   createdAt?: string;
 }

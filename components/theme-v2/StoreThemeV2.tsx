@@ -5,6 +5,7 @@ import Script from 'next/script';
 import AnnouncementBar from './AnnouncementBar';
 import HeaderNav from './HeaderNav';
 import HeroSection from './HeroSection';
+import HomepageSpotlightProducts from './HomepageSpotlightProducts';
 import TrustCertificationStrip from './TrustCertificationStrip';
 import CategoryShowcase from './CategoryShowcase';
 import FeaturedProductsSection from './FeaturedProductsSection';
@@ -44,6 +45,9 @@ export default function StoreThemeV2() {
       <main className="flex-1">
         {/* 3. Static High-Impact Hero */}
         <HeroSection />
+
+        {/* 3b. Dynamic Admin-Toggled Homepage Products + COA */}
+        <HomepageSpotlightProducts />
 
         {/* 4. Trust & Certification Strip */}
         <TrustCertificationStrip />

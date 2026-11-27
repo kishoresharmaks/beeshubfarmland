@@ -84,6 +84,13 @@ export async function PUT(
       body.image = await processAndSaveImage(body.image, 'prod');
     }
 
+    if (body.showOnHomepage !== undefined) {
+      body.showOnHomepage = Boolean(body.showOnHomepage);
+    }
+    if (body.coaUrl !== undefined) {
+      body.coaUrl = typeof body.coaUrl === 'string' ? body.coaUrl.trim() : '';
+    }
+
     const updatedProduct = await Product.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,

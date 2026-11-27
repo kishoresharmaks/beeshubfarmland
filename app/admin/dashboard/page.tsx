@@ -74,6 +74,8 @@ interface Product {
   quantity: number;
   gst: number;
   category: string;
+  showOnHomepage?: boolean;
+  coaUrl?: string;
   variants?: ProductVariant[];
   createdAt: string;
 }
@@ -194,9 +196,13 @@ export default function AdminDashboard() {
     quantity: '10',
     gst: '0',
     category: '',
+    showOnHomepage: false,
+    coaUrl: '',
     variants: [] as ProductVariant[],
   });
   const [imagePreview, setImagePreview] = useState('');
+  const [uploadingCoa, setUploadingCoa] = useState(false);
+  const [coaUploadError, setCoaUploadError] = useState('');
 
   // Categories State
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -817,6 +823,58 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
     });
   };
 
+  // Handle COA File Upload (PDF or Image stored locally on server)
+  const handleCoaFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoaUploadError('');
+    try {
+      setUploadingCoa(true);
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/admin/coa', {
+        method: 'POST',
+        body: fd,
+      });
+      const data = await res.json();
+      if (data.success && data.url) {
+        setProductForm((prev) => ({ ...prev, coaUrl: data.url }));
+      } else {
+        setCoaUploadError(data.message || 'Failed to upload COA file.');
+      }
+    } catch (err: any) {
+      setCoaUploadError(err.message || 'Network error while uploading COA.');
+    } finally {
+      setUploadingCoa(false);
+      e.target.value = '';
+    }
+  };
+
+  // Quick toggle Show on Homepage directly from Products table
+  const handleToggleHomepage = async (product: Product) => {
+    const nextVal = !Boolean(product.showOnHomepage);
+    setProducts((prev) =>
+      prev.map((p) => (p._id === product._id ? { ...p, showOnHomepage: nextVal } : p))
+    );
+    try {
+      const res = await fetch(`/api/products/${product._id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ showOnHomepage: nextVal }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        setProducts((prev) =>
+          prev.map((p) => (p._id === product._id ? { ...p, showOnHomepage: !nextVal } : p))
+        );
+      }
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => (p._id === product._id ? { ...p, showOnHomepage: !nextVal } : p))
+      );
+    }
+  };
+
   // Open Edit Product Modal
   const openEditProductModal = (product: Product) => {
     setEditingProduct(product);
@@ -829,9 +887,12 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
       quantity: String(product.quantity),
       gst: String(product.gst !== undefined ? product.gst : 0),
       category: product.category || (categories[0]?.name ?? ''),
+      showOnHomepage: Boolean(product.showOnHomepage),
+      coaUrl: product.coaUrl || '',
       variants: product.variants ? product.variants.map((v) => ({ ...v })) : [],
     });
     setImagePreview(product.image);
+    setCoaUploadError('');
     setProductFormError('');
     setIsAddModalOpen(true);
   };
@@ -848,9 +909,12 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
       quantity: '10',
       gst: '0',
       category: categories.length > 0 ? categories[0].name : '',
+      showOnHomepage: false,
+      coaUrl: '',
       variants: [],
     });
     setImagePreview('');
+    setCoaUploadError('');
     setProductFormError('');
     setIsAddModalOpen(true);
   };
@@ -890,6 +954,8 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
           quantity: Number(productForm.quantity),
           gst: Number(productForm.gst),
           category: productForm.category,
+          showOnHomepage: Boolean(productForm.showOnHomepage),
+          coaUrl: productForm.coaUrl || '',
           variants: productForm.variants.map((v) => ({
             name: v.name.trim(),
             mrp: Number(v.mrp),
@@ -1478,6 +1544,30 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                                     {p.variants.length} Variants ({p.variants.map((v) => v.name).join(', ')})
                                   </span>
                                 )}
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleHomepage(p)}
+                                    className={`px-2 py-0.5 rounded text-[10px] font-bold border transition-colors ${
+                                      p.showOnHomepage
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                    title="Toggle Show on Homepage"
+                                  >
+                                    {p.showOnHomepage ? '✓ Show on Homepage' : 'Hidden on Homepage'}
+                                  </button>
+                                  {p.coaUrl && (
+                                    <a
+                                      href={p.coaUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100"
+                                    >
+                                      COA Attached
+                                    </a>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -2969,6 +3059,99 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                           </option>
                         ))}
                       </select>
+                    )}
+                  </div>
+                </div>
+
+                {/* Show on Homepage Toggle & COA Upload */}
+                <div className="p-4 rounded-2xl bg-[#FFFCFB] border border-[#E8EDF2] space-y-4">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <span className="text-xs font-extrabold text-[#163B5C] uppercase tracking-wider block">
+                        Show on Homepage
+                      </span>
+                      <p className="text-[11px] text-[#64748B]">
+                        Display this product in the featured showcase directly below the homepage hero section.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={productForm.showOnHomepage}
+                      aria-label="Show on Homepage"
+                      onClick={() =>
+                        setProductForm((prev) => ({ ...prev, showOnHomepage: !prev.showOnHomepage }))
+                      }
+                      className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+                        productForm.showOnHomepage ? 'bg-emerald-600' : 'bg-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow transition duration-200 ${
+                          productForm.showOnHomepage ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </button>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#E8EDF2] space-y-2">
+                    <label className="text-xs font-bold text-[#163B5C] uppercase tracking-wider block">
+                      COA (Certificate of Analysis) File
+                    </label>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                      <label className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-dashed border-[#CBD5E1] hover:border-[#ED3500] bg-white cursor-pointer text-xs font-bold text-[#163B5C] transition-colors">
+                        {uploadingCoa ? (
+                          <>
+                            <RefreshCw className="w-4 h-4 animate-spin text-[#ED3500]" />
+                            <span>Uploading COA...</span>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-4 h-4 text-[#ED3500]" />
+                            <span>{productForm.coaUrl ? 'Replace COA File' : 'Upload COA (PDF / Image)'}</span>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf,image/png,image/jpeg,image/webp"
+                          onChange={handleCoaFileChange}
+                          disabled={uploadingCoa}
+                          className="hidden"
+                        />
+                      </label>
+
+                      {productForm.coaUrl && (
+                        <div className="flex flex-wrap items-center gap-2 text-xs">
+                          <a
+                            href={productForm.coaUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200 font-semibold hover:bg-emerald-100"
+                          >
+                            View COA
+                          </a>
+                          <a
+                            href={`${productForm.coaUrl}?download=1`}
+                            download
+                            className="px-3 py-1.5 rounded-lg bg-slate-100 text-[#163B5C] border border-slate-200 font-semibold hover:bg-slate-200"
+                          >
+                            Download
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setProductForm((prev) => ({ ...prev, coaUrl: '' }))}
+                            className="px-2.5 py-1.5 rounded-lg text-rose-600 hover:bg-rose-50 font-semibold"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-[#64748B]">
+                      Stored locally on server. Supports PDF, PNG, JPG, or WEBP up to 10 MB.
+                    </p>
+                    {coaUploadError && (
+                      <p className="text-xs font-semibold text-rose-600">{coaUploadError}</p>
                     )}
                   </div>
                 </div>

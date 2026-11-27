@@ -19,6 +19,8 @@ export interface IProduct extends Document {
   quantity: number;
   gst: number;
   category?: string;
+  showOnHomepage?: boolean;
+  coaUrl?: string;
   variants?: IProductVariant[];
   createdAt: Date;
   updatedAt: Date;
@@ -51,6 +53,8 @@ const ProductSchema: Schema = new Schema(
     quantity: { type: Number, required: true, min: 0, default: 1 },
     gst: { type: Number, required: true, min: 0, default: 18 },
     category: { type: String, default: 'General' },
+    showOnHomepage: { type: Boolean, default: false, index: true },
+    coaUrl: { type: String, default: '', trim: true },
     variants: [VariantSchema],
   },
   { timestamps: true }
