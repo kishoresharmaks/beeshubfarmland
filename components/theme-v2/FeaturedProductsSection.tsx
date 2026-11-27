@@ -72,7 +72,13 @@ function pickFeaturedShowcase(products: Product[], activeTab: string): Product[]
   return picked;
 }
 
-export function StorefrontProductCard({ product }: { product: Product }) {
+export function StorefrontProductCard({
+  product,
+  hidePrice = false,
+}: {
+  product: Product;
+  hidePrice?: boolean;
+}) {
   const { addToCart, setQuickViewProduct } = useStore();
   const variants = product.variants && product.variants.length > 0 ? product.variants : [];
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
@@ -114,7 +120,7 @@ export function StorefrontProductCard({ product }: { product: Product }) {
             )}
           </Link>
 
-          {discount > 0 && (
+          {!hidePrice && discount > 0 && (
             <span className="absolute top-3 left-3 px-2.5 py-0.5 rounded-full bg-[#173F2B] text-white text-[10px] font-bold tracking-wide">
               {discount}% OFF
             </span>
@@ -200,16 +206,18 @@ export function StorefrontProductCard({ product }: { product: Product }) {
 
       {/* Pricing & Actions */}
       <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-[#E4E7E1] space-y-3">
-        <div className="flex items-baseline gap-2">
-          <span className="font-bold text-lg text-[#202820]">
-            ₹{displayPrice.toLocaleString('en-IN')}
-          </span>
-          {displayMrp && displayMrp > displayPrice && (
-            <span className="text-xs text-[#6B756B] line-through">
-              ₹{displayMrp.toLocaleString('en-IN')}
+        {!hidePrice && (
+          <div className="flex items-baseline gap-2">
+            <span className="font-bold text-lg text-[#202820]">
+              ₹{displayPrice.toLocaleString('en-IN')}
             </span>
-          )}
-        </div>
+            {displayMrp && displayMrp > displayPrice && (
+              <span className="text-xs text-[#6B756B] line-through">
+                ₹{displayMrp.toLocaleString('en-IN')}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2">
           <Link
@@ -345,7 +353,7 @@ export default function FeaturedProductsSection() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {visibleProducts.map((product) => (
-              <StorefrontProductCard key={product._id} product={product} />
+              <StorefrontProductCard key={product._id} product={product} hidePrice />
             ))}
           </div>
         )}

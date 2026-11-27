@@ -45,11 +45,11 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' https://checkout.razorpay.com https://utt.impactcdn.com https://us.i.posthog.com",
+              "script-src 'self' 'unsafe-inline' https://checkout.razorpay.com https://utt.impactcdn.com https://*.posthog.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com data:",
               "img-src 'self' data: blob: https:",
-              "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://checkout.razorpay.com https://us.i.posthog.com https://utt.impactcdn.com",
+              "connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com https://checkout.razorpay.com https://*.posthog.com https://*.i.posthog.com https://utt.impactcdn.com",
               "frame-src 'self' https://api.razorpay.com https://checkout.razorpay.com",
               "frame-ancestors 'self'",
               "object-src 'none'",
