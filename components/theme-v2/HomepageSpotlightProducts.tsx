@@ -7,6 +7,8 @@ import {
   Award,
   Building2,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Download,
   FileText,
   FlaskConical,
@@ -47,9 +49,43 @@ const BOTTOM_TRUST_ITEMS = [
   },
 ];
 
+/**
+ * Parses real product description text into intro paragraphs, bullet highlights, and key:value specs
+ * without inventing or altering any data.
+ */
+function parseStructuredDescription(rawDesc: string) {
+  const lines = rawDesc
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+  const paragraphs: string[] = [];
+  const bullets: string[] = [];
+  const specs: Array<{ label: string; value: string }> = [];
+
+  for (const line of lines) {
+    if (/^[-•*]\s+/.test(line)) {
+      bullets.push(line.replace(/^[-•*]\s+/, '').trim());
+      continue;
+    }
+    const kvMatch = line.match(/^(Ingredients|Brand|Origin|Shelf Life|Storage|Weight|Net Weight|Packaging)\s*:\s*(.+)$/i);
+    if (kvMatch) {
+      specs.push({ label: kvMatch[1], value: kvMatch[2].trim() });
+      continue;
+    }
+    if (/^Product Highlights\s*:?$/i.test(line)) {
+      continue;
+    }
+    paragraphs.push(line);
+  }
+
+  return { paragraphs, bullets, specs };
+}
+
 function HomepageSpotlightCard({ product }: { product: Product }) {
   const { openQuoteModal } = useStore();
   const [imgSrc, setImgSrc] = useState(product.image || '/images/beeshub-logo.png');
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const displayName = formatProductDisplayName(product.name);
   const categoryLabel = normalizeStoreCategory(product);
@@ -59,6 +95,17 @@ function HomepageSpotlightCard({ product }: { product: Product }) {
   const coaDownloadUrl = hasCoa
     ? `${coaViewUrl}${coaViewUrl.includes('?') ? '&' : '?'}download=1`
     : '';
+
+  const rawDescription =
+    product.description?.trim() ||
+    'Farm-sourced and hygienically processed at Bees Hub Farmland, Kanyakumari for reliable commercial and bulk supply.';
+  const parsedDesc = parseStructuredDescription(rawDescription);
+  const leadSummary = parsedDesc.paragraphs[0] || rawDescription;
+  const hasExtendedDetails =
+    rawDescription.length > 210 ||
+    parsedDesc.paragraphs.length > 1 ||
+    parsedDesc.bullets.length > 0 ||
+    parsedDesc.specs.length > 0;
 
   const qualityChecklist = [
     { lead: 'Sourced from', bold: 'Kanyakumari farmlands' },
@@ -100,7 +147,7 @@ function HomepageSpotlightCard({ product }: { product: Product }) {
 
   return (
     <article className="group rounded-3xl bg-[#FBF9F4] border border-[#E4E7E1] shadow-card hover:shadow-hover hover:border-[#173F2B]/30 transition-all duration-300 overflow-hidden">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 p-6 sm:p-8 lg:p-10 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 p-6 sm:p-8 lg:p-10 items-start">
         {/* Left Column: B2B Product Info, Checklist & Primary Actions */}
         <div className="lg:col-span-6 space-y-5 order-1">
           {/* Badges */}
@@ -118,17 +165,75 @@ function HomepageSpotlightCard({ product }: { product: Product }) {
             </span>
           </div>
 
-          {/* Product Title & Description */}
+          {/* Product Title & Structured Description */}
           <div className="space-y-3">
             <h3 className="font-serif font-bold text-2xl sm:text-3xl lg:text-[34px] text-[#202820] leading-tight tracking-tight">
               <Link href={productUrl} className="hover:text-[#173F2B] transition-colors">
                 {displayName}
               </Link>
             </h3>
-            <p className="text-sm sm:text-[15px] text-[#555F55] leading-relaxed whitespace-pre-line">
-              {product.description?.trim() ||
-                'Farm-sourced and hygienically processed at Bees Hub Farmland, Kanyakumari for reliable commercial and bulk supply.'}
+
+            {/* Concise Lead Summary (always balanced) */}
+            <p className={`text-sm sm:text-[15px] text-[#555F55] leading-relaxed ${!descExpanded ? 'line-clamp-3' : ''}`}>
+              {leadSummary}
             </p>
+
+            {/* Quick Spec Pills (Brand / Origin / Ingredients) shown cleanly even before full expand */}
+            {parsedDesc.specs.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-0.5">
+                {(descExpanded ? parsedDesc.specs : parsedDesc.specs.slice(0, 2)).map((sp) => (
+                  <div
+                    key={sp.label}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-white border border-[#E4E7E1] text-xs text-[#202820]"
+                  >
+                    <span className="font-semibold text-[#173F2B]">{sp.label}:</span>
+                    <span className="text-[#555F55]">{sp.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Expanded Long Description Details */}
+            {descExpanded && (
+              <div className="space-y-3 pt-2 border-t border-[#E4E7E1]/80 animate-in fade-in duration-200">
+                {parsedDesc.paragraphs.slice(1).map((para, idx) => (
+                  <p key={idx} className="text-sm text-[#555F55] leading-relaxed">
+                    {para}
+                  </p>
+                ))}
+
+                {parsedDesc.bullets.length > 0 && (
+                  <div className="rounded-2xl bg-white/80 border border-[#E4E7E1] p-3.5 space-y-1.5">
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#173F2B]">
+                      Product Highlights
+                    </div>
+                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5">
+                      {parsedDesc.bullets.map((b, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-xs text-[#555F55]">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#A97843] mt-1.5 shrink-0" />
+                          <span>{b}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {hasExtendedDetails && (
+              <button
+                type="button"
+                onClick={() => setDescExpanded((v) => !v)}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-[#173F2B] hover:text-[#A97843] transition-colors"
+              >
+                <span>{descExpanded ? 'Show Less' : 'Read Full Product Details'}</span>
+                {descExpanded ? (
+                  <ChevronUp className="w-3.5 h-3.5" />
+                ) : (
+                  <ChevronDown className="w-3.5 h-3.5" />
+                )}
+              </button>
+            )}
           </div>
 
           {/* Sourcing, Processing & Quality Checklist */}
@@ -178,7 +283,7 @@ function HomepageSpotlightCard({ product }: { product: Product }) {
         </div>
 
         {/* Right Column: Large Product Image + Supporting Quality & Supply Indicators */}
-        <div className="lg:col-span-6 order-2">
+        <div className="lg:col-span-6 order-2 lg:sticky lg:top-24">
           <div className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-stretch">
             {/* Large Product Visual */}
             <Link
