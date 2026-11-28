@@ -165,3 +165,27 @@ export function getProductSlugUrl(product: { _id?: string; name: string }): stri
   }
   return product._id ? `/product/${product._id}` : '/shop';
 }
+
+/**
+ * Formats a variant label (e.g., bare numeric grams like "250" -> "250g").
+ */
+export function formatVariantLabel(rawVariant?: string | null): string {
+  if (!rawVariant) return '';
+  const trimmed = rawVariant.trim();
+  return /^\d+$/.test(trimmed) ? `${trimmed}g` : trimmed;
+}
+
+/**
+ * Returns true when a product (or its active variant) has price <= 0
+ * and must be purchased through direct enquiry rather than online checkout.
+ */
+export function isEnquiryOnlyProduct(
+  product?: { price?: number | null } | null,
+  variant?: { price?: number | null } | null
+): boolean {
+  const resolvedPrice =
+    variant && variant.price !== undefined && variant.price !== null
+      ? Number(variant.price)
+      : Number(product?.price ?? 0);
+  return !Number.isFinite(resolvedPrice) || resolvedPrice <= 0;
+}

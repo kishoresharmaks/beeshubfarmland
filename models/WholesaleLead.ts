@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IWholesaleItem {
   productId?: string;
   productName: string;
+  variantName?: string;
   quantity: number;
   unit: 'KG' | 'LITRE' | 'CASES' | 'PIECES';
   targetPrice?: number;
@@ -31,6 +32,7 @@ export interface IWholesaleLead extends Document {
 const WholesaleItemSchema = new Schema({
   productId: { type: String, default: '' },
   productName: { type: String, required: true },
+  variantName: { type: String, trim: true, default: '' },
   quantity: { type: Number, required: true, min: 1 },
   unit: { type: String, enum: ['KG', 'LITRE', 'CASES', 'PIECES'], default: 'KG' },
   targetPrice: { type: Number },

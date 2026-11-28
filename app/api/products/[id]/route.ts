@@ -75,8 +75,10 @@ export async function PUT(
     const { id } = params;
     const body = await request.json();
 
-    if (body.mrp && body.price) {
-      body.discount = Math.round(((body.mrp - body.price) / body.mrp) * 100);
+    if (body.mrp !== undefined || body.price !== undefined) {
+      const m = Number(body.mrp ?? 0);
+      const p = Number(body.price ?? 0);
+      body.discount = m > 0 && p > 0 && m > p ? Math.round(((m - p) / m) * 100) : 0;
     }
 
     // F-06: Optimize image payloads if base64 provided

@@ -72,9 +72,19 @@ export async function POST(request: Request) {
         const matchingVariant = product.variants.find(
           (v: any) => v.name?.trim().toLowerCase() === variantName.toLowerCase()
         );
-        if (matchingVariant) {
-          unitPrice = Number(matchingVariant.price) || unitPrice;
+        if (matchingVariant && matchingVariant.price !== undefined && matchingVariant.price !== null) {
+          unitPrice = Number(matchingVariant.price);
         }
+      }
+
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `"${product.name}" requires an enquiry instead of direct online checkout.`,
+          },
+          { status: 400 }
+        );
       }
 
       const gstRate = product.gst !== undefined ? Number(product.gst) : 0;

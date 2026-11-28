@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Briefcase,
   Leaf,
+  MessageCircle,
 } from 'lucide-react';
 import { useStore, Product } from '@/context/StoreContext';
 import {
@@ -17,16 +18,24 @@ import {
   getProductSlugUrl,
   normalizeStoreCategory,
   extractPackSize,
+  formatVariantLabel,
+  isEnquiryOnlyProduct,
 } from '@/lib/productFormatting';
 
 function HomepageSpotlightCard({ product }: { product: Product }) {
   const { openQuoteModal } = useStore();
+  const variants = product.variants && product.variants.length > 0 ? product.variants : [];
+  const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const [imgSrc, setImgSrc] = useState(product.image || '/images/beeshub-logo.png');
 
+  const activeVariant = variants[selectedVariantIdx];
+  const enquiryOnly = isEnquiryOnlyProduct(product, activeVariant);
   const displayName = formatProductDisplayName(product.name);
   const categoryLabel = normalizeStoreCategory(product);
   const productUrl = getProductSlugUrl(product);
-  const packSize = extractPackSize(product.name, product.variants);
+  const packSize = activeVariant
+    ? formatVariantLabel(activeVariant.name)
+    : extractPackSize(product.name, product.variants);
   const hasCoa = Boolean(product.coaUrl && product.coaUrl.trim());
   const coaViewUrl = product.coaUrl || '';
   const coaDownloadUrl = hasCoa
@@ -65,8 +74,46 @@ function HomepageSpotlightCard({ product }: { product: Product }) {
             </p>
           </div>
 
+          {/* Optional Variant Selector when Variants Exist */}
+          {variants.length > 0 && (
+            <div className="space-y-1.5">
+              <span className="text-[11px] font-semibold text-[#6B756B] block">
+                Available Variants / Pack Sizes:
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {variants.map((v, idx) => (
+                  <button
+                    key={v._id || v.name || idx}
+                    type="button"
+                    onClick={() => setSelectedVariantIdx(idx)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-colors ${
+                      idx === selectedVariantIdx
+                        ? 'bg-[#173F2B] text-white border-[#173F2B]'
+                        : 'bg-[#F7F4EB] text-[#202820] border-[#E4E7E1] hover:border-[#173F2B]/50'
+                    }`}
+                  >
+                    {formatVariantLabel(v.name)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Actions & COA Access */}
           <div className="pt-2 flex flex-wrap items-center gap-3">
+            {enquiryOnly && (
+              <button
+                type="button"
+                onClick={() =>
+                  openQuoteModal(product.name, 'GENERAL', product._id, activeVariant?.name)
+                }
+                className="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-[#A97843] hover:bg-[#173F2B] text-white text-xs sm:text-sm font-semibold transition-colors shadow-xs"
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Click to Enquire</span>
+              </button>
+            )}
+
             {hasCoa ? (
               <>
                 <a

@@ -11,17 +11,23 @@ import {
   ShieldCheck,
   Leaf,
   Sparkles,
+  MessageCircle,
 } from 'lucide-react';
 import { useStore, ProductVariant } from '@/context/StoreContext';
-import { formatProductDisplayName, getProductSlugUrl } from '@/lib/productFormatting';
+import {
+  formatProductDisplayName,
+  getProductSlugUrl,
+  formatVariantLabel,
+  isEnquiryOnlyProduct,
+} from '@/lib/productFormatting';
 import SocialShareBar from '../SocialShareBar';
 
 /**
  * Product QuickView Modal
- * Shows detailed product specifications, variant selector, live stock indicators, and instant add-to-cart.
+ * Shows detailed product specifications, variant selector, live stock indicators, and instant add-to-cart or enquiry.
  */
 export default function ProductQuickViewModal() {
-  const { quickViewProduct, setQuickViewProduct, addToCart } = useStore();
+  const { quickViewProduct, setQuickViewProduct, addToCart, openQuoteModal } = useStore();
 
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | undefined>(undefined);
   const [quantity, setQuantity] = useState(1);
@@ -40,10 +46,18 @@ export default function ProductQuickViewModal() {
   const activePrice = selectedVariant ? selectedVariant.price : quickViewProduct.price;
   const activeMrp = selectedVariant ? selectedVariant.mrp : quickViewProduct.mrp;
   const activeStock = selectedVariant ? selectedVariant.quantity : quickViewProduct.quantity;
+  const enquiryOnly = isEnquiryOnlyProduct(quickViewProduct, selectedVariant);
 
   const handleAddToCart = () => {
     addToCart(quickViewProduct, quantity, selectedVariant);
     setQuickViewProduct(null);
+  };
+
+  const handleEnquireClick = () => {
+    const prod = quickViewProduct;
+    const varName = selectedVariant?.name;
+    setQuickViewProduct(null);
+    openQuoteModal(prod.name, 'GENERAL', prod._id, varName);
   };
 
   return (
@@ -97,18 +111,26 @@ export default function ProductQuickViewModal() {
 
               {/* Price Row */}
               <div className="flex items-baseline gap-3">
-                <span className="font-heading font-bold text-2xl text-[#202820]">
-                  ₹{activePrice.toLocaleString('en-IN')}
-                </span>
-                {activeMrp && activeMrp > activePrice && (
-                  <span className="text-sm text-[#64748B] line-through">
-                    ₹{activeMrp.toLocaleString('en-IN')}
+                {enquiryOnly ? (
+                  <span className="font-heading font-bold text-xl text-[#173F2B]">
+                    Price on Enquiry
                   </span>
-                )}
-                {quickViewProduct.gst > 0 && (
-                  <span className="text-xs text-[#64748B]">
-                    (+{quickViewProduct.gst}% GST)
-                  </span>
+                ) : (
+                  <>
+                    <span className="font-heading font-bold text-2xl text-[#202820]">
+                      ₹{activePrice.toLocaleString('en-IN')}
+                    </span>
+                    {activeMrp && activeMrp > activePrice && (
+                      <span className="text-sm text-[#64748B] line-through">
+                        ₹{activeMrp.toLocaleString('en-IN')}
+                      </span>
+                    )}
+                    {quickViewProduct.gst > 0 && (
+                      <span className="text-xs text-[#64748B]">
+                        (+{quickViewProduct.gst}% GST)
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 
@@ -135,7 +157,8 @@ export default function ProductQuickViewModal() {
                             : 'bg-[#FFFCFB] text-[#64748B] border-[#E8EDF2] hover:border-slate-300'
                         }`}
                       >
-                        {v.name} (₹{v.price})
+                        {formatVariantLabel(v.name)}{' '}
+                        {v.price > 0 ? `(₹${v.price.toLocaleString('en-IN')})` : '(Enquire)'}
                       </button>
                     ))}
                   </div>
@@ -144,7 +167,11 @@ export default function ProductQuickViewModal() {
 
               {/* Stock Indicator */}
               <div className="text-xs">
-                {activeStock > 0 ? (
+                {enquiryOnly ? (
+                  <span className="text-[#A97843] font-bold flex items-center gap-1.5">
+                    <MessageCircle className="w-4 h-4" /> Available via Direct Product Enquiry
+                  </span>
+                ) : activeStock > 0 ? (
                   <span className="text-[#10B981] font-bold flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4" /> In Stock & Freshly Packaged
                   </span>
@@ -155,34 +182,47 @@ export default function ProductQuickViewModal() {
                 )}
               </div>
 
-              {/* Add to Cart Controls */}
+              {/* Add to Cart / Click to Enquire Controls */}
               <div className="pt-2 flex items-center gap-3">
-                <div className="flex items-center border border-[#E8EDF2] rounded-xl bg-white overflow-hidden shadow-2xs">
+                {enquiryOnly ? (
                   <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                    type="button"
+                    onClick={handleEnquireClick}
+                    className="flex-1 py-3.5 px-6 rounded-full bg-[#A97843] hover:bg-[#173F2B] text-white font-semibold text-xs shadow-md transition-colors flex items-center justify-center gap-2"
                   >
-                    <Minus className="w-3.5 h-3.5" />
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Click to Enquire</span>
                   </button>
-                  <span className="w-10 text-center text-xs font-black text-[#202820]">
-                    {quantity}
-                  </span>
-                  <button
-                    onClick={() => setQuantity(Math.min(activeStock || 99, quantity + 1))}
-                    className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-center border border-[#E8EDF2] rounded-xl bg-white overflow-hidden shadow-2xs">
+                      <button
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="w-10 text-center text-xs font-black text-[#202820]">
+                        {quantity}
+                      </span>
+                      <button
+                        onClick={() => setQuantity(Math.min(activeStock || 99, quantity + 1))}
+                        className="w-9 h-9 flex items-center justify-center text-slate-600 hover:bg-slate-100 transition-colors"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
 
-                <button
-                  onClick={handleAddToCart}
-                  disabled={activeStock <= 0}
-                  className="flex-1 py-3.5 px-6 rounded-full bg-[#173F2B] hover:bg-[#102E20] text-white font-semibold text-xs shadow-md shadow-[#173F2B]/25 transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300"
-                >
-                  <ShoppingBag className="w-4 h-4" />
-                  <span>Add to Cart</span>
-                </button>
+                    <button
+                      onClick={handleAddToCart}
+                      disabled={activeStock <= 0}
+                      className="flex-1 py-3.5 px-6 rounded-full bg-[#173F2B] hover:bg-[#102E20] text-white font-semibold text-xs shadow-md shadow-[#173F2B]/25 transition-colors flex items-center justify-center gap-2 disabled:bg-slate-300"
+                    >
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Add to Cart</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               <div className="pt-3 border-t border-[#E4E7E1]">

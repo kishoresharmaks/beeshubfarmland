@@ -169,9 +169,16 @@ interface StoreContextType {
   setQuoteModalInitialProduct: (productName: string | null) => void;
   quoteModalInitialProductId: string | null;
   setQuoteModalInitialProductId: (id: string | null) => void;
+  quoteModalInitialVariant: string | null;
+  setQuoteModalInitialVariant: (variantName: string | null) => void;
   quoteModalCategory: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null;
   setQuoteModalCategory: (cat: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null) => void;
-  openQuoteModal: (productName?: string, category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL', productId?: string) => void;
+  openQuoteModal: (
+    productName?: string,
+    category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL',
+    productId?: string,
+    variantName?: string
+  ) => void;
   isTrackingModalOpen: boolean;
   setIsTrackingModalOpen: (open: boolean) => void;
   quickViewProduct: Product | null;
@@ -237,15 +244,18 @@ export function StoreProvider({
   const [isQuoteModalOpen, setIsQuoteModalOpen] = useState(false);
   const [quoteModalInitialProduct, setQuoteModalInitialProduct] = useState<string | null>(null);
   const [quoteModalInitialProductId, setQuoteModalInitialProductId] = useState<string | null>(null);
+  const [quoteModalInitialVariant, setQuoteModalInitialVariant] = useState<string | null>(null);
   const [quoteModalCategory, setQuoteModalCategory] = useState<'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL' | null>(null);
 
   const openQuoteModal = (
     productName?: string,
     category?: 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'GENERAL',
-    productId?: string
+    productId?: string,
+    variantName?: string
   ) => {
     setQuoteModalInitialProduct(productName || null);
     setQuoteModalInitialProductId(productId || null);
+    setQuoteModalInitialVariant(variantName || null);
     setQuoteModalCategory(category || 'WHOLESALE');
     setIsQuoteModalOpen(true);
   };
@@ -420,6 +430,17 @@ export function StoreProvider({
   // Cart Operations
   const addToCart = (product: Product, quantityToAdd = 1, customVariant?: ProductVariant) => {
     const activeVariant = customVariant || (product.variants && product.variants.length > 0 ? product.variants[0] : undefined);
+    const resolvedPrice =
+      activeVariant && activeVariant.price !== undefined && activeVariant.price !== null
+        ? Number(activeVariant.price)
+        : Number(product.price ?? 0);
+
+    if (!Number.isFinite(resolvedPrice) || resolvedPrice <= 0) {
+      openQuoteModal(product.name, 'GENERAL', product._id, activeVariant?.name);
+      showToast(`"${product.displayName || product.name}" is available via enquiry.`);
+      return;
+    }
+
     const availableStock = activeVariant ? activeVariant.quantity : product.quantity;
 
     if (availableStock <= 0) {
@@ -744,6 +765,8 @@ export function StoreProvider({
         setQuoteModalInitialProduct,
         quoteModalInitialProductId,
         setQuoteModalInitialProductId,
+        quoteModalInitialVariant,
+        setQuoteModalInitialVariant,
         quoteModalCategory,
         setQuoteModalCategory,
         openQuoteModal,

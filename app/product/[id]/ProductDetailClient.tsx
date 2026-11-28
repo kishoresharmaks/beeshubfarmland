@@ -16,7 +16,12 @@ import {
   Truck,
 } from 'lucide-react';
 import { Product, ProductVariant, useStore } from '@/context/StoreContext';
-import { formatProductDisplayName, getProductSlugUrl } from '@/lib/productFormatting';
+import {
+  formatProductDisplayName,
+  getProductSlugUrl,
+  formatVariantLabel,
+  isEnquiryOnlyProduct,
+} from '@/lib/productFormatting';
 import SocialShareBar from '@/components/theme-v2/SocialShareBar';
 import TopUtilityBar from '@/components/theme-v2/TopUtilityBar';
 import HeaderNav from '@/components/theme-v2/HeaderNav';
@@ -42,11 +47,14 @@ export default function ProductDetailClient({
   const displayPrice = activeVariant ? activeVariant.price : product.price;
   const displayMrp = activeVariant ? activeVariant.mrp : product.mrp;
   const availableStock = activeVariant ? activeVariant.quantity : product.quantity;
+  const enquiryOnly = isEnquiryOnlyProduct(product, activeVariant);
   const discount =
-    activeVariant?.discount ??
-    (displayMrp && displayMrp > displayPrice
-      ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
-      : product.discount || 0);
+    enquiryOnly
+      ? 0
+      : activeVariant?.discount ??
+        (displayMrp && displayMrp > displayPrice
+          ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
+          : product.discount || 0);
 
   const displayName = product.displayName || formatProductDisplayName(product.name);
   const cleanPhone = companyConfig?.phone?.replace(/\D/g, '') || '9578784431';
@@ -114,17 +122,30 @@ export default function ProductDetailClient({
 
             {/* Price */}
             <div className="flex items-baseline gap-3 pt-2 border-t border-[#E8EDF2]">
-              <span className="font-heading font-black text-3xl text-[#202820]">
-                ₹{displayPrice.toLocaleString('en-IN')}
-              </span>
-              {displayMrp && displayMrp > displayPrice && (
-                <span className="text-base text-slate-400 line-through">
-                  ₹{displayMrp.toLocaleString('en-IN')}
-                </span>
+              {enquiryOnly ? (
+                <>
+                  <span className="font-heading font-bold text-2xl text-[#173F2B]">
+                    Price on Enquiry
+                  </span>
+                  <span className="text-xs text-[#A97843] font-bold">
+                    Available via Direct Enquiry
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-heading font-black text-3xl text-[#202820]">
+                    ₹{displayPrice.toLocaleString('en-IN')}
+                  </span>
+                  {displayMrp && displayMrp > displayPrice && (
+                    <span className="text-base text-slate-400 line-through">
+                      ₹{displayMrp.toLocaleString('en-IN')}
+                    </span>
+                  )}
+                  <span className="text-xs text-[#10B981] font-bold">
+                    {availableStock > 0 ? 'In Stock · Ready to Dispatch' : 'Currently Out of Stock'}
+                  </span>
+                </>
               )}
-              <span className="text-xs text-[#10B981] font-bold">
-                {availableStock > 0 ? 'In Stock · Ready to Dispatch' : 'Currently Out of Stock'}
-              </span>
             </div>
 
             {/* Variants */}
@@ -143,7 +164,8 @@ export default function ProductDetailClient({
                           : 'bg-[#FFFCFB] text-[#202820] border border-[#E8EDF2] hover:border-slate-300'
                       }`}
                     >
-                      {v.name} — ₹{v.price.toLocaleString('en-IN')}
+                      {formatVariantLabel(v.name)} —{' '}
+                      {v.price > 0 ? `₹${v.price.toLocaleString('en-IN')}` : 'Enquire'}
                     </button>
                   ))}
                 </div>
@@ -153,37 +175,54 @@ export default function ProductDetailClient({
             {/* Quantity & CTA Buttons */}
             <div className="space-y-3 pt-2">
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center border border-[#E8EDF2] rounded-2xl bg-[#FFFCFB]">
+                {enquiryOnly ? (
                   <button
                     type="button"
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
-                    className="px-3.5 py-3 text-sm font-bold text-[#202820] hover:text-[#173F2B]"
+                    onClick={() =>
+                      openQuoteModal(product.name, 'GENERAL', product._id, activeVariant?.name)
+                    }
+                    className="flex-1 min-w-[200px] py-3.5 px-6 rounded-2xl bg-[#A97843] hover:bg-[#173F2B] text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md"
                   >
-                    -
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Click to Enquire</span>
                   </button>
-                  <span className="px-3 text-sm font-bold text-[#202820]">{qty}</span>
-                  <button
-                    type="button"
-                    onClick={() => setQty((q) => q + 1)}
-                    className="px-3.5 py-3 text-sm font-bold text-[#202820] hover:text-[#173F2B]"
-                  >
-                    +
-                  </button>
-                </div>
+                ) : (
+                  <>
+                    <div className="flex items-center border border-[#E8EDF2] rounded-2xl bg-[#FFFCFB]">
+                      <button
+                        type="button"
+                        onClick={() => setQty((q) => Math.max(1, q - 1))}
+                        className="px-3.5 py-3 text-sm font-bold text-[#202820] hover:text-[#173F2B]"
+                      >
+                        -
+                      </button>
+                      <span className="px-3 text-sm font-bold text-[#202820]">{qty}</span>
+                      <button
+                        type="button"
+                        onClick={() => setQty((q) => q + 1)}
+                        className="px-3.5 py-3 text-sm font-bold text-[#202820] hover:text-[#173F2B]"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={availableStock <= 0}
+                      onClick={() => addToCart(product, qty, activeVariant)}
+                      className="flex-1 min-w-[180px] py-3.5 px-6 rounded-2xl bg-[#173F2B] hover:bg-[#D02E00] disabled:bg-slate-200 disabled:text-slate-500 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md shadow-[#173F2B]/20"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>{availableStock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
+                    </button>
+                  </>
+                )}
 
                 <button
                   type="button"
-                  disabled={availableStock <= 0}
-                  onClick={() => addToCart(product, qty, activeVariant)}
-                  className="flex-1 min-w-[180px] py-3.5 px-6 rounded-2xl bg-[#173F2B] hover:bg-[#D02E00] disabled:bg-slate-200 disabled:text-slate-500 text-white font-bold text-sm transition-colors flex items-center justify-center gap-2 shadow-md shadow-[#173F2B]/20"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>{availableStock > 0 ? 'Add to Cart' : 'Out of Stock'}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => openQuoteModal(product.name, 'WHOLESALE', product._id)}
+                  onClick={() =>
+                    openQuoteModal(product.name, 'WHOLESALE', product._id, activeVariant?.name)
+                  }
                   className="py-3.5 px-6 rounded-2xl bg-[#202820] hover:bg-[#0E273E] text-white font-bold text-sm transition-colors flex items-center justify-center gap-2"
                 >
                   <Briefcase className="w-4 h-4" />

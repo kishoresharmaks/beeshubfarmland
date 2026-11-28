@@ -22,11 +22,16 @@ import {
   Check,
 } from 'lucide-react';
 import { useStore, EnquiryCategory } from '@/context/StoreContext';
-import { formatProductDisplayName } from '@/lib/productFormatting';
+import {
+  formatProductDisplayName,
+  formatVariantLabel,
+  isEnquiryOnlyProduct,
+} from '@/lib/productFormatting';
 
 interface FormItem {
   productId: string;
   productName: string;
+  variantName?: string;
   isCustom?: boolean;
   quantity: number | string;
   unit: 'KG' | 'LITRE' | 'CASES' | 'PIECES';
@@ -66,6 +71,8 @@ export default function QuoteModal() {
     setQuoteModalInitialProduct,
     quoteModalInitialProductId,
     setQuoteModalInitialProductId,
+    quoteModalInitialVariant,
+    setQuoteModalInitialVariant,
     quoteModalCategory,
     setQuoteModalCategory,
     products,
@@ -99,8 +106,10 @@ export default function QuoteModal() {
     },
   ]);
 
-  // General Enquiry Specific Field (Product is OPTIONAL)
+  // General Enquiry Specific Fields (Product & Variant preloaded when opened from product CTA)
   const [generalSelectedProductId, setGeneralSelectedProductId] = useState('');
+  const [generalSelectedVariant, setGeneralSelectedVariant] = useState('');
+  const [generalQuantity, setGeneralQuantity] = useState<number | string>(1);
 
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -227,10 +236,22 @@ export default function QuoteModal() {
 
       if (matched) {
         const displayTitle = formatProductDisplayName(matched.name);
+        const variantsList = Array.isArray((matched as any).variants) ? (matched as any).variants : [];
+        let resolvedVariant = '';
+        if (quoteModalInitialVariant) {
+          const vMatch = variantsList.find(
+            (v: any) => v.name?.trim().toLowerCase() === quoteModalInitialVariant.trim().toLowerCase()
+          );
+          resolvedVariant = vMatch ? vMatch.name : quoteModalInitialVariant.trim();
+        } else if (variantsList.length > 0 && variantsList[0]?.name) {
+          resolvedVariant = variantsList[0].name;
+        }
+
         setItems([
           {
             productId: matched._id,
             productName: displayTitle,
+            variantName: resolvedVariant,
             quantity: matched.category === 'Oil' ? 50 : isPackagingOrHamper ? 100 : 100,
             unit: matched.category === 'Oil' ? 'LITRE' : isPackagingOrHamper ? 'PIECES' : 'KG',
             targetPrice: '',
@@ -238,11 +259,14 @@ export default function QuoteModal() {
           },
         ]);
         setGeneralSelectedProductId(matched._id);
+        setGeneralSelectedVariant(resolvedVariant);
+        setGeneralQuantity(1);
       } else {
         setItems([
           {
             productId: 'CUSTOM',
             productName: quoteModalInitialProduct || 'Custom Harvest / Packaging Specification',
+            variantName: quoteModalInitialVariant || '',
             quantity: isPackagingOrHamper ? 100 : 50,
             unit: isPackagingOrHamper ? 'PIECES' : 'KG',
             targetPrice: '',
@@ -250,12 +274,15 @@ export default function QuoteModal() {
           },
         ]);
         setGeneralSelectedProductId('');
+        setGeneralSelectedVariant(quoteModalInitialVariant || '');
+        setGeneralQuantity(1);
       }
     } else {
       setItems([
         {
           productId: '',
           productName: '',
+          variantName: '',
           quantity: 50,
           unit: 'KG',
           targetPrice: '',
@@ -263,16 +290,27 @@ export default function QuoteModal() {
         },
       ]);
       setGeneralSelectedProductId('');
+      setGeneralSelectedVariant('');
+      setGeneralQuantity(1);
     }
-  }, [isQuoteModalOpen, quoteModalInitialProduct, quoteModalInitialProductId, quoteModalCategory, products.length]);
+  }, [
+    isQuoteModalOpen,
+    quoteModalInitialProduct,
+    quoteModalInitialProductId,
+    quoteModalInitialVariant,
+    quoteModalCategory,
+    products.length,
+  ]);
 
   const handleCloseModal = () => {
     setIsQuoteModalOpen(false);
     setQuoteModalInitialProduct(null);
     if (setQuoteModalInitialProductId) setQuoteModalInitialProductId(null);
+    if (setQuoteModalInitialVariant) setQuoteModalInitialVariant(null);
     if (setQuoteModalCategory) setQuoteModalCategory(null);
     setSubmittedLeadId(null);
     setErrorMessage('');
+    setNotes('');
   };
 
   // Focus Trap & Esc Key Listener
@@ -408,39 +446,70 @@ export default function QuoteModal() {
         items: items.map((it) => ({
           productId: it.productId || '',
           productName: it.productName.trim(),
+          variantName: it.variantName ? formatVariantLabel(it.variantName) : '',
           quantity: Number(it.quantity) || 1,
           unit: it.unit,
           targetPrice: it.targetPrice ? Number(it.targetPrice) : undefined,
         })),
       };
     } else {
-      // General Enquiry Validations (Product NOT compulsory)
-      if (!notes.trim()) {
+      // General Enquiry Validations (require message only if no product is pre-selected/chosen)
+      const hasProductContext = Boolean(generalSelectedProductId || quoteModalInitialProduct);
+      if (!notes.trim() && !hasProductContext) {
         setErrorMessage('Please enter your enquiry message or question.');
         return;
       }
 
       let generalItem: any[] = [];
+      let productSummaryNote = '';
       if (generalSelectedProductId) {
-        const matched = catalogList.find((p) => p._id === generalSelectedProductId);
+        const matched = catalogList.find((p) => String(p._id) === String(generalSelectedProductId));
+        const cleanTitle = matched
+          ? formatProductDisplayName(matched.name)
+          : quoteModalInitialProduct || generalSelectedProductId;
+        const formattedVar = generalSelectedVariant ? formatVariantLabel(generalSelectedVariant) : '';
+        const qtyVal = Math.max(1, Number(generalQuantity) || 1);
         generalItem = [
           {
             productId: generalSelectedProductId,
-            productName: matched ? matched.name : generalSelectedProductId,
-            quantity: 1,
+            productName: cleanTitle,
+            variantName: formattedVar,
+            quantity: qtyVal,
             unit: 'PIECES',
           },
         ];
+        productSummaryNote = `Product Enquiry: ${cleanTitle}${formattedVar ? ` (Variant: ${formattedVar})` : ''} · Qty: ${qtyVal}`;
+      } else if (quoteModalInitialProduct) {
+        const cleanTitle = formatProductDisplayName(quoteModalInitialProduct);
+        const formattedVar = generalSelectedVariant ? formatVariantLabel(generalSelectedVariant) : '';
+        const qtyVal = Math.max(1, Number(generalQuantity) || 1);
+        generalItem = [
+          {
+            productId: quoteModalInitialProductId || '',
+            productName: cleanTitle,
+            variantName: formattedVar,
+            quantity: qtyVal,
+            unit: 'PIECES',
+          },
+        ];
+        productSummaryNote = `Product Enquiry: ${cleanTitle}${formattedVar ? ` (Variant: ${formattedVar})` : ''} · Qty: ${qtyVal}`;
       } else {
         generalItem = [
           {
             productId: '',
             productName: 'General Customer Enquiry',
+            variantName: '',
             quantity: 1,
             unit: 'PIECES',
           },
         ];
       }
+
+      const finalNotes = notes.trim()
+        ? productSummaryNote
+          ? `[General Enquiry] ${productSummaryNote} — ${notes.trim()}`
+          : `[General Enquiry] ${notes.trim()}`
+        : `[General Enquiry] ${productSummaryNote}`;
 
       payload = {
         inquiryType: 'GENERAL',
@@ -453,7 +522,7 @@ export default function QuoteModal() {
         city: city.trim() || 'General Inquiry',
         pincode: pincode.trim() || '600001',
         orderType: 'ONE_TIME',
-        notes: `[General Enquiry] ${notes.trim()}`,
+        notes: finalNotes,
         website_url: honeypot,
         items: generalItem,
       };
@@ -536,7 +605,13 @@ export default function QuoteModal() {
     if (enquiryCategory === 'WHOLESALE') {
       return `Hello BeesHub Farmland Commercial Desk,\n\nI have submitted a wholesale quotation request for ${companyName || 'our business'}.\nContact: ${contactPerson} (${phone})\nRequirement: ${items.map((i) => `${i.productName} (${i.quantity} ${i.unit})`).join(', ')}\nDelivery: ${city} - ${pincode}.\n\nPlease share official bulk pricing and batch availability.`;
     }
-    return `Hello BeesHub Farmland Team,\n\nI have submitted an enquiry on your website.\nName: ${contactPerson} (${phone})\nMessage: ${notes.slice(0, 150)}...\n\nPlease assist me.`;
+    const generalProd = generalSelectedProductId
+      ? catalogList.find((p) => String(p._id) === String(generalSelectedProductId))
+      : null;
+    const generalProdLabel = generalProd
+      ? `${formatProductDisplayName(generalProd.name)}${generalSelectedVariant ? ` (${formatVariantLabel(generalSelectedVariant)})` : ''} × ${generalQuantity}`
+      : quoteModalInitialProduct || '';
+    return `Hello BeesHub Farmland Team,\n\nI have submitted a product enquiry on your website.\nName: ${contactPerson} (${phone})${generalProdLabel ? `\nProduct: ${generalProdLabel}` : ''}${notes ? `\nMessage: ${notes.slice(0, 150)}` : ''}\n\nPlease assist me.`;
   };
 
   const whatsappUrl = `https://wa.me/91${cleanStorePhone}?text=${encodeURIComponent(whatsappMessageTemplate())}`;
@@ -677,9 +752,9 @@ export default function QuoteModal() {
                     },
                     {
                       id: 'GENERAL' as EnquiryCategory,
-                      label: 'General / Support',
+                      label: 'General Enquiry',
                       icon: MessageCircle,
-                      desc: 'Normal inquiry',
+                      desc: 'Product & info',
                       activeColor: 'border-emerald-500 bg-emerald-50/50 text-[#202820]',
                     },
                   ].map((tab) => {
@@ -717,17 +792,22 @@ export default function QuoteModal() {
                 </div>
               </div>
 
-              {/* Pre-selected Product Pill Banner */}
+              {/* Pre-selected Product & Variant Pill Banner */}
               {quoteModalInitialProduct && (
-                <div className="flex items-center justify-between p-3 rounded-2xl bg-[#FFF8F5] border border-[#FFD5C7] text-xs">
-                  <div className="flex items-center gap-2">
-                    <Package className="w-4 h-4 text-[#173F2B]" />
+                <div className="flex items-center justify-between gap-2 p-3 rounded-2xl bg-[#FFF8F5] border border-[#FFD5C7] text-xs">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Package className="w-4 h-4 text-[#173F2B] shrink-0" />
                     <span className="text-[#202820] font-medium">Selected Item:</span>
                     <span className="font-semibold text-[#173F2B]">
                       {items[0]?.productName || quoteModalInitialProduct}
                     </span>
+                    {generalSelectedVariant && (
+                      <span className="px-2 py-0.5 rounded-full bg-[#173F2B] text-white text-[10px] font-bold">
+                        {formatVariantLabel(generalSelectedVariant)}
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[11px] font-medium text-[#64748B] bg-white px-2 py-0.5 rounded-md border border-[#E8EDF2]">
+                  <span className="text-[11px] font-medium text-[#64748B] bg-white px-2 py-0.5 rounded-md border border-[#E8EDF2] shrink-0">
                     Pre-loaded
                   </span>
                 </div>
@@ -1063,47 +1143,166 @@ export default function QuoteModal() {
                   </div>
                 </div>
               ) : (
-                /* =================== GENERAL MODE: PRODUCT OPTIONAL =================== */
-                <div className="space-y-4 pt-2 border-t border-[#E8EDF2]">
-                  {/* Optional Product Dropdown */}
-                  <div>
-                    <label className="block text-xs font-semibold text-[#202820] mb-1">
-                      Interested Product (Optional)
-                    </label>
-                    <select
-                      value={generalSelectedProductId}
-                      onChange={(e) => setGeneralSelectedProductId(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#10B981]"
-                    >
-                      <option value="">
-                        -- None / General Inquiry or Question --
-                      </option>
-                      {catalogList.map((p) => (
-                        <option key={p._id} value={p._id}>
-                          {p.name} {p.category ? `(${p.category})` : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="text-[11px] text-[#64748B] block mt-1">
-                      Select a product if your query is about an item in our catalog, or leave blank.
-                    </span>
-                  </div>
+                /* =================== GENERAL MODE: PRODUCT + SELECTED VARIANT + CONTACT DETAILS =================== */
+                (() => {
+                  const selectedProdObj = generalSelectedProductId
+                    ? catalogList.find((p) => String(p._id) === String(generalSelectedProductId))
+                    : null;
+                  const selectedVariants = Array.isArray((selectedProdObj as any)?.variants)
+                    ? (selectedProdObj as any).variants
+                    : [];
+                  const activeVarObj = selectedVariants.find(
+                    (v: any) => v.name === generalSelectedVariant
+                  );
+                  const isZeroPriceItem = selectedProdObj
+                    ? isEnquiryOnlyProduct(selectedProdObj as any, activeVarObj)
+                    : false;
 
-                  {/* Compulsory Message Field for General Enquiry */}
-                  <div>
-                    <label className="block text-xs font-semibold text-[#202820] mb-1">
-                      Your Enquiry / Message *
-                    </label>
-                    <textarea
-                      rows={4}
-                      required
-                      placeholder="How can we assist you? Tell us about your query, requirement, retail availability, or questions..."
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#10B981]"
-                    />
-                  </div>
-                </div>
+                  return (
+                    <div className="space-y-4 pt-2 border-t border-[#E8EDF2]">
+                      {/* Loaded Product & Variant Preview Card */}
+                      {(selectedProdObj || quoteModalInitialProduct) && (
+                        <div className="p-4 rounded-2xl bg-[#F7F4EB]/70 border border-[#E4E7E1] space-y-3">
+                          <div className="flex items-start gap-3">
+                            {(selectedProdObj as any)?.image ? (
+                              <img
+                                src={(selectedProdObj as any).image}
+                                alt={formatProductDisplayName(
+                                  selectedProdObj?.name || quoteModalInitialProduct || ''
+                                )}
+                                className="w-16 h-16 rounded-xl object-contain bg-white border border-[#E4E7E1] p-1 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-16 h-16 rounded-xl bg-white border border-[#E4E7E1] flex items-center justify-center shrink-0">
+                                <Package className="w-6 h-6 text-[#173F2B]" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-[#A97843]">
+                                  {(selectedProdObj as any)?.category || 'Product Enquiry'}
+                                </span>
+                                {isZeroPriceItem && (
+                                  <span className="px-2 py-0.5 rounded-full bg-[#173F2B] text-white text-[10px] font-bold">
+                                    Price on Enquiry
+                                  </span>
+                                )}
+                              </div>
+                              <h4 className="font-heading font-bold text-sm text-[#202820] leading-snug">
+                                {formatProductDisplayName(
+                                  selectedProdObj?.name || quoteModalInitialProduct || ''
+                                )}
+                              </h4>
+                              {(selectedProdObj as any)?.description && (
+                                <p className="text-[11px] text-[#6B756B] line-clamp-2 leading-relaxed">
+                                  {(selectedProdObj as any).description}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Variant Selector + Quantity */}
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2 border-t border-[#E4E7E1]">
+                            {selectedVariants.length > 0 ? (
+                              <div className="sm:col-span-8 space-y-1.5">
+                                <label className="block text-[11px] font-semibold text-[#202820]">
+                                  Selected Variant / Pack Size
+                                </label>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {selectedVariants.map((v: any, idx: number) => {
+                                    const isSelected = generalSelectedVariant === v.name;
+                                    return (
+                                      <button
+                                        key={v._id || v.name || idx}
+                                        type="button"
+                                        onClick={() => setGeneralSelectedVariant(v.name)}
+                                        className={`px-3 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
+                                          isSelected
+                                            ? 'bg-[#173F2B] text-white border-[#173F2B]'
+                                            : 'bg-white text-[#202820] border-[#E4E7E1] hover:border-[#173F2B]/50'
+                                        }`}
+                                      >
+                                        {formatVariantLabel(v.name)}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="sm:col-span-8 flex items-center text-[11px] text-[#6B756B]">
+                                Standard product pack selected
+                              </div>
+                            )}
+
+                            <div className="sm:col-span-4 space-y-1">
+                              <label className="block text-[11px] font-semibold text-[#202820]">
+                                Quantity (Units)
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                value={generalQuantity}
+                                onChange={(e) => setGeneralQuantity(e.target.value)}
+                                className="w-full px-3 py-1.5 bg-white border border-[#E4E7E1] rounded-lg text-xs font-semibold text-[#202820] focus:outline-none focus:border-[#173F2B]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Product Selector Dropdown */}
+                      <div>
+                        <label className="block text-xs font-semibold text-[#202820] mb-1">
+                          Interested Product {selectedProdObj || quoteModalInitialProduct ? '' : '(Optional)'}
+                        </label>
+                        <select
+                          value={generalSelectedProductId}
+                          onChange={(e) => {
+                            const nextId = e.target.value;
+                            setGeneralSelectedProductId(nextId);
+                            const nextProd: any = catalogList.find((p) => String(p._id) === String(nextId));
+                            const nextVars = Array.isArray(nextProd?.variants) ? nextProd.variants : [];
+                            setGeneralSelectedVariant(nextVars[0]?.name || '');
+                          }}
+                          className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
+                        >
+                          <option value="">
+                            -- None / General Inquiry or Question --
+                          </option>
+                          {catalogList.map((p) => (
+                            <option key={p._id} value={p._id}>
+                              {formatProductDisplayName(p.name)} {p.category ? `(${p.category})` : ''}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="text-[11px] text-[#64748B] block mt-1">
+                          Product details and selected variant will be saved under Admin Enquiries → General Enquiry.
+                        </span>
+                      </div>
+
+                      {/* Enquiry Notes */}
+                      <div>
+                        <label className="block text-xs font-semibold text-[#202820] mb-1">
+                          Your Enquiry / Message {selectedProdObj || quoteModalInitialProduct ? '(Optional)' : '*'}
+                        </label>
+                        <textarea
+                          rows={3}
+                          required={!selectedProdObj && !quoteModalInitialProduct}
+                          placeholder={
+                            selectedProdObj || quoteModalInitialProduct
+                              ? `Ask about pricing, delivery, COA, or bulk availability for ${formatProductDisplayName(
+                                  selectedProdObj?.name || quoteModalInitialProduct || ''
+                                )}...`
+                              : 'How can we assist you? Tell us about your query, requirement, retail availability, or questions...'
+                          }
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                          className="w-full px-3 py-2.5 bg-[#FFFCFB] border border-[#E8EDF2] rounded-xl text-xs text-[#202820] focus:outline-none focus:border-[#173F2B]"
+                        />
+                      </div>
+                    </div>
+                  );
+                })()
               )}
 
               {/* Submit Button */}

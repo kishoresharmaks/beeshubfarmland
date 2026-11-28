@@ -925,11 +925,11 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
     setProductFormError('');
 
     if (
-      !productForm.name ||
-      !productForm.description ||
+      !productForm.name.trim() ||
+      !productForm.description.trim() ||
       !productForm.image ||
-      !productForm.mrp ||
-      !productForm.price ||
+      productForm.mrp === '' ||
+      productForm.price === '' ||
       !productForm.category
     ) {
       setProductFormError('Please fill in all required fields, select a category, and upload an image.');
@@ -2997,11 +2997,14 @@ const compressImage = (file: File, maxWidth = 800, quality = 0.8): Promise<strin
                       type="number"
                       required
                       min="0"
-                      placeholder="699"
+                      placeholder="699 (or 0 for Enquiry only)"
                       value={productForm.price}
                       onChange={(e) => setProductForm({ ...productForm, price: e.target.value })}
                       className="w-full px-4 py-2.5 rounded-xl border border-[#E8EDF2] text-sm focus:outline-none focus:border-[#ED3500]"
                     />
+                    <p className="text-[10px] text-[#64748B]">
+                      Set to <strong>0</strong> to sell via Enquiry (&ldquo;Click to Enquire&rdquo;) instead of Add to Cart.
+                    </p>
                   </div>
 
                   <div className="space-y-1">

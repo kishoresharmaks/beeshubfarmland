@@ -51,7 +51,7 @@ export async function POST(request: Request) {
       website_url, // Honeypot field
     } = body;
 
-    const isGeneralEnquiry = inquiryType === 'GENERAL';
+    const isGeneralEnquiry = inquiryType === 'GENERAL' || enquiryCategory === 'GENERAL';
 
     // Honeypot check: If bot filled website_url, silently discard and return success
     if (website_url && typeof website_url === 'string' && website_url.trim().length > 0) {
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
         .map((item) => ({
           productId: item.productId || '',
           productName: String(item.productName).trim(),
+          variantName: item.variantName ? String(item.variantName).trim() : '',
           quantity: Math.max(1, Number(item.quantity)),
           unit: ['KG', 'LITRE', 'CASES', 'PIECES'].includes(item.unit) ? item.unit : 'KG',
           targetPrice: item.targetPrice ? Number(item.targetPrice) : undefined,

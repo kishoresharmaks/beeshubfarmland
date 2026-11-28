@@ -36,6 +36,7 @@ export type EnquiryCategory = 'WHOLESALE' | 'PRIVATE_LABEL' | 'GIFT_HAMPER' | 'G
 interface WholesaleItem {
   productId?: string;
   productName: string;
+  variantName?: string;
   quantity: number;
   unit: string;
   targetPrice?: number;
@@ -300,7 +301,7 @@ export default function WholesaleLeadsTab({ onLeadsUpdated }: WholesaleLeadsTabP
         };
       case 'GENERAL':
         return {
-          label: 'General / Support',
+          label: 'General Enquiry',
           icon: MessageCircle,
           className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         };
@@ -322,7 +323,10 @@ export default function WholesaleLeadsTab({ onLeadsUpdated }: WholesaleLeadsTabP
     } else if (lead.enquiryCategory === 'GIFT_HAMPER') {
       text = `Hello ${lead.contactPerson},\n\nThis is BeesHub Farmland Gifting Desk regarding your event gift hamper inquiry for ${lead.companyName}.\nWe received your request for ${lead.items.map((i) => `${i.productName} (${i.quantity} ${i.unit})`).join(', ')}.\n\nCould we discuss the event schedule and personalized chest engraving?`;
     } else if (lead.enquiryCategory === 'GENERAL') {
-      text = `Hello ${lead.contactPerson},\n\nThank you for reaching out to BeesHub Farmland. We received your website enquiry regarding: "${lead.notes || 'our products'}".\n\nHow can we best assist you today?`;
+      const itemsText = lead.items
+        .map((i) => `${i.productName}${i.variantName ? ` (${i.variantName})` : ''} × ${i.quantity}`)
+        .join(', ');
+      text = `Hello ${lead.contactPerson},\n\nThank you for reaching out to BeesHub Farmland. We received your enquiry for ${itemsText || 'our products'}${lead.notes ? ` ("${lead.notes}")` : ''}.\n\nHow can we best assist you today?`;
     } else {
       text = `Hello ${lead.contactPerson},\n\nThis is BeesHub Farmland Trade Desk regarding your bulk wholesale inquiry for ${lead.companyName}.\nWe have reviewed your request for ${lead.items.map((i) => `${i.productName} (${i.quantity} ${i.unit})`).join(', ')}.\n\nCould we discuss batch COA details, delivery timeline, and commercial pricing?`;
     }
@@ -379,7 +383,7 @@ export default function WholesaleLeadsTab({ onLeadsUpdated }: WholesaleLeadsTabP
           { id: 'PRIVATE_LABEL', label: 'Private Label', count: categoryCounts.PRIVATE_LABEL, icon: Tag },
           { id: 'GIFT_HAMPER', label: 'Gift Hampers', count: categoryCounts.GIFT_HAMPER, icon: Gift },
           { id: 'WHOLESALE', label: 'Bulk Wholesale', count: categoryCounts.WHOLESALE, icon: Package },
-          { id: 'GENERAL', label: 'General / Support', count: categoryCounts.GENERAL, icon: MessageCircle },
+          { id: 'GENERAL', label: 'General Enquiry', count: categoryCounts.GENERAL, icon: MessageCircle },
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = categoryFilter === tab.id;
@@ -569,13 +573,18 @@ export default function WholesaleLeadsTab({ onLeadsUpdated }: WholesaleLeadsTabP
                       <td className="py-3.5 px-4">
                         <div className="space-y-1">
                           {lead.items.slice(0, 2).map((it, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5 text-xs">
+                            <div key={idx} className="flex items-center flex-wrap gap-1.5 text-xs">
                               <span className="px-1.5 py-0.5 rounded-md bg-[#ED3500]/10 text-[#ED3500] font-black text-[10px]">
                                 {it.quantity} {it.unit}
                               </span>
                               <span className="font-bold text-[#163B5C] line-clamp-1 max-w-[180px]">
                                 {it.productName}
                               </span>
+                              {it.variantName && (
+                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-50 border border-emerald-200 text-emerald-800 font-bold text-[10px]">
+                                  {it.variantName}
+                                </span>
+                              )}
                             </div>
                           ))}
                           {lead.items.length > 2 && (
@@ -889,7 +898,14 @@ export default function WholesaleLeadsTab({ onLeadsUpdated }: WholesaleLeadsTabP
                       {inspectingLead.items.map((it, idx) => (
                         <div key={idx} className="p-2.5 flex items-center justify-between bg-[#FFFCFB]">
                           <div>
-                            <div className="font-bold text-[#163B5C]">{it.productName}</div>
+                            <div className="font-bold text-[#163B5C] flex items-center flex-wrap gap-1.5">
+                              <span>{it.productName}</span>
+                              {it.variantName && (
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-[10px] font-bold">
+                                  Variant: {it.variantName}
+                                </span>
+                              )}
+                            </div>
                             {it.targetPrice ? (
                               <div className="text-[10px] text-emerald-600">
                                 Customer target: ₹{it.targetPrice}/{it.unit}

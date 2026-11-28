@@ -11,6 +11,7 @@ import {
   RefreshCw,
   AlertCircle,
   CheckCircle2,
+  MessageCircle,
 } from 'lucide-react';
 import { useStore, Product } from '@/context/StoreContext';
 import {
@@ -18,6 +19,7 @@ import {
   getProductSlugUrl,
   extractPackSize,
   normalizeStoreCategory,
+  isEnquiryOnlyProduct,
 } from '@/lib/productFormatting';
 import SocialShareBar from './SocialShareBar';
 
@@ -34,8 +36,9 @@ function pickFeaturedShowcase(products: Product[], activeTab: string): Product[]
     return pool.slice(0, 8);
   }
 
-  // Prioritize distinct flagship lines across honey, powders, oils, and wellness
+  // Prioritize enquiry-only products and distinct flagship lines across honey, powders, oils, and wellness
   const priorityMatchers: Array<(p: Product) => boolean> = [
+    (p) => isEnquiryOnlyProduct(p, p.variants?.[0]),
     (p) => p.name.toLowerCase().includes('forest honey'),
     (p) => p.name.toLowerCase().includes('dates powder natural'),
     (p) => p.name.toLowerCase().includes('dates coffee'),
@@ -79,7 +82,7 @@ export function StorefrontProductCard({
   product: Product;
   hidePrice?: boolean;
 }) {
-  const { addToCart, setQuickViewProduct } = useStore();
+  const { addToCart, setQuickViewProduct, openQuoteModal } = useStore();
   const variants = product.variants && product.variants.length > 0 ? product.variants : [];
   const [selectedVariantIdx, setSelectedVariantIdx] = useState(0);
   const [imgSrc, setImgSrc] = useState(product.image || '/images/beeshub-logo.png');
@@ -88,8 +91,11 @@ export function StorefrontProductCard({
   const displayPrice = activeVariant ? activeVariant.price : product.price;
   const displayMrp = activeVariant ? activeVariant.mrp : product.mrp;
   const availableStock = activeVariant ? activeVariant.quantity : product.quantity;
+  const enquiryOnly = isEnquiryOnlyProduct(product, activeVariant);
   const discount =
-    activeVariant?.discount && activeVariant.discount > 0
+    enquiryOnly
+      ? 0
+      : activeVariant?.discount && activeVariant.discount > 0
       ? activeVariant.discount
       : displayMrp && displayMrp > displayPrice
       ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
@@ -151,10 +157,19 @@ export function StorefrontProductCard({
             <span className="font-medium text-[#A97843] truncate">{categoryLabel}</span>
             <span
               className={`font-semibold shrink-0 flex items-center gap-1 ${
-                availableStock > 0 ? 'text-[#173F2B]' : 'text-rose-700'
+                enquiryOnly
+                  ? 'text-[#A97843]'
+                  : availableStock > 0
+                  ? 'text-[#173F2B]'
+                  : 'text-rose-700'
               }`}
             >
-              {availableStock > 0 ? (
+              {enquiryOnly ? (
+                <>
+                  <MessageCircle className="w-3 h-3" />
+                  <span>Enquiry Only</span>
+                </>
+              ) : availableStock > 0 ? (
                 <>
                   <CheckCircle2 className="w-3 h-3" />
                   <span>In Stock</span>
@@ -208,13 +223,21 @@ export function StorefrontProductCard({
       <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-3 border-t border-[#E4E7E1] space-y-3">
         {!hidePrice && (
           <div className="flex items-baseline gap-2">
-            <span className="font-bold text-lg text-[#202820]">
-              ₹{displayPrice.toLocaleString('en-IN')}
-            </span>
-            {displayMrp && displayMrp > displayPrice && (
-              <span className="text-xs text-[#6B756B] line-through">
-                ₹{displayMrp.toLocaleString('en-IN')}
+            {enquiryOnly ? (
+              <span className="font-semibold text-sm text-[#173F2B]">
+                Price on Enquiry
               </span>
+            ) : (
+              <>
+                <span className="font-bold text-lg text-[#202820]">
+                  ₹{displayPrice.toLocaleString('en-IN')}
+                </span>
+                {displayMrp && displayMrp > displayPrice && (
+                  <span className="text-xs text-[#6B756B] line-through">
+                    ₹{displayMrp.toLocaleString('en-IN')}
+                  </span>
+                )}
+              </>
             )}
           </div>
         )}
@@ -227,15 +250,26 @@ export function StorefrontProductCard({
             View Product
           </Link>
 
-          <button
-            type="button"
-            disabled={availableStock <= 0}
-            onClick={() => addToCart(product, 1, activeVariant)}
-            className="py-2.5 px-3 rounded-full bg-[#173F2B] hover:bg-[#102E20] disabled:bg-slate-200 disabled:text-slate-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            <span>{availableStock > 0 ? 'Add to Cart' : 'Sold Out'}</span>
-          </button>
+          {enquiryOnly ? (
+            <button
+              type="button"
+              onClick={() => openQuoteModal(product.name, 'GENERAL', product._id, activeVariant?.name)}
+              className="py-2.5 px-3 rounded-full bg-[#A97843] hover:bg-[#173F2B] text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1"
+            >
+              <MessageCircle className="w-3.5 h-3.5 shrink-0" />
+              <span>Click to Enquire</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled={availableStock <= 0}
+              onClick={() => addToCart(product, 1, activeVariant)}
+              className="py-2.5 px-3 rounded-full bg-[#173F2B] hover:bg-[#102E20] disabled:bg-slate-200 disabled:text-slate-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-1"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{availableStock > 0 ? 'Add to Cart' : 'Sold Out'}</span>
+            </button>
+          )}
         </div>
       </div>
     </article>

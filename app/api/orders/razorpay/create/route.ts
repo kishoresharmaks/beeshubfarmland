@@ -91,8 +91,21 @@ export async function POST(request: NextRequest) {
           );
         }
 
-        unitPrice = Number(matchingVariant.price) || unitPrice;
+        unitPrice =
+          matchingVariant.price !== undefined && matchingVariant.price !== null
+            ? Number(matchingVariant.price)
+            : unitPrice;
         availableStock = Number(matchingVariant.quantity) || 0;
+      }
+
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: `"${product.name}" requires an enquiry instead of online checkout.`,
+          },
+          { status: 400 }
+        );
       }
 
       if (availableStock < requestedQty) {

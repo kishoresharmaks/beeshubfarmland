@@ -36,8 +36,10 @@ const VariantSchema: Schema = new Schema({
 
 // Pre-save hook on variant to calculate discount percentage
 VariantSchema.pre('save', function (this: any, next) {
-  if (this.mrp && this.price && this.mrp > this.price) {
+  if (this.mrp > 0 && this.price > 0 && this.mrp > this.price) {
     this.discount = Math.round(((Number(this.mrp) - Number(this.price)) / Number(this.mrp)) * 100);
+  } else if (Number(this.price) <= 0) {
+    this.discount = 0;
   }
   next();
 });
@@ -67,8 +69,10 @@ ProductSchema.index({ name: 'text', description: 'text' });
 
 // Pre-save hook to calculate discount percentage if not manually specified
 ProductSchema.pre('save', function (this: IProduct, next) {
-  if (this.mrp && this.price && this.mrp > this.price) {
+  if (this.mrp > 0 && this.price > 0 && this.mrp > this.price) {
     this.discount = Math.round(((this.mrp - this.price) / this.mrp) * 100);
+  } else if (Number(this.price) <= 0) {
+    this.discount = 0;
   }
   next();
 });
